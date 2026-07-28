@@ -80,7 +80,8 @@ export function buildOutcomesFromOutput(
   };
 
   for (const key of keys) {
-    const { engineEffects } = mapScenarioEffects(economyVariableChanges[key].effects);
+    const effects = economyVariableChanges?.[key]?.effects ?? [];
+    const { engineEffects } = mapScenarioEffects(effects);
     const preview = previewMappedEffects(baseEconomy, engineEffects);
     outcomes[key] = { mappedEngineEffects: engineEffects, boundsWarnings: preview.boundsWarnings };
   }

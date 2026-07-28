@@ -79,9 +79,11 @@ export function EventStudioWorkflow() {
   }
 
   const mappedEffects = useMemo(() => {
-    if (!draft?.studioOutput) return [];
+    if (!draft?.studioOutput?.economyVariableChanges) return [];
     const key = draft.selection?.selectedOutcome ?? selectedPreview;
-    return draft.studioOutput.economyVariableChanges[key].effects.flatMap(mapStudioEffectToEngine);
+    const effects = draft.studioOutput.economyVariableChanges[key]?.effects;
+    if (!effects?.length) return [];
+    return effects.flatMap(mapStudioEffectToEngine);
   }, [draft, selectedPreview]);
 
   const api = useCallback(

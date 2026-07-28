@@ -6,6 +6,7 @@ import { getOpenAiConfig } from "@/lib/integrations/config";
 import { IntegrationError } from "@/lib/integrations/errors";
 import { isFixtureFallbackAllowed } from "@/lib/bsp/runtime-config";
 import { applyKoreanScenarioLabels, SCENARIO_LABEL_KO } from "./scenario-labels";
+import { normalizeStudioOutput } from "./normalize-studio-output";
 
 export interface GenerateMeta {
   model: string;
@@ -25,12 +26,13 @@ function hashPrompt(input: EventStudioInput): string {
   return `sha256:${createHash("sha256").update(payload).digest("hex").slice(0, 16)}`;
 }
 
-function enrichOutput(output: EventScenarioStudioOutput, input: EventStudioInput): EventScenarioStudioOutput {
+function enrichOutput(output: Partial<EventScenarioStudioOutput>, input: EventStudioInput): EventScenarioStudioOutput {
+  const normalized = normalizeStudioOutput(output);
   return applyKoreanScenarioLabels({
-    ...output,
+    ...normalized,
     meta: {
-      ...output.meta,
-      sourcePromptHash: output.meta.sourcePromptHash ?? hashPrompt(input),
+      ...normalized.meta,
+      sourcePromptHash: normalized.meta.sourcePromptHash ?? hashPrompt(input),
       targetIndustry: input.targetIndustry,
       targetMarketOrRegion: input.targetMarketOrRegion,
       expectedDuration: input.expectedDuration,
@@ -189,7 +191,7 @@ export async function generateScenarioOutput(input: EventStudioInput): Promise<G
       });
     }
 
-    const parsed = JSON.parse(text) as EventScenarioStudioOutput;
+    const parsed = JSON.parse(text) as Partial<EventScenarioStudioOutput>;
     return {
       studioOutput: enrichOutput(parsed, input),
       meta: {

@@ -5,6 +5,7 @@ import type { EventApplyTiming } from "@/src/bsp/domain/events/event-types";
 import { notifyNewsPublished } from "@/src/bsp/infrastructure/realtime/realtime-broadcaster";
 import { getDraftStore } from "./draft-store";
 import { generateScenarioOutput } from "./openai-generator";
+import { normalizeStudioOutput } from "./normalize-studio-output";
 import { buildOutcomesFromOutput, previewMappedEffects } from "./bounds-preview";
 import { buildCustomEventTemplate } from "./custom-event-builder";
 import { onIntelligenceEventActivated } from "@/lib/v2/intelligence/publish-lifecycle-hook";
@@ -65,27 +66,28 @@ export class ScenarioStudioService {
     await this.requireRunningSession(draft.sessionId);
 
     const { studioOutput, meta } = await generateScenarioOutput(draft.input);
+    const normalizedOutput = normalizeStudioOutput(studioOutput);
     const desk = await this.engine().getGmDesk(draft.sessionId);
-    const outcomePreview = buildOutcomesFromOutput(studioOutput.economyVariableChanges, desk.economy);
+    const outcomePreview = buildOutcomesFromOutput(normalizedOutput.economyVariableChanges, desk.economy);
 
-    draft.studioOutput = studioOutput;
+    draft.studioOutput = normalizedOutput;
     draft.outcomes = {
       pessimistic: {
         scenarioKey: "pessimistic",
-        outlook: studioOutput.scenarios.pessimistic,
-        effects: studioOutput.economyVariableChanges.pessimistic.effects,
+        outlook: normalizedOutput.scenarios.pessimistic,
+        effects: normalizedOutput.economyVariableChanges.pessimistic.effects,
         mappedEngineEffects: outcomePreview.pessimistic.mappedEngineEffects,
       },
       neutral: {
         scenarioKey: "neutral",
-        outlook: studioOutput.scenarios.neutral,
-        effects: studioOutput.economyVariableChanges.neutral.effects,
+        outlook: normalizedOutput.scenarios.neutral,
+        effects: normalizedOutput.economyVariableChanges.neutral.effects,
         mappedEngineEffects: outcomePreview.neutral.mappedEngineEffects,
       },
       optimistic: {
         scenarioKey: "optimistic",
-        outlook: studioOutput.scenarios.optimistic,
-        effects: studioOutput.economyVariableChanges.optimistic.effects,
+        outlook: normalizedOutput.scenarios.optimistic,
+        effects: normalizedOutput.economyVariableChanges.optimistic.effects,
         mappedEngineEffects: outcomePreview.optimistic.mappedEngineEffects,
       },
     };
@@ -106,7 +108,7 @@ export class ScenarioStudioService {
           ...outcomePreview.neutral.boundsWarnings,
           ...outcomePreview.optimistic.boundsWarnings,
         ],
-        isEstimate: studioOutput.meta.isEstimate,
+        isEstimate: normalizedOutput.meta.isEstimate,
       },
       meta,
     };
