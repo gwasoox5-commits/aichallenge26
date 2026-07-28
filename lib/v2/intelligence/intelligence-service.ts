@@ -1,7 +1,7 @@
 import type { GmActor } from "@/src/bsp/domain/gm/audit-types";
 import type { ScenarioKey } from "@/lib/v2/event-studio/types";
-import { IntegrationError, unwrapIntegrationError } from "@/lib/integrations/errors";
 import { getFixtureArticle, listFixtureArticles, searchFixtureArticlesEducational, searchNews } from "./news-adapter";
+import { GoogleNewsRssAdapter } from "./google-news-rss-adapter";
 import { analyzeNewsArticles } from "./openai-analyzer";
 import { generateIntelligenceScenarios } from "./scenario-generator";
 import { generateConsultantBriefing } from "./consultant-generator";
@@ -195,28 +195,24 @@ export function resetIntelligenceService() {
   globalRef.v2IntelligenceService = new IntelligenceService();
 }
 
-function formatGNewsFailureNote(e: unknown): string {
-  const root = unwrapIntegrationError(e);
-  if (!root) {
-    return "뉴스 Provider를 사용할 수 없어 교육용 샘플 뉴스를 표시합니다.";
-  }
-  switch (root.code) {
-    case "PROVIDER_DISABLED":
-      return "뉴스 Provider가 비활성화되어 있습니다. Railway에 BSP_NEWS_PROVIDER=google-rss 를 설정하세요.";
-    case "API_KEY_INVALID":
-      return `${root.message} 교육용 샘플 뉴스를 표시합니다.`;
-    case "QUOTA_EXCEEDED":
-    case "RATE_LIMITED":
-      return `${root.message} 교육용 샘플 뉴스를 표시합니다.`;
-    default:
-      return `GNews 연결 실패 (${root.message}). 교육용 샘플 뉴스를 표시합니다.`;
-  }
-}
-
 export async function searchNewsForIntelligence(
   query: NewsSearchQuery,
   sessionId?: string
 ): Promise<NewsSearchResult> {
+  const rssAdapter = new GoogleNewsRssAdapter();
+
+  try {
+    const rssResult = await rssAdapter.search(query);
+    if (rssResult.articles.length > 0) {
+      if (sessionId) {
+        getIntelligenceSessionStore().cacheArticles(sessionId, rssResult.articles);
+      }
+      return rssResult;
+    }
+  } catch {
+    /* fall through to configured provider / educational fallback */
+  }
+
   try {
     const live = await searchNews(query);
     if (live.articles.length > 0) {
@@ -225,29 +221,18 @@ export async function searchNewsForIntelligence(
       }
       return live;
     }
-
-    const fallback = searchFixtureArticlesEducational(query);
-    if (sessionId && fallback.articles.length > 0) {
-      getIntelligenceSessionStore().cacheArticles(sessionId, fallback.articles);
-    }
-    return {
-      ...fallback,
-      degraded: true,
-      note:
-        "실시간 뉴스를 찾지 못했습니다. 키워드를 줄이거나 다른 단어로 다시 검색하세요. 교육용 샘플 뉴스를 표시합니다.",
-    };
-  } catch (e) {
-    const fallback = searchFixtureArticlesEducational(query);
-    if (sessionId && fallback.articles.length > 0) {
-      getIntelligenceSessionStore().cacheArticles(sessionId, fallback.articles);
-    }
-    const root = unwrapIntegrationError(e);
-    const errorMessage = root?.message ?? (e instanceof Error ? e.message : "News search failed");
-    return {
-      ...fallback,
-      degraded: true,
-      errorMessage,
-      note: formatGNewsFailureNote(e),
-    };
+  } catch {
+    /* fall through to educational fallback */
   }
+
+  const fallback = searchFixtureArticlesEducational(query);
+  if (sessionId && fallback.articles.length > 0) {
+    getIntelligenceSessionStore().cacheArticles(sessionId, fallback.articles);
+  }
+  return {
+    ...fallback,
+    degraded: true,
+    note:
+      "Google News RSS에서 실시간 뉴스를 찾지 못했습니다. Railway에 BSP_NEWS_PROVIDER=google-rss 설정을 확인하세요. 교육용 샘플 뉴스를 표시합니다.",
+  };
 }

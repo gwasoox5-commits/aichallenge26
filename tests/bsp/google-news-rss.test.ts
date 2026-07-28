@@ -4,6 +4,7 @@ import { join } from "node:path";
 import {
   buildGoogleNewsRssAttempts,
   buildGoogleNewsRssUrl,
+  isLikelyRssXml,
   parseGoogleNewsRss,
 } from "@/lib/v2/intelligence/google-news-rss";
 import { expandKeywordsForEnglishSearch, hasHangul } from "@/lib/v2/intelligence/gnews-query";
@@ -50,6 +51,11 @@ describe("google-news-rss", () => {
     expect(items.length).toBe(2);
     expect(items[0]?.title).toBe("미국·이란 긴장 고조");
     expect(items[0]?.source).toBe("Reuters");
+  });
+
+  it("detects non-RSS HTML responses", () => {
+    expect(isLikelyRssXml("<!DOCTYPE html><html><body>blocked</body></html>")).toBe(false);
+    expect(isLikelyRssXml(fixtureXml)).toBe(true);
   });
 });
 

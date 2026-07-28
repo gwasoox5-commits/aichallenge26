@@ -40,6 +40,10 @@ export function getNewsConfig() {
   if (rawProvider === "fixture" && isProductionRuntime()) {
     provider = "google-rss";
   }
+  // Intelligence workflow uses Google News RSS directly; keep global default on RSS unless explicitly gnews.
+  if (rawProvider === "gnews" && !apiKey) {
+    provider = "google-rss";
+  }
   const isGoogleRss = provider === "google-rss" || provider === "google-news-rss";
   const isGnews = provider === "gnews";
   return {

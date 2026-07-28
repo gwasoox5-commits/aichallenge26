@@ -17,6 +17,7 @@ import { scoreScenarioQuality, qualityBadgeTone } from "@/lib/v2/intelligence/qu
 import { CURRENT_PROMPT_VERSION, resolvePromptVersion, PROMPT_VERSIONS } from "@/lib/v2/intelligence/prompt-registry";
 import { IntelligenceLibraryStore } from "@/lib/v2/intelligence/library-store";
 import { IntelligenceSessionStore, getIntelligenceSessionStore, resetIntelligenceSessionStore } from "@/lib/v2/intelligence/session-store";
+import { GoogleNewsRssAdapter } from "@/lib/v2/intelligence/google-news-rss-adapter";
 import {
   getIntelligenceService,
   resetIntelligenceService,
@@ -321,9 +322,13 @@ describe("V2.3 Citation & Confidence", () => {
 });
 
 describe("V2.3 Intelligence news fallback", () => {
-  it("falls back to educational fixtures when live search returns empty", async () => {
-    const newsModule = await import("@/lib/v2/intelligence/news-adapter");
-    const spy = vi.spyOn(newsModule, "searchNews").mockResolvedValue({
+  it("falls back to educational fixtures when Google RSS returns empty", async () => {
+    const spy = vi.spyOn(GoogleNewsRssAdapter.prototype, "search").mockResolvedValue({
+      articles: [],
+      provider: "google-news-rss",
+      usedFixture: false,
+    });
+    vi.spyOn(await import("@/lib/v2/intelligence/news-adapter"), "searchNews").mockResolvedValue({
       articles: [],
       provider: "gnews",
       usedFixture: false,
@@ -338,9 +343,9 @@ describe("V2.3 Intelligence news fallback", () => {
     spy.mockRestore();
   });
 
-  it("falls back to educational fixtures when live provider throws", async () => {
-    const newsModule = await import("@/lib/v2/intelligence/news-adapter");
-    const spy = vi.spyOn(newsModule, "searchNews").mockRejectedValue(
+  it("falls back to educational fixtures when Google RSS throws", async () => {
+    vi.spyOn(GoogleNewsRssAdapter.prototype, "search").mockRejectedValue(new Error("network"));
+    vi.spyOn(await import("@/lib/v2/intelligence/news-adapter"), "searchNews").mockRejectedValue(
       Object.assign(new Error("PROVIDER_DISABLED"), { code: "PROVIDER_DISABLED" })
     );
 
@@ -348,12 +353,17 @@ describe("V2.3 Intelligence news fallback", () => {
     expect(result.usedFixture).toBe(true);
     expect(result.degraded).toBe(true);
     expect(result.articles.length).toBeGreaterThan(0);
-    expect(result.note).toContain("Provider");
 
-    spy.mockRestore();
+    vi.restoreAllMocks();
   });
 
   it("caches articles on successful intelligence search", async () => {
+    vi.spyOn(GoogleNewsRssAdapter.prototype, "search").mockResolvedValue({
+      articles: articles.slice(0, 2),
+      provider: "google-news-rss",
+      usedFixture: false,
+    });
+
     const svc = getIntelligenceService();
     const result = await svc.searchNews({ keywords: ["관세"] }, SESSION);
     expect(result.articles.length).toBeGreaterThan(0);
@@ -362,6 +372,8 @@ describe("V2.3 Intelligence news fallback", () => {
     for (const article of result.articles) {
       expect(store.getCachedArticle(SESSION, article.id)?.id).toBe(article.id);
     }
+
+    vi.restoreAllMocks();
   });
 });
 

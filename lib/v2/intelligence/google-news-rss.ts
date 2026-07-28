@@ -153,8 +153,14 @@ export function stableGoogleRssArticleId(url: string, index: number): string {
 
 export function rssRequestHeaders(locale: GoogleNewsRssLocale): Record<string, string> {
   return {
-    "User-Agent": "Mozilla/5.0 (compatible; BSP-Intelligence/1.0)",
+    "User-Agent":
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
     Accept: "application/rss+xml, application/xml, text/xml;q=0.9, */*;q=0.8",
     "Accept-Language": locale.hl === "ko" ? "ko-KR,ko;q=0.9,en;q=0.8" : "en-US,en;q=0.9",
   };
+}
+
+export function isLikelyRssXml(xml: string): boolean {
+  const trimmed = xml.trimStart();
+  return trimmed.startsWith("<?xml") || trimmed.startsWith("<rss") || trimmed.includes("<channel");
 }

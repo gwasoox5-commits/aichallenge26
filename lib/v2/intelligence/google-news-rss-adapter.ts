@@ -4,6 +4,7 @@ import type { NewsAdapter } from "./news-adapter";
 import {
   buildGoogleNewsRssAttempts,
   buildGoogleNewsRssUrl,
+  isLikelyRssXml,
   parseGoogleNewsRss,
   rssRequestHeaders,
   stableGoogleRssArticleId,
@@ -27,6 +28,9 @@ export class GoogleNewsRssAdapter implements NewsAdapter {
     }
 
     const xml = await res.text();
+    if (!isLikelyRssXml(xml)) {
+      return [];
+    }
     const parsed = parseGoogleNewsRss(xml);
     const fetchedAt = new Date().toISOString();
 
