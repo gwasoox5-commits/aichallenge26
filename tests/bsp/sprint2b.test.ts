@@ -426,6 +426,14 @@ describe("Sprint 2B — Join Code & GM", () => {
     expect(company.sessionId).toBe(session.id);
   });
 
+  it("joinGame reuses wizard pre-created team slot", async () => {
+    const session = await engine.createSession("Wizard Class", { teamNames: ["Alpha", "Bravo"] });
+    expect((await engine.listSessionCompanies(session.id))).toHaveLength(2);
+    const { company } = await engine.joinGame(session.joinCode, "Alpha");
+    expect(company.teamName).toBe("Alpha");
+    expect((await engine.listSessionCompanies(session.id))).toHaveLength(2);
+  });
+
   it("findSessionByJoinCode resolves session", async () => {
     const session = await engine.createSession("Class C");
     const found = await engine.findSessionByJoinCode(session.joinCode);

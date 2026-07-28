@@ -147,7 +147,13 @@ export class GameEngine {
 
   async joinGame(joinCode: string, teamName: string) {
     const session = await this.findSessionByJoinCode(joinCode);
-    const result = await this.createCompany(teamName, session.id);
+    const trimmed = teamName.trim();
+    const existing = (await this.repos.company.listBySession(session.id)).find(
+      (c) => c.teamName === trimmed,
+    );
+    const result = existing
+      ? { company: existing, session }
+      : await this.createCompany(trimmed, session.id);
     await this.audit.log(
       session.id,
       { userId: result.company.id, role: "CEO" },
