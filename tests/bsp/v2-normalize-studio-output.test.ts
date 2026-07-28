@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { normalizeStudioOutput, sanitizeStudioEffects } from "@/lib/v2/event-studio/normalize-studio-output";
 import { mapStudioEffectToEngine } from "@/lib/v2/event-studio/variable-mapper";
+import type { EventScenarioStudioOutput } from "@/lib/v2/event-studio/types";
 
 describe("normalizeStudioOutput", () => {
   it("fills missing economyVariableChanges from fixture defaults", () => {
@@ -56,7 +57,7 @@ describe("normalizeStudioOutput", () => {
           effects: [{ key: "notARealKey", mode: "PERCENT", value: 10, rationale: "bad" } as never],
         },
       },
-    });
+    } as unknown as Partial<EventScenarioStudioOutput>);
     expect(normalized.economyVariableChanges.pessimistic.effects.length).toBeGreaterThan(0);
     expect(
       normalized.economyVariableChanges.pessimistic.effects.every((e) => mapStudioEffectToEngine(e).length >= 0)

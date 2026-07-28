@@ -1,0 +1,19 @@
+name: Deploy Railway
+
+on:
+  workflow_dispatch:
+
+# Manual deploy fallback when Railway GitHub auto-deploy is disconnected.
+# Requires GitHub secret RAILWAY_TOKEN (Railway Project Settings → Tokens).
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    container: ghcr.io/railwayapp/cli:latest
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Railway
+        run: railway up --detach --ci
