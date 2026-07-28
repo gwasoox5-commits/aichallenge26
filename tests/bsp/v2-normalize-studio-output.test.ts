@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { normalizeStudioOutput } from "@/lib/v2/event-studio/normalize-studio-output";
+import { normalizeStudioOutput, sanitizeStudioEffects } from "@/lib/v2/event-studio/normalize-studio-output";
+import { mapStudioEffectToEngine } from "@/lib/v2/event-studio/variable-mapper";
 
 describe("normalizeStudioOutput", () => {
   it("fills missing economyVariableChanges from fixture defaults", () => {
@@ -46,4 +47,36 @@ describe("normalizeStudioOutput", () => {
     expect(normalized.economyVariableChanges.neutral.effects.length).toBeGreaterThan(0);
     expect(normalized.economyVariableChanges.optimistic.effects.length).toBeGreaterThan(0);
   });
+
+  it("drops unknown effect keys and falls back to fixture when all invalid", () => {
+    const normalized = normalizeStudioOutput({
+      meta: FIXTURE_META,
+      economyVariableChanges: {
+        pessimistic: {
+          effects: [{ key: "notARealKey", mode: "PERCENT", value: 10, rationale: "bad" } as never],
+        },
+      },
+    });
+    expect(normalized.economyVariableChanges.pessimistic.effects.length).toBeGreaterThan(0);
+    expect(
+      normalized.economyVariableChanges.pessimistic.effects.every((e) => mapStudioEffectToEngine(e).length >= 0)
+    ).toBe(true);
+  });
+
+  it("sanitizes invalid studio effect keys without throwing", () => {
+    const mapped = sanitizeStudioEffects([
+      { key: "bogusKey", mode: "PERCENT", value: 5, rationale: "x" },
+      { key: "demand", mode: "PERCENT", value: -5, rationale: "ok" },
+    ]).flatMap(mapStudioEffectToEngine);
+    expect(mapped.length).toBe(1);
+    expect(mapped[0]?.key).toBe("marketDemandIndex");
+  });
 });
+
+const FIXTURE_META = {
+  title: "테스트",
+  summary: "테스트 요약입니다. OpenAI 응답 정규화 검증용입니다.",
+  category: "정부정책",
+  confidenceLabel: "MEDIUM" as const,
+  isEstimate: true,
+};

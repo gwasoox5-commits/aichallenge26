@@ -27,11 +27,18 @@ export const STUDIO_TO_ENGINE_MAP: Record<
   businessCycleIndex: [{ engineKey: "businessCycleIndex" }],
 };
 
+const VALID_STUDIO_KEYS = new Set<string>(Object.keys(STUDIO_TO_ENGINE_MAP));
+
+export function isStudioVariableKey(key: string): key is StudioVariableKey {
+  return VALID_STUDIO_KEYS.has(key);
+}
+
 export function mapStudioEffectToEngine(
   effect: StudioVariableEffect,
   splitFactor = 0.5
 ): EconomyPatchEffect[] {
   const targets = STUDIO_TO_ENGINE_MAP[effect.key];
+  if (!targets?.length) return [];
   return targets.map((t, i) => {
     let value = effect.value;
     if (effect.key === "interestRate" && t.engineKey === "interestRateDeposit") {

@@ -30,7 +30,7 @@ export function buildCustomEventTemplate(
     category: mapStudioCategory(output.meta.category),
     educationPurpose: output.meta.summary,
     learningPoints: output.assumptions.slice(0, 3),
-    discussionQuestions: scenario.discussionQuestions,
+    discussionQuestions: scenario.discussionQuestions ?? [],
     normalEffects: effects,
     relatedSteps: ["SALES", "MATERIAL", "PRODUCTION"],
     severity: severityToNumber(scenario.severity),

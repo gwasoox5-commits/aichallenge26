@@ -138,7 +138,7 @@ export class ScenarioStudioService {
       economyPreview,
       valuesAfter: preview.valuesAfter,
       boundsCheck: preview.boundsWarnings,
-      affectedSteps: draft.studioOutput.impactPathways.flatMap((p) => p.affectedSteps),
+      affectedSteps: (draft.studioOutput.impactPathways ?? []).flatMap((p) => p.affectedSteps ?? []),
     };
   }
 
