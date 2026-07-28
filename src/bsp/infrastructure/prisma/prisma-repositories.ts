@@ -29,13 +29,16 @@ import { createPrismaSimulationEventRepository } from "./prisma-simulation-event
 import { DEFAULT_STEP_DURATION_SEC } from "../../domain/types";
 
 class PrismaSessionRepository implements SessionRepository {
+  private async ensureDefaultOrganization(): Promise<void> {
+    await bspPrisma.bspOrganization.upsert({
+      where: { id: DEFAULT_ORG_ID },
+      create: { id: DEFAULT_ORG_ID, name: "BSP Organization" },
+      update: {},
+    });
+  }
+
   async ensureDemoSession(): Promise<SessionAggregate> {
-    let org = await bspPrisma.bspOrganization.findUnique({ where: { id: DEFAULT_ORG_ID } });
-    if (!org) {
-      org = await bspPrisma.bspOrganization.create({
-        data: { id: DEFAULT_ORG_ID, name: "BSP Demo Organization" },
-      });
-    }
+    await this.ensureDefaultOrganization();
 
     let session = await bspPrisma.bspGameSession.findFirst({
       where: { organizationId: DEFAULT_ORG_ID, name: "Sprint 1 Demo" },
@@ -96,6 +99,8 @@ class PrismaSessionRepository implements SessionRepository {
     economyPresetId?: string;
     wizardMeta?: import("../../application/ports/repositories").SessionWizardMeta;
   }): Promise<SessionAggregate> {
+    await this.ensureDefaultOrganization();
+
     const session = await bspPrisma.bspGameSession.create({
       data: {
         organizationId: DEFAULT_ORG_ID,
