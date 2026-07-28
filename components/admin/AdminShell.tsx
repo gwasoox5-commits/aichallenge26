@@ -21,7 +21,7 @@ const NAV = [
   { href: "/world", label: "World Simulation", external: true },
   { href: "/admin/debrief", label: "디브리프" },
   { href: "/admin/audit", label: "운영 로그" },
-  { href: "/admin/pilot-check", label: "파일럿 점검" },
+  { href: "/admin/pilot-check", label: "시스템 점검" },
   { href: "/admin/integrations", label: "API 연동" },
 ];
 
@@ -157,7 +157,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <Link href="/" className="text-sm font-semibold text-slate-800">
             BSP Admin
           </Link>
-          <p className="mt-1 text-xs text-slate-500">파일럿 운영 콘솔</p>
+          <p className="mt-1 text-xs text-slate-500">Release 1.0 · 운영 콘솔</p>
         </div>
         <nav className="space-y-0.5 overflow-y-auto p-2">
           <AdminNavLinks pathname={pathname} />

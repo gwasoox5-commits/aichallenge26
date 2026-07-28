@@ -92,7 +92,7 @@ export function PilotCheckPanel() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold">파일럿 점검</h2>
+      <h2 className="text-xl font-semibold">시스템 점검</h2>
       <ul className="space-y-3">
         {items.map((item) => (
           <li key={item.id} className={`rounded-xl border p-4 ${statusBorder(item.status)}`}>

@@ -25,7 +25,7 @@ type WizardData = {
 };
 
 const INITIAL: WizardData = {
-  sessionName: "파일럿 교육 세션",
+  sessionName: "경영 시뮬레이션 세션",
   courseName: "경영 시뮬레이션",
   instructorName: "",
   expectedTeams: 5,
@@ -120,7 +120,7 @@ export function SessionWizard() {
           <Field label="교육명" value={data.courseName} onChange={(v) => update({ courseName: v })} />
           <Field label="강사명" value={data.instructorName} onChange={(v) => update({ instructorName: v })} />
           <Field label="예상 팀 수" value={String(data.expectedTeams)} onChange={(v) => update({ expectedTeams: Number(v) || 5 })} type="number" />
-          <Field label="파일럿 메모" value={data.pilotMemo} onChange={(v) => update({ pilotMemo: v })} multiline />
+          <Field label="운영 메모" value={data.pilotMemo} onChange={(v) => update({ pilotMemo: v })} multiline />
         </section>
       )}
 
@@ -142,7 +142,7 @@ export function SessionWizard() {
           <Toggle label="뉴스 확인 기능" checked={data.newsEnabled} onChange={(v) => update({ newsEnabled: v })} />
           <Toggle label="World Engine" checked={data.worldEngine} onChange={(v) => update({ worldEngine: v })} />
           <Toggle label="AI Intelligence" checked={data.aiIntelligence} onChange={(v) => update({ aiIntelligence: v })} />
-          <p className="text-xs text-slate-500">파일럿 기본: 1년 2반기 · 수동 진행 · GM 승인 필수</p>
+          <p className="text-xs text-slate-500">기본: 1년 2반기 · 수동 진행 · GM 승인 필수</p>
         </section>
       )}
 
