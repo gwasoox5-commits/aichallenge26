@@ -49,6 +49,8 @@ export interface RealtimeSyncHint {
   stepLocked?: boolean;
   periodLabel?: string;
   submitRatePercent?: number;
+  submittedTeamCount?: number;
+  totalTeamCount?: number;
   environmentChangedBadge?: boolean;
 }
 

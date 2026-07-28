@@ -452,6 +452,10 @@ export interface DashboardDto {
   currentStepSubmitted: boolean;
   stepDurationSec: number;
   economyLabel: string;
+  /** Session-wide current-step submission summary (filled by getDashboard) */
+  totalTeamCount?: number;
+  submittedTeamCount?: number;
+  submitRatePercent?: number;
 }
 
 export type GmTeamWarningStatus = "OK" | "NOT_SUBMITTED" | "BEHIND";

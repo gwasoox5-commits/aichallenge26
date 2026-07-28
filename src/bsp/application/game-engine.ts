@@ -34,6 +34,7 @@ import {
   notifyStepAdvanced,
   notifyStepLock,
   notifyStepReopened,
+  notifySubmitStats,
   notifyTeamSubmitted,
   notifyZeroSubmit,
 } from "../infrastructure/realtime/realtime-broadcaster";
@@ -171,7 +172,29 @@ export class GameEngine {
   async getDashboard(companyId: string) {
     const company = await this.requireCompany(companyId);
     const session = await this.requireSession(company.sessionId);
-    return this.dashboard.build(company, session);
+    const companies = await this.repos.company.listBySession(company.sessionId);
+    const stats = this.computeSessionSubmitStats(session, companies);
+    return {
+      ...this.dashboard.build(company, session),
+      ...stats,
+    };
+  }
+
+  private computeSessionSubmitStats(session: SessionAggregate, companies: CompanyAggregate[]) {
+    const currentStep = PHASE_TO_STEP[session.stepPhase];
+    let submittedTeamCount = 0;
+    for (const company of companies) {
+      const periodDecisions = company.decisions.filter(
+        (d) => d.periodId === session.periodId && d.status === "POSTED"
+      );
+      const submittedSteps = periodDecisions.map((d) => d.step);
+      const currentStepSubmitted = currentStep ? submittedSteps.includes(currentStep) : true;
+      if (currentStepSubmitted) submittedTeamCount += 1;
+    }
+    const totalTeamCount = companies.length;
+    const submitRatePercent =
+      totalTeamCount === 0 ? 100 : Math.round((submittedTeamCount / totalTeamCount) * 100);
+    return { totalTeamCount, submittedTeamCount, submitRatePercent };
   }
 
   async getFinancialStatements(companyId: string) {
@@ -263,14 +286,12 @@ export class GameEngine {
     const elapsedSec = Math.floor((now - session.stepStartedAt.getTime()) / 1000);
     const remainingTimeSec = Math.max(0, session.stepDurationSec - elapsedSec);
 
-    let submittedCount = 0;
     const teams = companies.map((c) => {
       const periodDecisions = c.decisions.filter(
         (d) => d.periodId === session.periodId && d.status === "POSTED"
       );
       const submitted = periodDecisions.map((d) => d.step);
       const currentStepSubmitted = currentStep ? submitted.includes(currentStep) : true;
-      if (currentStepSubmitted) submittedCount += 1;
 
       const missingSteps = ALL_GAME_STEPS.filter(
         (s) => s !== "SETTLEMENT" && s !== currentStep && !submitted.includes(s)
@@ -303,10 +324,11 @@ export class GameEngine {
       };
     });
 
-    const totalTeamCount = companies.length;
-    const submitRatePercent =
-      totalTeamCount === 0 ? 100 : Math.round((submittedCount / totalTeamCount) * 100);
-    const unsubmittedTeamCount = totalTeamCount - submittedCount;
+    const { totalTeamCount, submittedTeamCount, submitRatePercent } = this.computeSessionSubmitStats(
+      session,
+      companies
+    );
+    const unsubmittedTeamCount = totalTeamCount - submittedTeamCount;
 
     const ranking = companies
       .map((c) => ({
@@ -514,11 +536,17 @@ export class GameEngine {
       { companyId: company.id, teamName: company.teamName }
     );
     notifyTeamSubmitted(session.id, company.id, step, company.teamName);
+    const companies = await this.repos.company.listBySession(session.id);
+    const submitStats = this.computeSessionSubmitStats(session, companies);
+    notifySubmitStats(session.id, submitStats);
     return {
       decision,
       journal,
       statusVersion: newVersion,
-      dashboard: this.dashboard.build(company, session),
+      dashboard: {
+        ...this.dashboard.build(company, session),
+        ...submitStats,
+      },
     };
   }
 
@@ -704,6 +732,8 @@ export class GameEngine {
     } else {
       notifyZeroSubmit(sessionId, results.map((r) => r.companyId));
     }
+    const refreshedCompanies = await this.repos.company.listBySession(sessionId);
+    notifySubmitStats(sessionId, this.computeSessionSubmitStats(session, refreshedCompanies));
 
     return { submitted: results, step: currentStep };
   }

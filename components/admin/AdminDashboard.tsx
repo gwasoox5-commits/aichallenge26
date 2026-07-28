@@ -155,13 +155,13 @@ export function AdminDashboard({ sessionId, desk, onRefresh, onMessage, message 
                   })
                 }
               />
-              <Link href="/event-studio" className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50">
+              <Link href="/admin/event-studio" className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50">
                 이벤트 생성
               </Link>
-              <Link href="/event-studio/intelligence" className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50">
+              <Link href="/admin/intelligence" className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50">
                 Breaking News
               </Link>
-              <Link href="/world" className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50">
+              <Link href="/admin/world" className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50">
                 World Evolution
               </Link>
             </div>

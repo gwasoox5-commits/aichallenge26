@@ -80,6 +80,13 @@ export function notifyTeamSubmitted(sessionId: string, companyId: string, step: 
   broadcastRealtime(sessionId, REALTIME_EVENT_TYPES.RANKING_UPDATED, {});
 }
 
+export function notifySubmitStats(
+  sessionId: string,
+  stats: { submitRatePercent: number; submittedTeamCount: number; totalTeamCount: number }
+) {
+  pushSyncHint(sessionId, stats);
+}
+
 export function notifyAuditLog(sessionId: string, action: string) {
   broadcastRealtime(sessionId, REALTIME_EVENT_TYPES.AUDIT_LOG, { action });
 }

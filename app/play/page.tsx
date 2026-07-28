@@ -64,6 +64,9 @@ type Dashboard = {
   currentStepSubmitted?: boolean;
   stepDurationSec?: number;
   economyLabel?: string;
+  totalTeamCount?: number;
+  submittedTeamCount?: number;
+  submitRatePercent?: number;
   openBranches?: string[];
   settlementComplete?: boolean;
   journalsLocked?: boolean;
@@ -450,6 +453,9 @@ export default function PlayPage() {
                   stepLabel={stepLabel}
                   newsItems={newsItems}
                   cashManwon={dashboard.cashManwon}
+                  submittedTeams={dashboard.submittedTeamCount}
+                  totalTeams={dashboard.totalTeamCount}
+                  submitRatePercent={dashboard.submitRatePercent}
                 />
               )}
 

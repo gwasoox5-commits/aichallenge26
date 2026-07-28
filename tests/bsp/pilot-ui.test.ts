@@ -318,6 +318,10 @@ describe("pilot submit rate tracking", () => {
     await submitStep(engine, c1.company.id, "LOAN", { loanEarly: 1, loanMid: 0, deposit: 0, loanRepayment: 0, step1UiPhase: "COMPLETE" });
     desk = await engine.getGmDesk(session.id);
     expect(desk.submitRatePercent).toBe(50);
+    const dash = await engine.getDashboard(c1.company.id);
+    expect(dash.submittedTeamCount).toBe(1);
+    expect(dash.totalTeamCount).toBe(2);
+    expect(dash.submitRatePercent).toBe(50);
   });
 });
 
