@@ -220,6 +220,7 @@ describe("V2.3 Prompt Registry", () => {
   it("has metadata for all versions", () => {
     expect(PROMPT_VERSIONS["v1.1"].analysis).toContain("citation");
     expect(PROMPT_VERSIONS["v1.2"].analysis).toContain("Korean");
+    expect(PROMPT_VERSIONS["v1.3"].scenarios).toContain("manufacturing");
   });
 });
 

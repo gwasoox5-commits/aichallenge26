@@ -6,6 +6,7 @@ import { getOpenAiConfig } from "@/lib/integrations/config";
 import { callOpenAiStructured } from "@/lib/integrations/openai-client";
 import { IntegrationError } from "@/lib/integrations/errors";
 import { KOREAN_OUTPUT_INSTRUCTIONS } from "./korean-output";
+import { MANUFACTURING_SIM_CONTEXT } from "./simulation-context";
 
 export interface ConsultantMeta {
   model: string;
@@ -48,7 +49,8 @@ function buildConsultantPrompt(
   promptVersion: PromptVersion
 ): string {
   return [
-    "Generate GM-only AI Management Consultant briefing for Korean instructors.",
+    "Generate GM-only AI Management Consultant briefing for a manufacturing company simulation.",
+    MANUFACTURING_SIM_CONTEXT,
     KOREAN_OUTPUT_INSTRUCTIONS,
     `Prompt version: ${promptVersion}`,
     `Summary: ${analysis.eventSummary}`,

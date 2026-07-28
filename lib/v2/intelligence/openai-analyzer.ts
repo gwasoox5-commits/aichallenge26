@@ -9,6 +9,7 @@ import { cacheKey, getCache, setCache, CACHE_TTL } from "@/lib/integrations/cach
 import type { ContentSourceKind } from "@/lib/integrations/types";
 import { normalizeIntelligenceAnalysis } from "./normalize-analysis-output";
 import { KOREAN_OUTPUT_INSTRUCTIONS } from "./korean-output";
+import { MANUFACTURING_SIM_CONTEXT } from "./simulation-context";
 
 export interface AnalysisMeta {
   model: string;
@@ -52,7 +53,8 @@ function buildAnalysisPrompt(articles: NewsArticle[], promptVersion: PromptVersi
     .map((a) => `[${a.id}] ${a.title} (${a.source})\nSummary: ${a.summary || "(none)"}\nURL: ${a.url}`)
     .join("\n\n");
   return [
-    "You are an educational business simulation analyst for Korean instructors.",
+    "You are a manufacturing business simulation analyst for Korean instructors.",
+    MANUFACTURING_SIM_CONTEXT,
     KOREAN_OUTPUT_INSTRUCTIONS,
     `Prompt version: ${promptVersion}`,
     `Content available: ${contentSource}. Do NOT claim full article analysis if only title/snippet provided.`,

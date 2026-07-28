@@ -13,7 +13,7 @@ export function ScenarioComparePanel({ scenarios, selected, onSelect }: Props) {
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-6">
       <h2 className="text-lg font-semibold text-violet-800">3. 시나리오 비교 (3-way)</h2>
-      <p className="mt-1 text-xs text-slate-500">확률이 아닌 교육용 what-if — GM 검토 후 Preview</p>
+      <p className="mt-1 text-xs text-slate-500">제조 기업 what-if (교육용) — GM 검토 후 Preview</p>
       <div className="mt-4 grid gap-3 lg:grid-cols-3">
         {scenarios.map((s) => (
           <button

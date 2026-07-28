@@ -1,6 +1,6 @@
 import type { PromptVersion } from "./types";
 
-export const CURRENT_PROMPT_VERSION: PromptVersion = "v1.2";
+export const CURRENT_PROMPT_VERSION: PromptVersion = "v1.3";
 
 export const PROMPT_VERSIONS: Record<
   PromptVersion,
@@ -30,10 +30,19 @@ export const PROMPT_VERSIONS: Record<
     consultant:
       "Generate GM-only AI Management Consultant briefing entirely in Korean: risks, opportunities, division impacts, CEO priorities, student mistakes, discussion/debrief questions, learning objectives.",
   },
+  "v1.3": {
+    releasedAt: "2026-07-29",
+    analysis:
+      "Analyze news for Korean manufacturing business simulation (제조 경영). Korean output. NOT education-sector analysis unless news is about that sector.",
+    scenarios:
+      "Three what-if scenarios for a manufacturing firm in Korean. Map to studio economy variables. No education-industry outcomes unless news-specific.",
+    consultant:
+      "GM-only manufacturing management consultant briefing in Korean. Instructor/student discussion questions OK; do not analyze education industry.",
+  },
 };
 
 export function resolvePromptVersion(version?: string): PromptVersion {
-  if (version === "v1.0" || version === "v1.1" || version === "v1.2") return version;
+  if (version === "v1.0" || version === "v1.1" || version === "v1.2" || version === "v1.3") return version;
   return CURRENT_PROMPT_VERSION;
 }
 

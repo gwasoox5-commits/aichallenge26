@@ -9,6 +9,7 @@ import { getOpenAiConfig } from "@/lib/integrations/config";
 import { callOpenAiStructured } from "@/lib/integrations/openai-client";
 import { IntegrationError } from "@/lib/integrations/errors";
 import { KOREAN_OUTPUT_INSTRUCTIONS } from "./korean-output";
+import { MANUFACTURING_SIM_CONTEXT } from "./simulation-context";
 
 export interface ScenarioGenMeta {
   model: string;
@@ -139,9 +140,11 @@ function mapLiveScenarios(data: LiveScenarioPayload, _promptVersion: PromptVersi
 
 function buildScenarioPrompt(analysis: NewsAnalysis, promptVersion: PromptVersion): string {
   return [
-    "Generate pessimistic, neutral, optimistic scenarios for Korean educational simulation.",
+    "Generate pessimistic, neutral, optimistic what-if scenarios for a MANUFACTURING firm in BSP simulation.",
+    MANUFACTURING_SIM_CONTEXT,
     KOREAN_OUTPUT_INSTRUCTIONS,
     "Scenario labels must be Korean (e.g. 비관적, 중립적, 낙관적).",
+    "expectedOutcomes must be operating/financial results for the manufacturer (마진, 재고, 납기, 원가 등).",
     `Prompt version: ${promptVersion}`,
     `Event summary: ${analysis.eventSummary}`,
     `Risks: ${analysis.riskFactors.join("; ")}`,
