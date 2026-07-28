@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { MOCK_SCENARIO_OUTPUT } from "@/lib/v2/event-studio/mock-scenario-output";
 import { mapStudioEffectToEngine } from "@/lib/v2/event-studio/variable-mapper";
 import type { EventScenarioStudioOutput, EventStudioInput, ScenarioKey } from "@/lib/v2/event-studio/types";
+import { SCENARIO_LABEL_KO } from "@/lib/v2/event-studio/scenario-labels";
 
 const DEFAULT_INPUT: EventStudioInput = {
   naturalLanguagePrompt:
@@ -160,7 +161,7 @@ export function EventStudioPrototype() {
                       : "border-slate-300 bg-slate-50 hover:border-slate-300"
                   }`}
                 >
-                  <p className="font-semibold text-slate-900">{output.scenarios[key].label}</p>
+                  <p className="font-semibold text-slate-900">{SCENARIO_LABEL_KO[key]}</p>
                   <p className="mt-2 line-clamp-4 text-xs text-slate-600">{output.scenarios[key].narrative}</p>
                 </button>
               ))}

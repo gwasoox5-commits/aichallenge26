@@ -5,6 +5,7 @@ import studioSchemaDocument from "@/docs/v2/schemas/event-scenario-studio-output
 import { getOpenAiConfig } from "@/lib/integrations/config";
 import { IntegrationError } from "@/lib/integrations/errors";
 import { isFixtureFallbackAllowed } from "@/lib/bsp/runtime-config";
+import { applyKoreanScenarioLabels, SCENARIO_LABEL_KO } from "./scenario-labels";
 
 export interface GenerateMeta {
   model: string;
@@ -25,7 +26,7 @@ function hashPrompt(input: EventStudioInput): string {
 }
 
 function enrichOutput(output: EventScenarioStudioOutput, input: EventStudioInput): EventScenarioStudioOutput {
-  return {
+  return applyKoreanScenarioLabels({
     ...output,
     meta: {
       ...output.meta,
@@ -36,7 +37,7 @@ function enrichOutput(output: EventScenarioStudioOutput, input: EventStudioInput
       targetPeriodLabel: input.targetHalfLabel,
       analysisIntensity: input.analysisIntensity,
     },
-  };
+  });
 }
 
 /** Strip JSON Schema meta keys OpenAI rejects in json_schema strict mode */
@@ -73,18 +74,21 @@ function buildInputAwareFixture(input: EventStudioInput): EventScenarioStudioOut
     scenarios: {
       pessimistic: {
         ...base.scenarios.pessimistic,
+        label: SCENARIO_LABEL_KO.pessimistic,
         narrative: `${prompt} 상황이 악화되면 ${input.targetIndustry}는 수요 급감·원가 상승·규제 리스크를 동시에 직면할 수 있습니다.`,
         newsHeadline: `[속보] ${title} — ${input.targetIndustry} 업계 전망 악화`,
         newsArticleBody: `${input.targetMarketOrRegion}에서 ${prompt}와 관련해 업계는 수출·구매·생산 전반에 걸친 압력을 우려하고 있습니다.`,
       },
       neutral: {
         ...base.scenarios.neutral,
+        label: SCENARIO_LABEL_KO.neutral,
         narrative: `${prompt}의 영향은 점진적으로 나타나며, ${input.targetIndustry}는 가격·mix·비용 구조를 조정하는 baseline 시나리오입니다.`,
         newsHeadline: `${title}, ${input.targetIndustry} 시장 영향은 점진적 전망`,
         newsArticleBody: `${input.targetMarketOrRegion}에서 ${prompt}에 대한 대응이 단계적으로 논의되며, 업계 영향은 제한적일 수 있습니다.`,
       },
       optimistic: {
         ...base.scenarios.optimistic,
+        label: SCENARIO_LABEL_KO.optimistic,
         narrative: `${prompt} 리스크가 관리되면 ${input.targetIndustry}는 고부가·친환경 라인 중심으로 수요를 방어할 수 있습니다.`,
         newsHeadline: `${title} 관련 불확실성 완화, ${input.targetIndustry} 점진 회복`,
         newsArticleBody: `${input.targetMarketOrRegion}에서 ${prompt}와 관련한 정책·시장 조율이 진전되면 업계는 구조조정 기회를 모색할 수 있습니다.`,
@@ -207,7 +211,11 @@ export async function generateScenarioOutput(input: EventStudioInput): Promise<G
 
 function buildPrompt(input: EventStudioInput): string {
   return [
-    "You are an educational business simulation scenario analyst.",
+    "You are an educational business simulation scenario analyst for Korean HRD learners.",
+    "Write ALL human-readable text in Korean (한국어): meta.title, meta.summary, assumptions, impactPathways,",
+    "narrative, rationale, discussionQuestions, newsHeadline, newsArticleBody, uncertainty fields, and effect rationale.",
+    "Do NOT use English sentences. JSON keys and severity enums (LOW|MEDIUM|HIGH|CRITICAL) stay in English.",
+    "Set scenario labels exactly: pessimistic label=비관적, neutral label=중립적, optimistic label=낙관적.",
     "Generate pessimistic, neutral, and optimistic outlooks with economy variable effects.",
     "Do NOT include probability percentages. Effects must use allowed studio variable keys only.",
     "Each scenario must include newsHeadline, newsArticleBody, and severity (LOW|MEDIUM|HIGH|CRITICAL).",

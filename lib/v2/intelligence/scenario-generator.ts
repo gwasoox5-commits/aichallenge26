@@ -104,7 +104,8 @@ function mapLiveScenarios(data: LiveScenarioPayload, promptVersion: PromptVersio
 
 function buildScenarioPrompt(analysis: NewsAnalysis, promptVersion: PromptVersion): string {
   return [
-    "Generate pessimistic, neutral, optimistic scenarios for educational simulation.",
+    "Generate pessimistic, neutral, optimistic scenarios for Korean educational simulation.",
+    "Write ALL descriptions, headlines, and rationales in Korean (한국어).",
     `Prompt version: ${promptVersion}`,
     `Event summary: ${analysis.eventSummary}`,
     `Risks: ${analysis.riskFactors.join("; ")}`,

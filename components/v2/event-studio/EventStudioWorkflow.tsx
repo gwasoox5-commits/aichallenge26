@@ -13,6 +13,7 @@ import type {
   SelectionMode,
 } from "@/lib/v2/event-studio/types";
 import type { EventApplyTiming } from "@/src/bsp/domain/events/event-types";
+import { SCENARIO_LABEL_KO } from "@/lib/v2/event-studio/scenario-labels";
 
 const DEFAULT_INPUT: EventStudioInput = {
   naturalLanguagePrompt:
@@ -243,7 +244,7 @@ export function EventStudioWorkflow() {
                   selectedPreview === key ? "border-violet-500 bg-violet-50" : "border-slate-300"
                 }`}
               >
-                <p className="font-semibold">{draft.studioOutput!.scenarios[key].label}</p>
+                <p className="font-semibold">{SCENARIO_LABEL_KO[key]}</p>
                 <p className="mt-2 text-xs text-slate-600 line-clamp-3">{draft.studioOutput!.scenarios[key].narrative}</p>
                 <p className="mt-2 text-xs text-orange-800">{draft.studioOutput!.scenarios[key].newsHeadline}</p>
               </button>
@@ -295,7 +296,7 @@ export function EventStudioWorkflow() {
             <div className="grid grid-cols-3 gap-2">
               {(["pessimistic", "neutral", "optimistic"] as const).map((k) => (
                 <label key={k} className="text-xs">
-                  {k} %
+                  {SCENARIO_LABEL_KO[k]} %
                   <input
                     type="number"
                     className="mt-1 w-full rounded border border-slate-300 bg-white p-2"
