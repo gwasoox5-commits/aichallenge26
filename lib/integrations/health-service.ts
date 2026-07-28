@@ -37,6 +37,7 @@ function resolveNewsMode(): IntegrationHealthResponse["news"]["mode"] {
   const cfg = getNewsConfig();
 
   if (cfg.provider === "gnews" && cfg.apiKey) return "LIVE";
+  if (cfg.provider === "google-rss" || cfg.provider === "google-news-rss") return "LIVE";
 
   if (isProductionRuntime() && !isFixtureFallbackAllowed()) return "NOT_CONFIGURED";
 

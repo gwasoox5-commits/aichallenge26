@@ -135,8 +135,8 @@ export function IntelligenceWorkflow() {
           data.note ??
             (data.errorMessage ? `${data.errorMessage}` : undefined) ??
             (data.usedFixture
-              ? "샘플 뉴스 모드입니다. 실뉴스 검색은 GNews API Key(BSP_GNEWS_API_KEY) 설정이 필요합니다."
-              : "실시간 뉴스 검색 결과입니다.")
+              ? "샘플 뉴스 모드입니다. 실뉴스는 Google News RSS(기본) 또는 GNews API Key 설정이 필요합니다."
+              : "실시간 뉴스 검색 결과입니다 (Google News RSS).")
         );
         return;
       }

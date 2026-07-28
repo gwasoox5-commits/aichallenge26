@@ -36,17 +36,20 @@ export function getOpenAiConfig() {
 export function getNewsConfig() {
   const rawProvider = (process.env.BSP_NEWS_PROVIDER ?? process.env.NEWS_PROVIDER ?? "fixture").toLowerCase();
   const apiKey = (process.env.BSP_GNEWS_API_KEY ?? process.env.GNEWS_API_KEY ?? "").trim();
-  // Production: API key alone enables GNews even when provider was left at default "fixture"
-  const provider =
-    rawProvider === "fixture" && apiKey.length > 0 && isProductionRuntime() ? "gnews" : rawProvider;
+  let provider = rawProvider;
+  if (rawProvider === "fixture" && isProductionRuntime()) {
+    provider = "google-rss";
+  }
+  const isGoogleRss = provider === "google-rss" || provider === "google-news-rss";
+  const isGnews = provider === "gnews";
   return {
     provider,
     rawProvider,
     apiKey,
     timeoutMs: envInt("NEWS_TIMEOUT_MS", 8000),
     maxRetries: envInt("NEWS_MAX_RETRIES", 2),
-    liveEnabled: provider === "gnews" && apiKey.length > 0,
-    configured: provider === "fixture" || apiKey.length > 0,
+    liveEnabled: (isGnews && apiKey.length > 0) || isGoogleRss,
+    configured: provider === "fixture" || isGoogleRss || apiKey.length > 0,
   };
 }
 

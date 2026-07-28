@@ -11,41 +11,30 @@ describe("production news fixture guard", () => {
     vi.unstubAllEnvs();
   });
 
-  it("blocks fixture search when NODE_ENV=production and BSP_ALLOW_FIXTURE=false", async () => {
+  it("uses Google News RSS in production when provider is fixture and no GNews key", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("BSP_ALLOW_FIXTURE", "false");
     vi.stubEnv("BSP_NEWS_PROVIDER", "fixture");
     vi.stubEnv("BSP_GNEWS_API_KEY", "");
-
-    await expect(searchNews({ keywords: ["economy"], limit: 3 })).rejects.toBeInstanceOf(IntegrationError);
-    await expect(searchNews({ keywords: ["economy"], limit: 3 })).rejects.toMatchObject({ code: "PROVIDER_DISABLED" });
+    expect(createNewsAdapter().name).toBe("google-news-rss");
   });
 
-  it("returns DisabledNewsAdapter in production without GNews key", () => {
+  it("uses GNews only when provider is explicitly gnews with API key", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("BSP_ALLOW_FIXTURE", "false");
-    vi.stubEnv("BSP_NEWS_PROVIDER", "fixture");
-    vi.stubEnv("BSP_GNEWS_API_KEY", "");
-    expect(createNewsAdapter().name).toBe("disabled");
-  });
-
-  it("uses GNews in production when API key is set even if provider is fixture", () => {
-    vi.stubEnv("NODE_ENV", "production");
-    vi.stubEnv("BSP_ALLOW_FIXTURE", "false");
-    vi.stubEnv("BSP_NEWS_PROVIDER", "fixture");
+    vi.stubEnv("BSP_NEWS_PROVIDER", "gnews");
     vi.stubEnv("BSP_GNEWS_API_KEY", "test-key-present");
     expect(createNewsAdapter().name).toBe("gnews");
   });
 
-  it("reports NOT_CONFIGURED for news health in production without provider", async () => {
+  it("reports LIVE for google-rss in production without API key", async () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("BSP_ALLOW_FIXTURE", "false");
-    vi.stubEnv("BSP_NEWS_PROVIDER", "fixture");
+    vi.stubEnv("BSP_NEWS_PROVIDER", "google-rss");
     vi.stubEnv("BSP_GNEWS_API_KEY", "");
 
     const health = await getIntegrationHealth(false);
-    expect(health.news.mode).toBe("NOT_CONFIGURED");
-    expect(health.news.mode).not.toBe("LIVE");
+    expect(health.news.mode).toBe("LIVE");
   });
 
   it("allows fixture in development by default", async () => {

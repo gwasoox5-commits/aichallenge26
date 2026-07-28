@@ -30,7 +30,8 @@ BSP_ALLOW_FIXTURE=false
 BSP_PILOT_BOOTSTRAP=false
 OPENAI_API_KEY=sk-...선택사항
 OPENAI_MODEL=gpt-4.1-mini
-BSP_NEWS_PROVIDER=fixture
+BSP_NEWS_PROVIDER=google-rss
+# Optional legacy provider: BSP_NEWS_PROVIDER=gnews + BSP_GNEWS_API_KEY=
 ```
 
 ### 비밀값 생성 (PowerShell)

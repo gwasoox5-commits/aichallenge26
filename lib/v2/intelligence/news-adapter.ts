@@ -8,6 +8,7 @@ import { isFixtureFallbackAllowed, isProductionRuntime } from "@/lib/bsp/runtime
 
 import { getNewsConfig } from "@/lib/integrations/config";
 import { buildGNewsSearchQueries } from "./gnews-query";
+import { GoogleNewsRssAdapter } from "./google-news-rss-adapter";
 
 export interface NewsAdapter {
   readonly name: string;
@@ -85,7 +86,7 @@ export class FixtureNewsAdapter implements NewsAdapter {
   async search(query: NewsSearchQuery): Promise<NewsSearchResult> {
     if (isProductionRuntime() && !isFixtureFallbackAllowed()) {
       throw new IntegrationError("PROVIDER_DISABLED", {
-        message: "뉴스 Provider가 설정되지 않았습니다. GNews API Key를 설정하거나 수동 뉴스 입력을 사용하세요.",
+        message: "뉴스 Provider가 설정되지 않았습니다. BSP_NEWS_PROVIDER=google-rss 또는 gnews를 설정하세요.",
       });
     }
 
@@ -116,7 +117,7 @@ export class DisabledNewsAdapter implements NewsAdapter {
 
   async search(_query: NewsSearchQuery): Promise<NewsSearchResult> {
     throw new IntegrationError("PROVIDER_DISABLED", {
-      message: "뉴스 Provider가 설정되지 않았습니다. BSP_NEWS_PROVIDER=gnews 및 BSP_GNEWS_API_KEY를 설정하세요.",
+      message: "뉴스 Provider가 설정되지 않았습니다. BSP_NEWS_PROVIDER=google-rss (권장) 또는 gnews를 설정하세요.",
     });
   }
 
@@ -253,10 +254,21 @@ export class GNewsAdapter implements NewsAdapter {
 export function createNewsAdapter(): NewsAdapter {
   const newsCfg = getNewsConfig();
   const allowFixture = isFixtureFallbackAllowed();
+  const fixtureFallback = allowFixture || !isProductionRuntime() ? new FixtureNewsAdapter() : undefined;
 
   if (newsCfg.provider === "gnews" && newsCfg.apiKey) {
-    const fallback = allowFixture || !isProductionRuntime() ? new FixtureNewsAdapter() : undefined;
-    return new GNewsAdapter(newsCfg.apiKey, fallback);
+    return new GNewsAdapter(newsCfg.apiKey, fixtureFallback);
+  }
+
+  if (newsCfg.provider === "google-rss" || newsCfg.provider === "google-news-rss") {
+    return new GoogleNewsRssAdapter(fixtureFallback);
+  }
+
+  if (newsCfg.provider === "fixture") {
+    if (isProductionRuntime() && !allowFixture) {
+      return new GoogleNewsRssAdapter();
+    }
+    return new FixtureNewsAdapter();
   }
 
   if (isProductionRuntime() && !allowFixture) {

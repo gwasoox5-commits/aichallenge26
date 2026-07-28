@@ -202,7 +202,7 @@ function formatGNewsFailureNote(e: unknown): string {
   }
   switch (root.code) {
     case "PROVIDER_DISABLED":
-      return "GNews가 비활성화되어 있습니다. Railway에 BSP_NEWS_PROVIDER=gnews 와 BSP_GNEWS_API_KEY를 설정하세요.";
+      return "뉴스 Provider가 비활성화되어 있습니다. Railway에 BSP_NEWS_PROVIDER=google-rss 를 설정하세요.";
     case "API_KEY_INVALID":
       return `${root.message} 교육용 샘플 뉴스를 표시합니다.`;
     case "QUOTA_EXCEEDED":
@@ -234,7 +234,7 @@ export async function searchNewsForIntelligence(
       ...fallback,
       degraded: true,
       note:
-        "GNews에서 해당 키워드 실뉴스를 찾지 못했습니다. 영문 키워드(Iran, semiconductor)로 다시 검색하거나 키워드를 줄여 보세요. 교육용 샘플 뉴스를 표시합니다.",
+        "Google News RSS에서 해당 키워드 실뉴스를 찾지 못했습니다. 키워드를 줄이거나 영문(Iran, war)으로 다시 검색하세요. 교육용 샘플 뉴스를 표시합니다.",
     };
   } catch (e) {
     const fallback = searchFixtureArticlesEducational(query);
