@@ -9,8 +9,14 @@ playwright-report
 .git
 .github
 docs
+!docs/v2/schemas
+!docs/v2/schemas/**
+!docs/integrations/schemas
+!docs/integrations/schemas/**
 e2e
 tests
+!tests/fixtures
+!tests/fixtures/**
 *.md
 .env
 .env.*
