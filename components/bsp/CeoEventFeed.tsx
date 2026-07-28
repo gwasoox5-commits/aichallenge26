@@ -1,9 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { authFetch, getAccessToken } from "@/lib/bsp/auth-client";
-import { useRealtime } from "@/lib/bsp/use-realtime";
-import { RealtimeIndicator } from "@/components/bsp/RealtimeIndicator";
+import { authFetch } from "@/lib/bsp/auth-client";
 
 type EnvironmentDto = {
   activeEvents: Array<{
@@ -28,7 +26,8 @@ type EnvironmentDto = {
 
 type Props = {
   companyId: string;
-  sessionId?: string | null;
+  /** Bumped by parent on each realtime sync/event — avoids a second WebSocket. */
+  syncToken?: number;
 };
 
 const TIMING_LABELS: Record<string, string> = {
@@ -37,7 +36,7 @@ const TIMING_LABELS: Record<string, string> = {
   NEXT_HALF: "다음 반기부터 적용",
 };
 
-export function CeoEventFeed({ companyId, sessionId }: Props) {
+export function CeoEventFeed({ companyId, syncToken = 0 }: Props) {
   const [env, setEnv] = useState<EnvironmentDto | null>(null);
 
   const load = useCallback(async () => {
@@ -45,16 +44,9 @@ export function CeoEventFeed({ companyId, sessionId }: Props) {
     if (res.ok) setEnv(await res.json());
   }, [companyId]);
 
-  const { connectionState, flash } = useRealtime({
-    sessionId: sessionId ?? null,
-    enabled: !!sessionId && !!getAccessToken(),
-    onSync: load,
-    onEvent: load,
-  });
-
   useEffect(() => {
     load();
-  }, [load]);
+  }, [load, syncToken]);
 
   const dismissBadge = async () => {
     await authFetch(`/api/v1/play/companies/${companyId}/environment`, { method: "POST" });
@@ -65,7 +57,6 @@ export function CeoEventFeed({ companyId, sessionId }: Props) {
 
   return (
     <div className="space-y-4" data-testid="ceo-event-feed">
-      <RealtimeIndicator connectionState={connectionState} flash={flash} />
       {env.environmentChangedBadge && (
         <div className="flex items-center justify-between rounded-lg border border-amber-600/50 bg-amber-50 px-4 py-3">
           <span className="text-sm text-amber-800">경제 환경이 변경되었습니다</span>

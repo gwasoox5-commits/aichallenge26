@@ -86,6 +86,7 @@ export default function PlayPage() {
   const [newsItems, setNewsItems] = useState<CeoNewsItem[]>([]);
   const [newsDrawerOpen, setNewsDrawerOpen] = useState(false);
   const [activeNews, setActiveNews] = useState<CeoNewsItem | null>(null);
+  const [envSyncToken, setEnvSyncToken] = useState(0);
 
   const [loanEarly, setLoanEarly] = useState(2);
   const [loanMid, setLoanMid] = useState(0);
@@ -302,13 +303,17 @@ export default function PlayPage() {
   const { connectionState, flash } = useRealtime({
     sessionId,
     enabled: !!sessionId && !!companyId,
-    onSync: () => companyId && refresh(companyId),
+    onSync: () => {
+      if (companyId) refresh(companyId);
+      setEnvSyncToken((t) => t + 1);
+    },
     onEvent: (event) => {
       if (event.type === REALTIME_EVENT_TYPES.NEWS_PUBLISHED && sessionId) {
         const payload = event.payload as { newsId?: string } | undefined;
         fetchNews(sessionId, { openDrawer: true, preferNewsId: payload?.newsId });
       }
       if (companyId) refresh(companyId);
+      setEnvSyncToken((t) => t + 1);
     },
   });
 
@@ -613,7 +618,7 @@ export default function PlayPage() {
               onSelect={openNews}
             />
           )}
-          {companyId && <CeoEventFeed companyId={companyId} sessionId={sessionId} />}
+          {companyId && <CeoEventFeed companyId={companyId} syncToken={envSyncToken} />}
           <DashboardPanel dashboard={dashboard} />
           <FinancialStatementsPanel financials={financials} />
         </aside>
