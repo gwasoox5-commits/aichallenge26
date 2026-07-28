@@ -33,6 +33,7 @@ COPY --from=builder /app/src ./src
 COPY --from=builder /app/lib ./lib
 COPY --from=builder /app/app ./app
 COPY --from=builder /app/components ./components
+COPY --from=builder /app/scripts ./scripts
 
 USER bsp
 EXPOSE 3000
