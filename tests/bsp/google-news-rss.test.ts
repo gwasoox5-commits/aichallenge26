@@ -6,6 +6,7 @@ import {
   buildGoogleNewsRssUrl,
   isLikelyRssXml,
   parseGoogleNewsRss,
+  stripHtmlToPlainText,
 } from "@/lib/v2/intelligence/google-news-rss";
 import { expandKeywordsForEnglishSearch, hasHangul } from "@/lib/v2/intelligence/gnews-query";
 import { GoogleNewsRssAdapter } from "@/lib/v2/intelligence/google-news-rss-adapter";
@@ -56,6 +57,12 @@ describe("google-news-rss", () => {
   it("detects non-RSS HTML responses", () => {
     expect(isLikelyRssXml("<!DOCTYPE html><html><body>blocked</body></html>")).toBe(false);
     expect(isLikelyRssXml(fixtureXml)).toBe(true);
+  });
+
+  it("strips HTML from RSS description snippets", () => {
+    const html =
+      '<a href="https://example.com">Blurred front lines</a>&nbsp;&nbsp;<font color="#6f6f6f">CNBC</font>';
+    expect(stripHtmlToPlainText(html)).toBe("Blurred front lines CNBC");
   });
 });
 

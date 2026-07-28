@@ -8,6 +8,7 @@ import {
   parseGoogleNewsRss,
   rssRequestHeaders,
   stableGoogleRssArticleId,
+  stripHtmlToPlainText,
 } from "./google-news-rss";
 
 export class GoogleNewsRssAdapter implements NewsAdapter {
@@ -34,21 +35,27 @@ export class GoogleNewsRssAdapter implements NewsAdapter {
     const parsed = parseGoogleNewsRss(xml);
     const fetchedAt = new Date().toISOString();
 
-    return parsed.slice(0, limit).map((item, index) => ({
-      id: stableGoogleRssArticleId(item.link, index),
-      title: item.title,
-      summary: item.description,
-      source: item.source ?? "Google News",
-      publishedAt: new Date(item.pubDate).toISOString(),
-      url: item.link,
-      keywords,
-      provider: this.name,
-      language: locale.hl,
-      query: queryText,
-      fetchedAt,
-      bodyStatus: item.description ? ("SNIPPET_ONLY" as const) : ("METADATA_ONLY" as const),
-      contentSource: item.description ? ("SEARCH_SNIPPET" as const) : ("TITLE_ONLY" as const),
-    })) satisfies NewsArticle[];
+    return parsed.slice(0, limit).map((item, index) => {
+      const summary = stripHtmlToPlainText(item.description);
+      const normalizedSummary =
+        summary && summary !== item.title && !item.title.includes(summary) ? summary : undefined;
+
+      return {
+        id: stableGoogleRssArticleId(item.link, index),
+        title: item.title,
+        summary: normalizedSummary,
+        source: item.source ?? "Google News",
+        publishedAt: new Date(item.pubDate).toISOString(),
+        url: item.link,
+        keywords,
+        provider: this.name,
+        language: locale.hl,
+        query: queryText,
+        fetchedAt,
+        bodyStatus: normalizedSummary ? ("SNIPPET_ONLY" as const) : ("METADATA_ONLY" as const),
+        contentSource: normalizedSummary ? ("SEARCH_SNIPPET" as const) : ("TITLE_ONLY" as const),
+      };
+    }) satisfies NewsArticle[];
   }
 
   async search(query: NewsSearchQuery): Promise<NewsSearchResult> {

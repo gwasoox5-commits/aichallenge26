@@ -58,7 +58,7 @@ export function NewsDiscoveryPanel({
               <input type="checkbox" checked={selectedIds.has(a.id)} onChange={() => onToggle(a.id)} />
               <div className="flex-1">
                 <p className="font-medium text-slate-900">{a.title}</p>
-                <p className="mt-1 text-sm text-slate-600">{a.summary}</p>
+                {a.summary ? <p className="mt-1 text-sm text-slate-600">{a.summary}</p> : null}
                 <p className="mt-2 text-xs text-slate-500">
                   {a.source} · {new Date(a.publishedAt).toLocaleDateString("ko-KR")}
                   {a.url && (
