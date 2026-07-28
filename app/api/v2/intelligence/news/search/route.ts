@@ -12,11 +12,14 @@ export async function POST(req: Request) {
     return Response.json({ error: "sessionId required", code: "ERR_INTEL_INPUT" }, { status: 400 });
   }
   return v2GmJson(req, body.sessionId, async () => {
-    const result = await getIntelligenceService().searchNews({
-      keywords: body.keywords ?? [],
-      language: body.language,
-      limit: body.limit,
-    });
+    const result = await getIntelligenceService().searchNews(
+      {
+        keywords: body.keywords ?? [],
+        language: body.language,
+        limit: body.limit,
+      },
+      body.sessionId
+    );
     return result;
   });
 }

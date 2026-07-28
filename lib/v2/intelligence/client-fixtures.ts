@@ -18,14 +18,15 @@ export const DEMO_ARTICLES = articles as NewsArticle[];
 
 export function demoSearch(keywords: string): NewsArticle[] {
   const kws = keywords
-    .split(",")
+    .split(/[,，、\s]+/)
     .map((k) => k.trim().toLowerCase())
     .filter(Boolean);
   if (kws.length === 0) return DEMO_ARTICLES;
-  return DEMO_ARTICLES.filter((a) => {
+  const matched = DEMO_ARTICLES.filter((a) => {
     const hay = [a.title, a.summary, ...(a.keywords ?? [])].join(" ").toLowerCase();
     return kws.some((k) => hay.includes(k));
   });
+  return matched.length > 0 ? matched : DEMO_ARTICLES;
 }
 
 function citationsFrom(articles: NewsArticle[]): NewsSourceCitation[] {

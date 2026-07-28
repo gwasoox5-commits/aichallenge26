@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { authFetch } from "@/lib/bsp/auth-client";
 import type {
   IntelligencePreview,
@@ -29,10 +29,24 @@ import { QualityBadge } from "./QualityBadge";
 import { ScenarioLibraryPanel } from "./ScenarioLibraryPanel";
 import { PublishWorkflowPanel } from "./PublishWorkflowPanel";
 
-const DEFAULT_SESSION = "demo-intelligence-session";
+function parseKeywords(raw: string): string[] {
+  return raw
+    .split(/[,，、\s]+/)
+    .map((k) => k.trim())
+    .filter(Boolean);
+}
+
+async function readApiError(res: Response, fallback: string): Promise<string> {
+  try {
+    const data = (await res.json()) as { error?: string; message?: string };
+    return data.error ?? data.message ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 export function IntelligenceWorkflow() {
-  const [sessionId, setSessionId] = useState(DEFAULT_SESSION);
+  const [sessionId, setSessionId] = useState("");
   const [keywords, setKeywords] = useState("반도체, AI, 관세");
   const [articles, setArticles] = useState<NewsArticle[]>(DEMO_ARTICLES);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -45,7 +59,35 @@ export function IntelligenceWorkflow() {
   const [selectedScenario, setSelectedScenario] = useState<ScenarioKey>("neutral");
   const [library, setLibrary] = useState<LibraryEntry[]>([]);
   const [demoMode, setDemoMode] = useState(true);
+  const [statusNote, setStatusNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [authRole, setAuthRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    authFetch("/api/v1/auth/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.role) setAuthRole(d.role);
+        if (d?.sessionId && !sessionId) setSessionId(d.sessionId);
+      })
+      .catch(() => undefined);
+  }, [sessionId]);
+
+  const loadLibrary = useCallback(async (sid: string) => {
+    if (!sid) return;
+    try {
+      const res = await authFetch(`/api/v2/intelligence/library?sessionId=${encodeURIComponent(sid)}`);
+      if (!res.ok) return;
+      const data = (await res.json()) as { entries?: LibraryEntry[] };
+      if (data.entries) setLibrary(data.entries);
+    } catch {
+      /* ignore — local library still works */
+    }
+  }, []);
+
+  useEffect(() => {
+    if (sessionId) loadLibrary(sessionId);
+  }, [sessionId, loadLibrary]);
 
   const selectedArticles = useMemo(
     () => articles.filter((a) => selectedIds.has(a.id)),
@@ -62,40 +104,77 @@ export function IntelligenceWorkflow() {
   };
 
   const searchNews = useCallback(async () => {
+    if (!sessionId) {
+      setError("GM 세션 ID를 입력하세요.");
+      return;
+    }
     setLoading(true);
     setError(null);
+    setStatusNote(null);
     try {
       const res = await authFetch("/api/v2/intelligence/news/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sessionId,
-          keywords: keywords.split(",").map((k) => k.trim()).filter(Boolean),
+          keywords: parseKeywords(keywords),
         }),
       });
-      if (res.ok) {
-        const data = (await res.json()) as { articles: NewsArticle[]; usedFixture?: boolean };
+      const data = (await res.json()) as { articles?: NewsArticle[]; usedFixture?: boolean; error?: string };
+      if (res.ok && data.articles) {
         setArticles(data.articles);
+        setSelectedIds(new Set());
         setDemoMode(Boolean(data.usedFixture));
-      } else {
-        setArticles(demoSearch(keywords));
-        setDemoMode(true);
+        setStatusNote(
+          data.usedFixture
+            ? "샘플 뉴스 모드입니다. 실뉴스 검색은 GNews API Key(BSP_GNEWS_API_KEY) 설정이 필요합니다."
+            : "실시간 뉴스 검색 결과입니다."
+        );
+        return;
       }
-    } catch {
-      setArticles(demoSearch(keywords));
+      const message = data.error ?? (await readApiError(res, "뉴스 검색 실패"));
+      const fallback = demoSearch(keywords);
+      setArticles(fallback);
+      setSelectedIds(new Set());
       setDemoMode(true);
+      setError(`${message} · 샘플 뉴스 ${fallback.length}건을 표시합니다.`);
+    } catch (e) {
+      const fallback = demoSearch(keywords);
+      setArticles(fallback);
+      setSelectedIds(new Set());
+      setDemoMode(true);
+      setError(`${e instanceof Error ? e.message : "뉴스 검색 실패"} · 샘플 뉴스를 표시합니다.`);
     } finally {
       setLoading(false);
     }
   }, [keywords, sessionId]);
 
+  const runDemoPipeline = () => {
+    const a = demoAnalysis(selectedArticles);
+    const s = demoScenarios();
+    const c = demoConsultant();
+    const q = demoQuality(a, s);
+    setPreviewId(`demo-${Date.now()}`);
+    setAnalysis(a);
+    setScenarios(s);
+    setConsultant(c);
+    setQuality(q);
+    setDemoMode(true);
+    setStatusNote("API 연결 실패로 샘플 분석 결과를 표시합니다.");
+  };
+
   const runPipeline = async () => {
+    if (!sessionId) {
+      setError("GM 세션 ID를 입력하세요.");
+      return;
+    }
     if (selectedArticles.length === 0) {
       setError("기사를 1개 이상 선택하세요.");
       return;
     }
     setLoading(true);
     setError(null);
+    setStatusNote(null);
     try {
       const analyzeRes = await authFetch("/api/v2/intelligence/analyze", {
         method: "POST",
@@ -103,9 +182,12 @@ export function IntelligenceWorkflow() {
         body: JSON.stringify({
           sessionId,
           articleIds: selectedArticles.map((a) => a.id),
+          articles: selectedArticles,
         }),
       });
-      if (!analyzeRes.ok) throw new Error("analyze failed");
+      if (!analyzeRes.ok) {
+        throw new Error(await readApiError(analyzeRes, "AI 분석 실패"));
+      }
       const analyzed = (await analyzeRes.json()) as { previewId: string; analysis: NewsAnalysis };
       setPreviewId(analyzed.previewId);
       setAnalysis(analyzed.analysis);
@@ -115,7 +197,9 @@ export function IntelligenceWorkflow() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionId, previewId: analyzed.previewId }),
       });
-      if (!scenRes.ok) throw new Error("scenarios failed");
+      if (!scenRes.ok) {
+        throw new Error(await readApiError(scenRes, "시나리오 생성 실패"));
+      }
       const scenData = (await scenRes.json()) as { scenarios: IntelligenceScenario[] };
       setScenarios(scenData.scenarios);
 
@@ -124,24 +208,17 @@ export function IntelligenceWorkflow() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionId, previewId: analyzed.previewId, selectedScenario }),
       });
-      if (!prevRes.ok) throw new Error("preview failed");
-      const prev = (await prevRes.json()) as {
-        preview: IntelligencePreview;
-      };
+      if (!prevRes.ok) {
+        throw new Error(await readApiError(prevRes, "Preview 생성 실패"));
+      }
+      const prev = (await prevRes.json()) as { preview: IntelligencePreview };
       setConsultant(prev.preview.consultant ?? null);
       setQuality(prev.preview.quality ?? null);
       setDemoMode(false);
-    } catch {
-      const a = demoAnalysis(selectedArticles);
-      const s = demoScenarios();
-      const c = demoConsultant();
-      const q = demoQuality(a, s);
-      setPreviewId(`demo-${Date.now()}`);
-      setAnalysis(a);
-      setScenarios(s);
-      setConsultant(c);
-      setQuality(q);
-      setDemoMode(true);
+      setStatusNote("AI 분석·시나리오·Preview가 완료되었습니다.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "파이프라인 실행 실패");
+      runDemoPipeline();
     } finally {
       setLoading(false);
     }
@@ -158,10 +235,12 @@ export function IntelligenceWorkflow() {
       if (res.ok) {
         const data = (await res.json()) as { entry: LibraryEntry };
         setLibrary((prev) => [data.entry, ...prev.filter((e) => e.libraryId !== data.entry.libraryId)]);
+        setStatusNote("시나리오를 라이브러리에 저장했습니다.");
         return;
       }
+      setError(await readApiError(res, "라이브러리 저장 실패"));
     } catch {
-      /* demo fallback */
+      /* demo fallback below */
     }
     const entry: LibraryEntry = {
       libraryId: `lib-${previewId}`,
@@ -185,24 +264,34 @@ export function IntelligenceWorkflow() {
       },
     };
     setLibrary((prev) => [entry, ...prev]);
+    setStatusNote("로컬 라이브러리에 저장했습니다 (데모).");
   };
 
   const currentImpacts = scenarios?.find((s) => s.scenarioKey === selectedScenario)?.variableImpacts ?? [];
+  const gmReady = authRole === "GM" || authRole === "PLATFORM_ADMIN";
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 px-6 py-8">
       <section className="rounded-xl border border-violet-200 bg-violet-50 p-4 text-sm text-violet-900">
-        <strong>V2.3 + V2.4 Real-world Intelligence</strong> — 실뉴스 → AI 분석 → 시나리오 → Economy Preview → GM
-        Publish. {demoMode && "(데모·Fixture 모드 — Publish는 GM 세션 + 토큰 필요)"}
+        <strong>실시간 Intelligence</strong> — 실뉴스 → AI 분석 → 시나리오 → 경제 변수 미리보기 → GM 발행
+        {demoMode && " · (현재 샘플/데모 모드)"}
       </section>
+
+      {!gmReady && (
+        <section className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+          <p className="font-medium">GM/관리자 로그인 필요</p>
+          <p className="mt-1">현재 역할: {authRole ?? "미로그인"}</p>
+        </section>
+      )}
 
       <section className="rounded-xl border border-slate-200 bg-white p-4">
         <label className="block text-xs text-slate-600">
-          GM 세션 ID (API 인증 시 GM 토큰 필요)
+          GM 세션 ID (운영 콘솔 세션과 동일해야 Publish 가능)
           <input
-            className="mt-1 w-full max-w-md rounded border border-slate-300 p-2 text-sm"
+            className="mt-1 w-full max-w-md rounded border border-slate-300 p-2 font-mono text-sm"
             value={sessionId}
             onChange={(e) => setSessionId(e.target.value)}
+            placeholder="세션 UUID"
           />
         </label>
       </section>
@@ -237,6 +326,7 @@ export function IntelligenceWorkflow() {
         )}
       </div>
 
+      {statusNote && <p className="text-sm text-emerald-700">{statusNote}</p>}
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       {analysis && <AnalysisPanel analysis={analysis} />}
@@ -250,18 +340,14 @@ export function IntelligenceWorkflow() {
       {consultant && <ConsultantPanel consultant={consultant} />}
 
       {analysis && scenarios && previewId && !demoMode && (
-        <PublishWorkflowPanel
-          sessionId={sessionId}
-          previewId={previewId}
-          selectedScenario={selectedScenario}
-        />
+        <PublishWorkflowPanel sessionId={sessionId} previewId={previewId} selectedScenario={selectedScenario} />
       )}
 
       {analysis && scenarios && demoMode && (
         <section className="rounded-xl border border-slate-200 bg-slate-50 p-6">
-          <h2 className="text-lg font-semibold text-slate-800">GM Preview 완료</h2>
+          <h2 className="text-lg font-semibold text-slate-800">Preview 완료 (데모)</h2>
           <p className="mt-2 text-sm text-slate-600">
-            데모 모드에서는 Publish가 비활성화됩니다. GM 토큰으로 API 연결 시 V2.4 Publish Workflow가 표시됩니다.
+            GM 세션 토큰과 OpenAI/GNews 연동이 되면 Publish Workflow가 활성화됩니다.
           </p>
         </section>
       )}

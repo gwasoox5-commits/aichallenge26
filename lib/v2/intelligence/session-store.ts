@@ -1,20 +1,20 @@
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "fs";
 import { join } from "path";
 import { getBspDataDir } from "@/lib/bsp/data-dir";
-import type { IntelligencePreview, IntelligenceSessionSnapshot } from "./types";
+import type { IntelligencePreview, IntelligenceSessionSnapshot, NewsArticle } from "./types";
 
 const DATA_DIR = getBspDataDir();
 const SESSION_FILE = join(DATA_DIR, "v2-intelligence-sessions.json");
 
 function emptySessionSnapshot(): IntelligenceSessionSnapshot {
-  return { previews: [] };
+  return { previews: [], articleCache: {} };
 }
 
 function loadSessions(): IntelligenceSessionSnapshot {
   if (!existsSync(SESSION_FILE)) return emptySessionSnapshot();
   try {
     const parsed = JSON.parse(readFileSync(SESSION_FILE, "utf-8")) as IntelligenceSessionSnapshot;
-    return { previews: parsed.previews ?? [] };
+    return { previews: parsed.previews ?? [], articleCache: parsed.articleCache ?? {} };
   } catch {
     return emptySessionSnapshot();
   }
@@ -63,6 +63,20 @@ export class IntelligenceSessionStore {
 
   getSnapshot(): IntelligenceSessionSnapshot {
     return structuredClone(this.snapshot);
+  }
+
+  cacheArticles(sessionId: string, articles: NewsArticle[]) {
+    if (!this.snapshot.articleCache) this.snapshot.articleCache = {};
+    const bucket = { ...(this.snapshot.articleCache[sessionId] ?? {}) };
+    for (const article of articles) {
+      bucket[article.id] = article;
+    }
+    this.snapshot.articleCache[sessionId] = bucket;
+    if (this.persist) persistSessions(this.snapshot);
+  }
+
+  getCachedArticle(sessionId: string, articleId: string): NewsArticle | undefined {
+    return this.snapshot.articleCache?.[sessionId]?.[articleId];
   }
 }
 

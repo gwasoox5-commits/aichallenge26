@@ -297,9 +297,9 @@ export interface LibraryStoreSnapshot {
 
 
 export interface IntelligenceSessionSnapshot {
-
   previews: IntelligencePreview[];
-
+  /** Latest search results per session — keyed by article id */
+  articleCache?: Record<string, Record<string, NewsArticle>>;
 }
 
 

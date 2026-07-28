@@ -42,6 +42,11 @@ export function NewsDiscoveryPanel({
         </button>
       </div>
       <ul className="mt-4 space-y-3">
+        {articles.length === 0 && (
+          <li className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
+            검색 결과가 없습니다. 키워드를 바꾸거나 GNews API 설정을 확인하세요.
+          </li>
+        )}
         {articles.map((a) => (
           <li
             key={a.id}

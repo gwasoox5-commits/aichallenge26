@@ -22,8 +22,12 @@ function newPreviewId(): string {
 }
 
 export class IntelligenceService {
-  async searchNews(query: NewsSearchQuery) {
-    return searchNews(query);
+  async searchNews(query: NewsSearchQuery, sessionId?: string) {
+    const result = await searchNews(query);
+    if (sessionId && result.articles.length > 0) {
+      getIntelligenceSessionStore().cacheArticles(sessionId, result.articles);
+    }
+    return result;
   }
 
   async createPreviewFromArticles(
@@ -110,13 +114,25 @@ export class IntelligenceService {
 
   resolveArticles(input: AnalyzeArticlesInput): NewsArticle[] {
     if (input.articles?.length) return input.articles;
+
+    const store = getIntelligenceSessionStore();
+    const fromCache = input.articleIds
+      .map((id) => store.getCachedArticle(input.sessionId, id))
+      .filter((a): a is NewsArticle => Boolean(a));
+    if (fromCache.length === input.articleIds.length) return fromCache;
+
     const resolved = input.articleIds
       .map((id) => getFixtureArticle(id))
       .filter((a): a is NewsArticle => Boolean(a));
-    if (resolved.length === 0 && input.articleIds.length > 0) {
-      throw Object.assign(new Error("Articles not found"), { code: "ERR_INTEL_ARTICLES", status: 404 });
-    }
-    return resolved;
+    if (resolved.length === input.articleIds.length) return resolved;
+
+    if (fromCache.length > 0) return fromCache;
+    if (resolved.length > 0) return resolved;
+
+    throw Object.assign(new Error("Articles not found — search again or re-select articles"), {
+      code: "ERR_INTEL_ARTICLES",
+      status: 404,
+    });
   }
 
   getEconomyPreview(previewId: string, scenarioKey: ScenarioKey = "neutral") {
