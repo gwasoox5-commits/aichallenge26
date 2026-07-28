@@ -1,8 +1,9 @@
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "fs";
 import { join } from "path";
+import { getBspDataDir } from "@/lib/bsp/data-dir";
 import type { IntelligencePreview, IntelligenceSessionSnapshot } from "./types";
 
-const DATA_DIR = join(process.cwd(), ".bsp-data");
+const DATA_DIR = getBspDataDir();
 const SESSION_FILE = join(DATA_DIR, "v2-intelligence-sessions.json");
 
 function emptySessionSnapshot(): IntelligenceSessionSnapshot {
