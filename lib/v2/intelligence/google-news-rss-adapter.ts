@@ -43,7 +43,7 @@ export class GoogleNewsRssAdapter implements NewsAdapter {
       return {
         id: stableGoogleRssArticleId(item.link, index),
         title: item.title,
-        summary: normalizedSummary,
+        summary: normalizedSummary ?? "",
         source: item.source ?? "Google News",
         publishedAt: new Date(item.pubDate).toISOString(),
         url: item.link,
