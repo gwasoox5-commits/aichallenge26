@@ -1,0 +1,39 @@
+{
+  "scenarios": {
+    "pessimistic": {
+      "label": "비관적",
+      "description": "공급·물류·규제 충격이 동시에 발생하여 수요 감소와 원가 급등이 겹칩니다.",
+      "assumptions": ["충격이 2반기 이상 지속", "가격 전가 제한", "경쟁사 가격 인하"],
+      "expectedOutcomes": ["마진 압박", "재고·WC 증가", "CAPEX 지연"],
+      "effects": [
+        { "key": "demand", "mode": "PERCENT", "value": -18, "rationale": "수요 위축", "isEstimate": true, "confidence": "MEDIUM", "assumption": "소비자 지출 둔화" },
+        { "key": "rawMaterialCost", "mode": "PERCENT", "value": 15, "rationale": "원자재 급등", "isEstimate": true, "confidence": "LOW", "assumption": "공급 제약" },
+        { "key": "logisticsCost", "mode": "MULTIPLY", "value": 1.15, "rationale": "물류 대란", "isEstimate": true, "confidence": "MEDIUM", "assumption": "항만·운송 지연" },
+        { "key": "tariff", "mode": "DELTA", "value": 10, "rationale": "관세 인상", "isEstimate": true, "confidence": "HIGH", "assumption": "정책 발표" }
+      ]
+    },
+    "neutral": {
+      "label": "중립적",
+      "description": "일부 충격은 완화되나 구조적 비용 상승은 유지됩니다.",
+      "assumptions": ["단계적 정책 적용", "환율 변동성 지속"],
+      "expectedOutcomes": ["완만한 마진 하락", "운영 효율 강화"],
+      "effects": [
+        { "key": "demand", "mode": "PERCENT", "value": -6, "rationale": "수요 완만 감소", "isEstimate": true, "confidence": "MEDIUM", "assumption": "baseline" },
+        { "key": "exchangeRate", "mode": "PERCENT", "value": 5, "rationale": "환율 변동", "isEstimate": true, "confidence": "LOW", "assumption": "달러 강세" },
+        { "key": "energyCost", "mode": "PERCENT", "value": 8, "rationale": "에너지비", "isEstimate": true, "confidence": "MEDIUM", "assumption": "유가 상승" }
+      ]
+    },
+    "optimistic": {
+      "label": "낙관적",
+      "description": "정책 완화·보조금·기술 투자로 충격이 흡수되고 고부가 mix가 개선됩니다.",
+      "assumptions": ["협상 타결", "보조금 수혜", "공급망 정상화"],
+      "expectedOutcomes": ["마진 방어", "시장점유 유지", "ESG 프리미엄"],
+      "effects": [
+        { "key": "governmentSupport", "mode": "PERCENT", "value": 10, "rationale": "보조금", "isEstimate": true, "confidence": "MEDIUM", "assumption": "정책 집행" },
+        { "key": "demand", "mode": "PERCENT", "value": 3, "rationale": "수요 회복", "isEstimate": true, "confidence": "LOW", "assumption": "프리미엄 수요" },
+        { "key": "marketGrowth", "mode": "PERCENT", "value": 5, "rationale": "시장 성장", "isEstimate": true, "confidence": "LOW", "assumption": "신규 수요" }
+      ]
+    }
+  },
+  "promptVersion": "v1.1"
+}

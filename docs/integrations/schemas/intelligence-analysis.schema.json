@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "eventSummary",
+    "keyIssues",
+    "supplyChainImpact",
+    "productionImpact",
+    "salesImpact",
+    "financialImpact",
+    "riskFactors",
+    "opportunityFactors",
+    "isEstimate",
+    "confidenceLabel",
+    "contentSource",
+    "groundingNotes"
+  ],
+  "properties": {
+    "eventSummary": { "type": "string" },
+    "keyIssues": { "type": "array", "items": { "type": "string" } },
+    "supplyChainImpact": { "type": "string" },
+    "productionImpact": { "type": "string" },
+    "salesImpact": { "type": "string" },
+    "financialImpact": { "type": "string" },
+    "riskFactors": { "type": "array", "items": { "type": "string" } },
+    "opportunityFactors": { "type": "array", "items": { "type": "string" } },
+    "isEstimate": { "type": "boolean" },
+    "confidenceLabel": { "type": "string", "enum": ["LOW", "MEDIUM", "HIGH"] },
+    "contentSource": { "type": "string", "enum": ["FULL_ARTICLE", "SEARCH_SNIPPET", "TITLE_ONLY"] },
+    "groundingNotes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["claim", "evidenceType"],
+        "properties": {
+          "claim": { "type": "string" },
+          "evidenceType": { "type": "string", "enum": ["SOURCE_FACT", "MODEL_INFERENCE", "ASSUMPTION", "SIMULATION_DESIGN"] },
+          "sourceIds": { "type": "array", "items": { "type": "string" } },
+          "confidence": { "type": "string", "enum": ["LOW", "MEDIUM", "HIGH"] }
+        }
+      }
+    }
+  }
+}

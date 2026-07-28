@@ -1,0 +1,59 @@
+﻿{
+    "step2":  {
+                  "url":  "http://localhost:3006/play?companyId=73ca2290-d2be-454a-b0e7-81d3654b7570",
+                  "companyId":  "73ca2290-d2be-454a-b0e7-81d3654b7570",
+                  "joinCode":  "HC82DD",
+                  "sessionId":  "42dd8e56-a2e3-4e4f-9185-95761a0a5f58"
+              },
+    "gmDesk":  {
+                   "url":  "http://localhost:3006/gm",
+                   "joinCode":  "PNWYMA",
+                   "sessionId":  "31bdbb9e-651f-4ab0-bb24-43f9eed4a74c"
+               },
+    "joinCode":  {
+                     "joinCode":  "EQ4PLX",
+                     "url":  "http://localhost:3006/join"
+                 },
+    "step5":  {
+                  "url":  "http://localhost:3006/play?companyId=c3e22969-6d27-4c8f-9616-2ca5344a2188",
+                  "companyId":  "c3e22969-6d27-4c8f-9616-2ca5344a2188",
+                  "joinCode":  "GGKFVX",
+                  "sessionId":  "65c34c4c-2de6-4314-b9fc-54ee2509f929"
+              },
+    "step6":  {
+                  "url":  "http://localhost:3006/play?companyId=3a068a09-72a1-4f01-a119-ead8f2b06355",
+                  "companyId":  "3a068a09-72a1-4f01-a119-ead8f2b06355",
+                  "joinCode":  "Y7X9VV",
+                  "sessionId":  "b83c47c7-8174-4a0a-8306-63f467c8c9ad"
+              },
+    "step4":  {
+                  "url":  "http://localhost:3006/play?companyId=85829eaf-6239-4c12-8cb5-094c63068d05",
+                  "companyId":  "85829eaf-6239-4c12-8cb5-094c63068d05",
+                  "joinCode":  "BQBN99",
+                  "sessionId":  "5d152568-1c3c-4549-8794-6a51b83a97a5"
+              },
+    "step7":  {
+                  "url":  "http://localhost:3006/play?companyId=45ad7259-c696-417a-ac6b-c607c27f9cc1",
+                  "companyId":  "45ad7259-c696-417a-ac6b-c607c27f9cc1",
+                  "joinCode":  "PNWYMA",
+                  "sessionId":  "31bdbb9e-651f-4ab0-bb24-43f9eed4a74c"
+              },
+    "financials":  {
+                       "url":  "http://localhost:3006/play?companyId=45ad7259-c696-417a-ac6b-c607c27f9cc1",
+                       "companyId":  "45ad7259-c696-417a-ac6b-c607c27f9cc1",
+                       "joinCode":  "PNWYMA",
+                       "sessionId":  "31bdbb9e-651f-4ab0-bb24-43f9eed4a74c"
+                   },
+    "step3":  {
+                  "url":  "http://localhost:3006/play?companyId=c8f64830-0cf9-4ea0-b414-10c697edc5d4",
+                  "companyId":  "c8f64830-0cf9-4ea0-b414-10c697edc5d4",
+                  "joinCode":  "2CPR9U",
+                  "sessionId":  "a6697f1c-de54-4a11-be09-50cab77eff9e"
+              },
+    "step1":  {
+                  "url":  "http://localhost:3006/play?companyId=c22bb0d8-3fe9-4ec0-819a-12733467f921",
+                  "companyId":  "c22bb0d8-3fe9-4ec0-819a-12733467f921",
+                  "joinCode":  "EQ4PLX",
+                  "sessionId":  "e9d573b7-787a-468a-bb47-ca8ee7a52bb0"
+              }
+}

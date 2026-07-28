@@ -1,0 +1,25 @@
+{
+  "eventSummary": "선택된 뉴스는 제조·공급망·무역·에너지 등 거시 환경 변화를 시사합니다. 교육용 시뮬레이션에서는 수요, 원가, 환율, 규제 경로를 중심으로 토론할 수 있습니다.",
+  "keyIssues": [
+    "공급망 리드타임·물류 불확실성",
+    "원가·관세·환율 복합 압력",
+    "수요·경쟁 구도 변화"
+  ],
+  "supplyChainImpact": "부품·원자재 조달 지연과 물류비 상승 가능성. 안전재고·다변화 sourcing 검토 필요.",
+  "productionImpact": "생산 계획 조정, 라인 가동률 하락 또는 overtime 비용 증가 가능.",
+  "salesImpact": "가격·납기 경쟁력 약화 또는 프리미엄 포지션 기회.",
+  "financialImpact": "매출총이익률·운전자본·현금전환주기에 압력. (추정)",
+  "riskFactors": [
+    "원가 전가 실패",
+    "납기 지연 페널티",
+    "환율·금리 변동"
+  ],
+  "opportunityFactors": [
+    "공급망 재설계·국산화",
+    "고부가 제품 mix 전환",
+    "정부 보조·ESG 투자 활용"
+  ],
+  "promptVersion": "v1.1",
+  "isEstimate": true,
+  "confidenceLabel": "MEDIUM"
+}

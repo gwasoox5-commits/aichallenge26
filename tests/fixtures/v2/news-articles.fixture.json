@@ -1,0 +1,92 @@
+[
+  {
+    "id": "news-semiconductor-001",
+    "title": "글로벌 반도체 공급 부족, 자동차·AI 칩 납기 6개월 지연",
+    "summary": "TSMC·삼성 파운드리 가동률 포화로 MCU·파워반도체 리드타임이 26주까지 늘어났습니다. 완성차 OEM이 생산 라인 조정을 검토 중입니다.",
+    "source": "MockTech Daily",
+    "publishedAt": "2026-07-20T08:00:00Z",
+    "url": "https://fixture.example/news/semiconductor-shortage",
+    "keywords": ["반도체", "semiconductor", "chip", "supply chain", "AI", "auto"]
+  },
+  {
+    "id": "news-tariff-001",
+    "title": "미국, 전기차·배터리 부품 관세 25% 인상 발표",
+    "summary": "미 상무장관이 아시아산 EV 배터리·전자부품에 대한 관세를 25%로 인상한다고 발표했습니다. 수입 의존 업체는 원가 재산정에 착수했습니다.",
+    "source": "Fixture Trade Wire",
+    "publishedAt": "2026-07-18T12:00:00Z",
+    "url": "https://fixture.example/news/tariff-increase",
+    "keywords": ["관세", "tariff", "battery", "EV", "US", "China"]
+  },
+  {
+    "id": "news-fx-001",
+    "title": "원·달러 환율 1,450원 돌파, 수출주·수입원가 동시 압박",
+    "summary": "달러 강세와 대외 불확실성으로 원화가 급락했습니다. 원자재 수입 비중이 높은 제조업은 환헤지 재검토를 요구하고 있습니다.",
+    "source": "Fixture FX Monitor",
+    "publishedAt": "2026-07-19T06:30:00Z",
+    "url": "https://fixture.example/news/fx-surge",
+    "keywords": ["환율", "FX", "exchange", "rates", "달러"]
+  },
+  {
+    "id": "news-ai-001",
+    "title": "빅테크·스타트업 AI 칩 경쟁 심화, 설계·파운드리 투자 급증",
+    "summary": "생성형 AI 수요로 GPU·NPU 경쟁이 격화되고 있습니다. 중소 제조사는 AI 도입 ROI와 인프라 투자 우선순위를 재조정해야 합니다.",
+    "source": "Fixture AI Brief",
+    "publishedAt": "2026-07-17T09:00:00Z",
+    "url": "https://fixture.example/news/ai-competition",
+    "keywords": ["AI", "인공지능", "semiconductor", "competition", "tech"]
+  },
+  {
+    "id": "news-subsidy-001",
+    "title": "정부, 친환경·스마트팩토리 보조금 2조원 추가 편성",
+    "summary": "산업부가 제조업 디지털 전환·탄소저감 설비에 대한 보조금을 확대합니다. 신청 기한은 3분기 말까지입니다.",
+    "source": "Fixture Policy Korea",
+    "publishedAt": "2026-07-16T11:00:00Z",
+    "url": "https://fixture.example/news/government-subsidy",
+    "keywords": ["보조금", "subsidy", "government", "ESG", "green"]
+  },
+  {
+    "id": "news-esg-001",
+    "title": "EU CBAM·국내 탄소배출권 규제 강화, 수출기업 대응 시급",
+    "summary": "탄소국경조정제와 Scope3 보고 의무화로 ESG 비용이 상승할 전망입니다. 공급망 탄소 데이터 확보가 경쟁력 요소로 부상합니다.",
+    "source": "Fixture Green Reg",
+    "publishedAt": "2026-07-15T14:00:00Z",
+    "url": "https://fixture.example/news/esg-regulation",
+    "keywords": ["ESG", "carbon", "regulation", "EU", "친환경"]
+  },
+  {
+    "id": "news-port-001",
+    "title": "부산·LA 항만 파업 장기화, 컨테이너 물류 대란 우려",
+    "summary": "항만 노조 파업으로 선박 대기 시간이 2배 이상 늘었습니다. Just-in-time 공급망 기업은 안전재고 확대를 검토합니다.",
+    "source": "Fixture Logistics Alert",
+    "publishedAt": "2026-07-21T07:00:00Z",
+    "url": "https://fixture.example/news/port-strike",
+    "keywords": ["항만", "port", "strike", "supply chain", "logistics"]
+  },
+  {
+    "id": "news-energy-001",
+    "title": "국제 유가·전력요금 동반 상승, 제조업 에너지비 부담 확대",
+    "summary": "중동 지정학 리스크와 여름 수요로 에너지 가격이 상승했습니다. 고에너지 공정 비중이 큰 업종은 원가 전가 한계에 직면합니다.",
+    "source": "Fixture Energy Index",
+    "publishedAt": "2026-07-14T10:00:00Z",
+    "url": "https://fixture.example/news/energy-price",
+    "keywords": ["energy", "에너지", "oil", "rates", "cost"]
+  },
+  {
+    "id": "news-competitor-001",
+    "title": "글로벌 대형 경쟁사, 국내 시장 공격적 진입 선언",
+    "summary": "매출 100조원급 다국적 기업이 국내 중견 시장을 겨냥한 가격·채널 전략을 발표했습니다. 점유율 방어 vs 차별화 논쟁이 가열합니다.",
+    "source": "Fixture Market Watch",
+    "publishedAt": "2026-07-13T08:30:00Z",
+    "url": "https://fixture.example/news/competitor-entry",
+    "keywords": ["competition", "경쟁", "market", "China", "US"]
+  },
+  {
+    "id": "news-labor-001",
+    "title": "주요 제조단지 노사 임금·교대 협상 결렬, 부분 파업 돌입",
+    "summary": "임금 인상률과 교대 근무 조건을 두고 노사가 대립 중입니다. 생산 차질과 납기 지연이 불가피할 경우 OEM 페널티가 우려됩니다.",
+    "source": "Fixture Labor Desk",
+    "publishedAt": "2026-07-12T16:00:00Z",
+    "url": "https://fixture.example/news/labor-dispute",
+    "keywords": ["노사", "labor", "strike", "production", "auto"]
+  }
+]

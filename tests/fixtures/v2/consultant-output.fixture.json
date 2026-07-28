@@ -1,0 +1,45 @@
+{
+  "coreRisks": [
+    "원가 상승을 판매가격에 전가하지 못함",
+    "공급망 단절로 생산·납기 차질",
+    "환율·금리 변동으로 재무 비용 증가"
+  ],
+  "coreOpportunities": [
+    "공급망 다변화 및 국산화 장기 경쟁력",
+    "ESG·친환경 라인 프리미엄",
+    "정부 보조금·R&D 세액공제 활용"
+  ],
+  "mostAffectedDivision": "생산·구매 (원가·납기), 영업 (수요·가격)",
+  "productionImpact": "가동률 조정, overtime·재공품 증가 가능. (추정)",
+  "supplyChainImpact": "리드타임 연장, 안전재고 필요. (추정)",
+  "financialImpact": "매출총이익률 하락, 운전자본 증가 우려.",
+  "cashflowImpact": "매출채권·재고로 현금전환주기 악화 가능.",
+  "ceoReviewPriorities": [
+    "가격·물량·mix 의사결정",
+    "공급망·재고 정책",
+    "CAPEX·R&D 우선순위"
+  ],
+  "commonStudentMistakes": [
+    "뉴스 헤드라인만 보고 재무제표 영향을 quant하지 않음",
+    "환율·관세·물류비를 중복 반영",
+    "단기 cash vs 장기 CAPEX trade-off 무시"
+  ],
+  "instructorDiscussionQuestions": [
+    "이 뉴스가 Step4 구매 vs Step6 판매 중 어디에 먼저 영향을 주는가?",
+    "방어(마진) vs 공격(점유율) 중 CEO는 무엇을 선택해야 하는가?",
+    "추정치와 가정을 어떻게 분리해 토론할 것인가?"
+  ],
+  "debriefQuestions": [
+    "선택한 시나리오가 실제 재무 KPI와 일치했는가?",
+    "어떤 가정이 가장 불확실했는가?"
+  ],
+  "learningObjectives": [
+    "거시 뉴스→경영 의사결정 연결",
+    "공급망·재무 trade-off 이해",
+    "추정 vs 사실 구분"
+  ],
+  "instructorComments": "학생에게는 헤드라인만 제공하고, GM/강사는 본 컨설턴트 브리핑으로 심화 토론을 진행하세요.",
+  "educationalCommentary": "본 이벤트는 실제 뉴스를 교육용 what-if로 변환한 것입니다. 투자·경영 조언이 아닙니다.",
+  "promptVersion": "v1.1",
+  "gmOnly": true
+}

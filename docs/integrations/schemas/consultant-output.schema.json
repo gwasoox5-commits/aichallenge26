@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "coreRisks",
+    "coreOpportunities",
+    "mostAffectedDivision",
+    "productionImpact",
+    "supplyChainImpact",
+    "financialImpact",
+    "cashflowImpact",
+    "ceoReviewPriorities",
+    "commonStudentMistakes",
+    "instructorDiscussionQuestions",
+    "debriefQuestions",
+    "learningObjectives",
+    "instructorComments",
+    "educationalCommentary",
+    "consultantCommentary"
+  ],
+  "properties": {
+    "coreRisks": { "type": "array", "items": { "type": "string" } },
+    "coreOpportunities": { "type": "array", "items": { "type": "string" } },
+    "mostAffectedDivision": { "type": "string" },
+    "productionImpact": { "type": "string" },
+    "supplyChainImpact": { "type": "string" },
+    "financialImpact": { "type": "string" },
+    "cashflowImpact": { "type": "string" },
+    "ceoReviewPriorities": { "type": "array", "items": { "type": "string" } },
+    "commonStudentMistakes": { "type": "array", "items": { "type": "string" } },
+    "instructorDiscussionQuestions": { "type": "array", "items": { "type": "string" } },
+    "debriefQuestions": { "type": "array", "items": { "type": "string" } },
+    "learningObjectives": { "type": "array", "items": { "type": "string" } },
+    "instructorComments": { "type": "string" },
+    "educationalCommentary": { "type": "string" },
+    "consultantCommentary": { "type": "string" }
+  }
+}

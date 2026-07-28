@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["scenarios", "qualityScore", "confidence"],
+  "properties": {
+    "scenarios": {
+      "type": "object",
+      "required": ["pessimistic", "neutral", "optimistic"],
+      "properties": {
+        "pessimistic": { "$ref": "#/$defs/scenario" },
+        "neutral": { "$ref": "#/$defs/scenario" },
+        "optimistic": { "$ref": "#/$defs/scenario" }
+      }
+    },
+    "qualityScore": { "type": "number", "minimum": 0, "maximum": 100 },
+    "confidence": { "type": "string", "enum": ["LOW", "MEDIUM", "HIGH"] },
+    "assumptions": { "type": "array", "items": { "type": "string" } }
+  },
+  "$defs": {
+    "scenario": {
+      "type": "object",
+      "required": ["label", "description", "assumptions", "expectedOutcomes", "effects"],
+      "properties": {
+        "label": { "type": "string" },
+        "description": { "type": "string" },
+        "assumptions": { "type": "array", "items": { "type": "string" } },
+        "expectedOutcomes": { "type": "array", "items": { "type": "string" } },
+        "effects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["key", "mode", "value", "reason", "evidenceType", "confidence", "assumption"],
+            "properties": {
+              "key": { "type": "string" },
+              "mode": { "type": "string" },
+              "value": { "type": "number" },
+              "reason": { "type": "string" },
+              "evidenceType": { "type": "string", "enum": ["SOURCE_FACT", "MODEL_INFERENCE", "ASSUMPTION", "SIMULATION_DESIGN"] },
+              "confidence": { "type": "string", "enum": ["LOW", "MEDIUM", "HIGH"] },
+              "assumption": { "type": "string" },
+              "sourceIds": { "type": "array", "items": { "type": "string" } },
+              "isEstimate": { "type": "boolean" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

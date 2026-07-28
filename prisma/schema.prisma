@@ -1,0 +1,1171 @@
+// 제조기업 경영 시뮬레이션 ERP — Prisma Schema
+// PostgreSQL 기준
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================================================
+// Enums
+// =============================================================================
+
+enum UserRole {
+  ADMIN
+  INSTRUCTOR
+  CEO
+  OBSERVER
+}
+
+enum SessionStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+enum RoundPhase {
+  PLANNING
+  EXECUTION
+  SETTLEMENT
+  DEBRIEF
+}
+
+enum CompanyStatus {
+  ACTIVE
+  BANKRUPT
+  DISQUALIFIED
+  WITHDRAWN
+}
+
+enum AccountCategory {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
+}
+
+enum NormalBalance {
+  DEBIT
+  CREDIT
+}
+
+enum TransactionType {
+  LOAN_DRAWDOWN
+  LOAN_REPAYMENT
+  DEPOSIT_OPEN
+  DEPOSIT_CLOSE
+  LAND_PURCHASE
+  MACHINE_PURCHASE
+  ASSET_DISPOSAL
+  HIRE_EMPLOYEE
+  TERMINATE_EMPLOYEE
+  MATERIAL_PURCHASE
+  PRODUCTION_START
+  PRODUCTION_COMPLETE
+  SALES
+  DEPRECIATION
+  INTEREST_EXPENSE
+  INTEREST_INCOME
+  PAYROLL
+  PERIOD_CLOSE
+  TAX_ACCRUAL
+  EVENT_IMPACT
+  INSTRUCTOR_OVERRIDE
+  ADJUSTMENT
+}
+
+enum LoanType {
+  SHORT_TERM
+  LONG_TERM
+}
+
+enum LoanStatus {
+  ACTIVE
+  REPAID
+  DEFAULTED
+}
+
+enum DepositStatus {
+  ACTIVE
+  MATURED
+  CLOSED
+}
+
+enum AssetType {
+  LAND
+  MACHINERY
+  BUILDING
+  EQUIPMENT
+}
+
+enum AssetStatus {
+  ACTIVE
+  DISPOSED
+  FULLY_DEPRECIATED
+}
+
+enum EmployeeType {
+  PRODUCTION
+  ADMINISTRATIVE
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  TERMINATED
+}
+
+enum InventoryItemType {
+  RAW_MATERIAL
+  WORK_IN_PROCESS
+  FINISHED_GOOD
+}
+
+enum ProductionOrderStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum SalesOrderStatus {
+  PENDING
+  ALLOCATED
+  SETTLED
+  CANCELLED
+}
+
+enum PurchaseOrderStatus {
+  PENDING
+  RECEIVED
+  CANCELLED
+}
+
+enum PaymentTerm {
+  CASH
+  CREDIT
+}
+
+enum EventScope {
+  GLOBAL
+  TARGET_COMPANY
+  MARKET_SEGMENT
+}
+
+enum EventCategory {
+  SUPPLY
+  DEMAND
+  REGULATION
+  DISASTER
+  FINANCE
+  CUSTOM
+}
+
+enum SimulationEventStatus {
+  SCHEDULED
+  ACTIVE
+  APPLIED
+  CANCELLED
+}
+
+enum AIFeedbackStatus {
+  PENDING
+  GENERATING
+  REVIEW
+  PUBLISHED
+  REJECTED
+}
+
+enum NotificationType {
+  ANNOUNCEMENT
+  ROUND
+  EVENT
+  TRANSACTION
+  WARNING
+  SCORE
+  AI_FEEDBACK
+  SYSTEM
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  OVERRIDE
+  PHASE_CHANGE
+  SETTLEMENT
+  LOGIN
+  EXPORT
+}
+
+enum OverrideTargetType {
+  CASH
+  INVENTORY
+  FIXED_ASSET
+  LIABILITY
+  EMPLOYEE
+  COMPANY_STATUS
+  SCORE
+}
+
+enum ScoreCategory {
+  FINANCIAL_HEALTH
+  OPERATIONAL_EFFICIENCY
+  GROWTH
+  RISK_MANAGEMENT
+  STRATEGY
+}
+
+enum DomainEventType {
+  SESSION_STARTED
+  ROUND_ADVANCED
+  PHASE_CHANGED
+  TRANSACTION_POSTED
+  SETTLEMENT_COMPLETED
+  EVENT_TRIGGERED
+  SCORE_CALCULATED
+  AI_FEEDBACK_GENERATED
+  OVERRIDE_APPLIED
+}
+
+// =============================================================================
+// 1. Identity & Organization
+// =============================================================================
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  code      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users    User[]
+  sessions SimulationSession[]
+}
+
+model User {
+  id             String    @id @default(cuid())
+  organizationId String?
+  email          String?   @unique
+  passwordHash   String?
+  name           String
+  role           UserRole  @default(CEO)
+  isActive       Boolean   @default(true)
+  lastLoginAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization        Organization?        @relation(fields: [organizationId], references: [id])
+  instructedSessions  SimulationSession[]  @relation("SessionInstructor")
+  companyMemberships  CompanyMember[]
+  notifications       Notification[]
+  auditLogs           AuditLog[]           @relation("AuditActor")
+  announcements       Announcement[]
+  instructorOverrides InstructorOverride[]
+  roundDecisions      RoundDecision[]
+
+  @@index([organizationId])
+  @@index([role])
+}
+
+model CompanyMember {
+  id        String   @id @default(cuid())
+  companyId String
+  userId    String
+  isPrimary Boolean  @default(false) // CEO 대표 여부
+  joinedAt  DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, userId])
+  @@index([userId])
+}
+
+// =============================================================================
+// 2. Simulation Session
+// =============================================================================
+
+model SessionTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  config      Json // SessionConfig snapshot
+  createdById String?
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  sessions SimulationSession[]
+}
+
+model SimulationSession {
+  id              String        @id @default(cuid())
+  organizationId  String?
+  instructorId    String
+  templateId      String?
+  name            String
+  description     String?
+  accessCode      String        @unique
+  status          SessionStatus @default(DRAFT)
+  currentRound    Int           @default(1)
+  totalRounds     Int           @default(4)
+  currentPhase    RoundPhase    @default(PLANNING)
+  maxCompanies    Int           @default(8)
+  initialCash     Int           @default(100_000_000) // 원
+  decisionMinutes Int           @default(30)
+  phaseStartedAt  DateTime?
+  decisionDeadline DateTime?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  organization Organization?  @relation(fields: [organizationId], references: [id])
+  instructor   User             @relation("SessionInstructor", fields: [instructorId], references: [id])
+  template     SessionTemplate? @relation(fields: [templateId], references: [id])
+
+  companies          Company[]
+  rounds             Round[]
+  announcements      Announcement[]
+  marketConfig       MarketConfig?
+  economicSnapshots  EconomicSnapshot[]
+  marketSnapshots    MarketSnapshot[]
+  simulationEvents   SimulationEvent[]
+  scoringRubrics     ScoringRubric[]
+  domainEvents       DomainEvent[]
+
+  @@index([instructorId])
+  @@index([status])
+  @@index([accessCode])
+}
+
+model Round {
+  id               String     @id @default(cuid())
+  sessionId        String
+  roundNumber      Int
+  phase            RoundPhase @default(PLANNING)
+  isLocked         Boolean    @default(false) // 결산 잠금
+  startedAt        DateTime?
+  executionStartedAt DateTime?
+  settlementAt     DateTime?
+  debriefAt        DateTime?
+  endedAt          DateTime?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  session SimulationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  journalEntries     JournalEntry[]
+  fiscalPeriod       FiscalPeriod?
+  financialSnapshots FinancialSnapshot[]
+  roundDecisions     RoundDecision[]
+  companyScores      CompanyScore[]
+  aiFeedbackReports  AIFeedbackReport[]
+  economicSnapshot   EconomicSnapshot?
+  marketSnapshot     MarketSnapshot?
+  purchaseOrders     PurchaseOrder[]
+  productionOrders   ProductionOrder[]
+  salesOrders        SalesOrder[]
+
+  @@unique([sessionId, roundNumber])
+  @@index([sessionId])
+}
+
+model Company {
+  id          String        @id @default(cuid())
+  sessionId   String
+  name        String
+  teamCode    String
+  status      CompanyStatus @default(ACTIVE)
+  initialCash Int
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  session SimulationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  members              CompanyMember[]
+  ledgerAccounts       LedgerAccount[]
+  fiscalPeriods        FiscalPeriod[]
+  journalEntries       JournalEntry[]
+  financialSnapshots   FinancialSnapshot[]
+  loans                Loan[]
+  deposits             Deposit[]
+  fixedAssets          FixedAsset[]
+  employees            Employee[]
+  inventoryLots        InventoryLot[]
+  purchaseOrders       PurchaseOrder[]
+  productionOrders     ProductionOrder[]
+  salesOrders          SalesOrder[]
+  roundDecisions       RoundDecision[]
+  companyScores        CompanyScore[]
+  aiFeedbackReports    AIFeedbackReport[]
+  companyMarketResults CompanyMarketResult[]
+  instructorOverrides  InstructorOverride[]
+  domainEvents         DomainEvent[]
+
+  @@unique([sessionId, teamCode])
+  @@unique([sessionId, name])
+  @@index([sessionId])
+  @@index([status])
+}
+
+model Announcement {
+  id          String   @id @default(cuid())
+  sessionId   String
+  authorId    String
+  title       String
+  body        String
+  targetAll   Boolean  @default(true)
+  targetCompanyIds String[] @default([])
+  publishedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  session SimulationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  author  User              @relation(fields: [authorId], references: [id])
+
+  @@index([sessionId])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String
+  link      String?
+  isRead    Boolean          @default(false)
+  metadata  Json?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+}
+
+// =============================================================================
+// 3. Master Data
+// =============================================================================
+
+model Product {
+  id              String   @id @default(cuid())
+  sessionId       String?  // null = global master
+  code            String
+  name            String
+  unit            String   @default("EA")
+  basePrice       Int      @default(0)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  bomLines              BomLine[]            @relation("ProductBom")
+  componentInBoms       BomLine[]            @relation("ComponentProduct")
+  inventoryLots         InventoryLot[]
+  productionOrders      ProductionOrder[]
+  salesLines            SalesLine[]
+  marketConfigItems     MarketConfigItem[]
+  companyMarketResults  CompanyMarketResult[]
+  purchaseLines         PurchaseLine[]
+
+  @@unique([sessionId, code])
+  @@index([sessionId])
+}
+
+model BomLine {
+  id                 String @id @default(cuid())
+  productId          String // 완제품
+  componentProductId String // 원재료(또는 부품)
+  quantity           Decimal @db.Decimal(12, 4)
+  createdAt          DateTime @default(now())
+
+  product          Product @relation("ProductBom", fields: [productId], references: [id], onDelete: Cascade)
+  componentProduct Product @relation("ComponentProduct", fields: [componentProductId], references: [id])
+
+  @@unique([productId, componentProductId])
+}
+
+model AccountMaster {
+  id            String          @id @default(cuid())
+  code          String          @unique
+  name          String
+  category      AccountCategory
+  normalBalance NormalBalance
+  parentCode    String?
+  isActive      Boolean         @default(true)
+  sortOrder     Int             @default(0)
+
+  ledgerAccounts LedgerAccount[]
+}
+
+model EventTemplate {
+  id          String        @id @default(cuid())
+  code        String        @unique
+  name        String
+  category    EventCategory
+  description String?
+  scope       EventScope    @default(GLOBAL)
+  parameters  Json          // JSON Schema for params
+  effectRules Json          // effect resolver config
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  simulationEvents SimulationEvent[]
+}
+
+model ScoringRubric {
+  id        String   @id @default(cuid())
+  sessionId String
+  name      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  session   SimulationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  criteria  RubricCriterion[]
+  scores    CompanyScore[]
+
+  @@index([sessionId])
+}
+
+model RubricCriterion {
+  id          String        @id @default(cuid())
+  rubricId    String
+  category    ScoreCategory
+  name        String
+  weight      Decimal       @db.Decimal(5, 2) // %
+  metricKey   String        // e.g. "debtRatio", "roe"
+  thresholds  Json          // 구간별 점수
+  sortOrder   Int           @default(0)
+
+  rubric           ScoringRubric   @relation(fields: [rubricId], references: [id], onDelete: Cascade)
+  scoreBreakdowns  ScoreBreakdown[]
+
+  @@index([rubricId])
+}
+
+// =============================================================================
+// 4. Accounting (Core)
+// =============================================================================
+
+model LedgerAccount {
+  id              String          @id @default(cuid())
+  companyId       String
+  accountMasterId String
+  code            String
+  name            String
+  category        AccountCategory
+  normalBalance   NormalBalance
+  balance         Int             @default(0) // 원, 차변+ 대변-
+  isActive        Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  company       Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  accountMaster AccountMaster @relation(fields: [accountMasterId], references: [id])
+  journalLines  JournalLine[]
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@index([category])
+}
+
+model FiscalPeriod {
+  id         String   @id @default(cuid())
+  companyId  String
+  roundId    String   @unique
+  periodName String
+  startDate  DateTime
+  endDate    DateTime?
+  isClosed   Boolean  @default(false)
+  closedAt   DateTime?
+  createdAt  DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  round   Round   @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  journalEntries JournalEntry[]
+
+  @@index([companyId])
+}
+
+model JournalEntry {
+  id              String          @id @default(cuid())
+  companyId       String
+  roundId         String
+  fiscalPeriodId  String?
+  entryNumber     String
+  transactionType TransactionType
+  description     String
+  referenceType   String?         // Loan, ProductionOrder, etc.
+  referenceId     String?
+  totalDebit      Int
+  totalCredit     Int
+  postedAt        DateTime        @default(now())
+  postedById      String?
+  isReversal      Boolean         @default(false)
+  reversedEntryId String?
+  metadata        Json?
+  createdAt       DateTime        @default(now())
+
+  company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  round        Round         @relation(fields: [roundId], references: [id])
+  fiscalPeriod FiscalPeriod? @relation(fields: [fiscalPeriodId], references: [id])
+  lines        JournalLine[]
+
+  @@unique([companyId, entryNumber])
+  @@index([companyId, roundId])
+  @@index([transactionType])
+  @@index([referenceType, referenceId])
+  @@index([postedAt])
+}
+
+model JournalLine {
+  id              String @id @default(cuid())
+  journalEntryId  String
+  ledgerAccountId String
+  lineNumber      Int
+  debit           Int    @default(0)
+  credit          Int    @default(0)
+  memo            String?
+
+  journalEntry  JournalEntry  @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  ledgerAccount LedgerAccount @relation(fields: [ledgerAccountId], references: [id])
+
+  @@unique([journalEntryId, lineNumber])
+  @@index([ledgerAccountId])
+}
+
+model FinancialSnapshot {
+  id            String   @id @default(cuid())
+  companyId     String
+  roundId       String
+  snapshotType  String   // TRIAL_BALANCE | BALANCE_SHEET | INCOME_STATEMENT | CASH_FLOW
+  data          Json     // structured FS data
+  totalAssets   Int?
+  totalLiabilities Int?
+  totalEquity   Int?
+  revenue       Int?
+  netIncome     Int?
+  generatedAt   DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  round   Round   @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, roundId, snapshotType])
+  @@index([companyId])
+}
+
+// =============================================================================
+// 5. Finance — Loan & Deposit
+// =============================================================================
+
+model Loan {
+  id             String     @id @default(cuid())
+  companyId      String
+  loanType       LoanType
+  status         LoanStatus @default(ACTIVE)
+  principal      Int
+  remainingPrincipal Int
+  interestRate   Decimal    @db.Decimal(6, 4)
+  termRounds     Int
+  startRound     Int
+  maturityRound  Int
+  journalEntryId String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([status])
+}
+
+model Deposit {
+  id             String        @id @default(cuid())
+  companyId      String
+  status         DepositStatus @default(ACTIVE)
+  principal      Int
+  interestRate   Decimal       @db.Decimal(6, 4)
+  termRounds     Int
+  startRound     Int
+  maturityRound  Int
+  accruedInterest Int          @default(0)
+  journalEntryId String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([status])
+}
+
+// =============================================================================
+// 6. Fixed Assets
+// =============================================================================
+
+model FixedAsset {
+  id                  String      @id @default(cuid())
+  companyId           String
+  assetType           AssetType
+  status              AssetStatus @default(ACTIVE)
+  name                String
+  acquisitionCost     Int
+  salvageValue        Int         @default(0)
+  usefulLifeRounds    Int         @default(0) // LAND = 0
+  accumulatedDepreciation Int     @default(0)
+  bookValue           Int
+  productionCapacity  Int         @default(0) // MACHINERY only
+  acquisitionRound    Int
+  disposalRound       Int?
+  disposalAmount      Int?
+  journalEntryId      String?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([assetType])
+  @@index([status])
+}
+
+// =============================================================================
+// 7. HR
+// =============================================================================
+
+model Employee {
+  id           String         @id @default(cuid())
+  companyId    String
+  employeeType EmployeeType
+  status       EmployeeStatus @default(ACTIVE)
+  headcount    Int            @default(1)
+  monthlyWage  Int            // 라운드당 인건비
+  hiredRound   Int
+  terminatedRound Int?
+  journalEntryId String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([status])
+}
+
+// =============================================================================
+// 8. Inventory & Purchasing
+// =============================================================================
+
+model InventoryLot {
+  id            String            @id @default(cuid())
+  companyId     String
+  productId     String
+  itemType      InventoryItemType
+  quantity      Decimal           @db.Decimal(14, 4)
+  unitCost      Int               // 이동평균 단가 (원)
+  totalValue    Int               @default(0)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  productionUsages ProductionMaterialUsage[]
+
+  @@unique([companyId, productId, itemType])
+  @@index([companyId])
+  @@index([itemType])
+}
+
+model PurchaseOrder {
+  id             String              @id @default(cuid())
+  companyId      String
+  roundId        String
+  status         PurchaseOrderStatus @default(PENDING)
+  paymentTerm    PaymentTerm         @default(CASH)
+  totalAmount    Int
+  journalEntryId String?
+  orderedAt      DateTime            @default(now())
+  receivedAt     DateTime?
+
+  company Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  round   Round          @relation(fields: [roundId], references: [id])
+  lines   PurchaseLine[]
+
+  @@index([companyId])
+  @@index([roundId])
+}
+
+model PurchaseLine {
+  id              String  @id @default(cuid())
+  purchaseOrderId String
+  productId       String
+  quantity        Decimal @db.Decimal(14, 4)
+  unitPrice       Int
+  amount          Int
+
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  product       Product       @relation(fields: [productId], references: [id])
+
+  @@index([purchaseOrderId])
+  @@index([productId])
+}
+
+// =============================================================================
+// 9. Production
+// =============================================================================
+
+model ProductionOrder {
+  id              String                @id @default(cuid())
+  companyId       String
+  roundId         String
+  productId       String
+  status          ProductionOrderStatus @default(PLANNED)
+  plannedQty      Decimal               @db.Decimal(14, 4)
+  completedQty    Decimal               @db.Decimal(14, 4) @default(0)
+  materialCost    Int                   @default(0)
+  laborCost       Int                   @default(0)
+  overheadCost    Int                   @default(0)
+  totalCost       Int                   @default(0)
+  journalEntryId  String?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  company  Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  round    Round                     @relation(fields: [roundId], references: [id])
+  product  Product                   @relation(fields: [productId], references: [id])
+  materials ProductionMaterialUsage[]
+
+  @@index([companyId])
+  @@index([roundId])
+  @@index([status])
+}
+
+model ProductionMaterialUsage {
+  id                String  @id @default(cuid())
+  productionOrderId String
+  inventoryLotId    String
+  quantityUsed      Decimal @db.Decimal(14, 4)
+  unitCost          Int
+  amount            Int
+
+  productionOrder ProductionOrder @relation(fields: [productionOrderId], references: [id], onDelete: Cascade)
+  inventoryLot    InventoryLot    @relation(fields: [inventoryLotId], references: [id])
+
+  @@index([productionOrderId])
+}
+
+// =============================================================================
+// 10. Sales
+// =============================================================================
+
+model SalesOrder {
+  id             String           @id @default(cuid())
+  companyId      String
+  roundId        String
+  status         SalesOrderStatus @default(PENDING)
+  totalAmount    Int              @default(0)
+  totalCogs      Int              @default(0)
+  journalEntryId String?
+  orderedAt      DateTime         @default(now())
+  settledAt      DateTime?
+
+  company Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  round   Round      @relation(fields: [roundId], references: [id])
+  lines   SalesLine[]
+
+  @@index([companyId])
+  @@index([roundId])
+  @@index([status])
+}
+
+model SalesLine {
+  id              String  @id @default(cuid())
+  salesOrderId    String
+  productId       String
+  requestedQty    Decimal @db.Decimal(14, 4)
+  allocatedQty    Decimal @db.Decimal(14, 4) @default(0)
+  unitPrice       Int
+  amount          Int     @default(0)
+  cogs            Int     @default(0)
+
+  salesOrder SalesOrder @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+  product    Product    @relation(fields: [productId], references: [id])
+
+  @@index([salesOrderId])
+}
+
+// =============================================================================
+// 11. Market & Economy
+// =============================================================================
+
+model MarketConfig {
+  id        String   @id @default(cuid())
+  sessionId String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  session SimulationSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  items   MarketConfigItem[]
+}
+
+model MarketConfigItem {
+  id             String  @id @default(cuid())
+  marketConfigId String
+  productId      String
+  baseDemand     Decimal @db.Decimal(14, 4)
+  basePrice      Int
+  marketCapacity Decimal @db.Decimal(14, 4)
+  priceFloor     Int?
+  priceCeiling   Int?
+  demandElasticity Decimal @db.Decimal(6, 4) @default(1.0)
+
+  marketConfig MarketConfig @relation(fields: [marketConfigId], references: [id], onDelete: Cascade)
+  product      Product      @relation(fields: [productId], references: [id])
+
+  @@unique([marketConfigId, productId])
+}
+
+model EconomicSnapshot {
+  id               String   @id @default(cuid())
+  sessionId        String
+  roundId          String   @unique
+  baseInterestRate Decimal  @db.Decimal(6, 4)
+  shortTermSpread  Decimal  @db.Decimal(6, 4) @default(0)
+  longTermSpread   Decimal  @db.Decimal(6, 4) @default(0)
+  depositRate      Decimal  @db.Decimal(6, 4) @default(0)
+  materialIndex    Decimal  @db.Decimal(8, 4)  @default(1.0)
+  wageIndex        Decimal  @db.Decimal(8, 4)  @default(1.0)
+  inflationRate    Decimal  @db.Decimal(6, 4)  @default(0)
+  corporateTaxRate Decimal  @db.Decimal(6, 4)  @default(0.22)
+  exchangeRate     Decimal  @db.Decimal(10, 4) @default(1.0)
+  gdpIndex         Decimal  @db.Decimal(8, 4)  @default(1.0)
+  capturedAt       DateTime @default(now())
+
+  session SimulationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  round   Round             @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+}
+
+model MarketSnapshot {
+  id        String   @id @default(cuid())
+  sessionId String
+  roundId   String   @unique
+  data      Json     // product-level market results
+  createdAt DateTime @default(now())
+
+  session              SimulationSession     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  round                Round                 @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  companyMarketResults CompanyMarketResult[]
+
+  @@index([sessionId])
+}
+
+model CompanyMarketResult {
+  id               String  @id @default(cuid())
+  marketSnapshotId String
+  companyId        String
+  productId        String
+  requestedQty     Decimal @db.Decimal(14, 4)
+  allocatedQty     Decimal @db.Decimal(14, 4)
+  unitPrice        Int
+  revenue          Int
+  marketShare      Decimal @db.Decimal(6, 4)
+  unsoldQty        Decimal @db.Decimal(14, 4) @default(0)
+
+  marketSnapshot MarketSnapshot @relation(fields: [marketSnapshotId], references: [id], onDelete: Cascade)
+  company        Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  product        Product        @relation(fields: [productId], references: [id])
+
+  @@unique([marketSnapshotId, companyId, productId])
+  @@index([companyId])
+}
+
+// =============================================================================
+// 12. Events
+// =============================================================================
+
+model SimulationEvent {
+  id              String                @id @default(cuid())
+  sessionId       String
+  templateId      String?
+  title           String
+  description     String?
+  category        EventCategory
+  scope           EventScope
+  status          SimulationEventStatus @default(ACTIVE)
+  targetCompanyId String?
+  parameters      Json?
+  effectResult    Json?
+  triggeredById   String?
+  triggeredAt     DateTime              @default(now())
+  appliedAt       DateTime?
+  cancelledAt     DateTime?
+
+  session  SimulationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  template EventTemplate?    @relation(fields: [templateId], references: [id])
+
+  @@index([sessionId])
+  @@index([status])
+}
+
+// =============================================================================
+// 13. Scoring & AI Feedback
+// =============================================================================
+
+model RoundDecision {
+  id          String   @id @default(cuid())
+  companyId   String
+  roundId     String
+  submittedById String
+  planData    Json     // planned loan, capex, hire, etc.
+  memo        String?
+  submittedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company     Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  round       Round   @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  submittedBy User    @relation(fields: [submittedById], references: [id])
+
+  @@unique([companyId, roundId])
+  @@index([roundId])
+}
+
+model CompanyScore {
+  id           String   @id @default(cuid())
+  companyId    String
+  roundId      String
+  rubricId     String
+  totalScore   Decimal  @db.Decimal(6, 2)
+  rank         Int?
+  grade        String?
+  isPublished  Boolean  @default(false)
+  calculatedAt DateTime @default(now())
+
+  company    Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  round      Round           @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  rubric     ScoringRubric   @relation(fields: [rubricId], references: [id])
+  breakdowns ScoreBreakdown[]
+
+  @@unique([companyId, roundId, rubricId])
+  @@index([roundId])
+  @@index([totalScore])
+}
+
+model ScoreBreakdown {
+  id             String        @id @default(cuid())
+  companyScoreId String
+  criterionId    String
+  category       ScoreCategory
+  rawValue       Decimal?      @db.Decimal(14, 4)
+  score          Decimal       @db.Decimal(6, 2)
+  weightedScore  Decimal       @db.Decimal(6, 2)
+  notes          String?
+
+  companyScore CompanyScore    @relation(fields: [companyScoreId], references: [id], onDelete: Cascade)
+  criterion    RubricCriterion @relation(fields: [criterionId], references: [id])
+
+  @@unique([companyScoreId, criterionId])
+}
+
+model AIFeedbackReport {
+  id               String           @id @default(cuid())
+  companyId        String
+  roundId          String
+  status           AIFeedbackStatus @default(PENDING)
+  strengths        Json?
+  weaknesses       Json?
+  risks            Json?
+  recommendations  Json?
+  debriefQuestions Json?
+  facilitatorGuide String?
+  archetype        String?
+  rawResponse      Json?
+  reviewedById     String?
+  publishedAt      DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  round   Round   @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, roundId])
+  @@index([status])
+}
+
+// =============================================================================
+// 14. Audit & Domain Events
+// =============================================================================
+
+model InstructorOverride {
+  id             String             @id @default(cuid())
+  companyId      String
+  instructorId   String
+  targetType     OverrideTargetType
+  targetId       String?
+  beforeSnapshot Json
+  afterSnapshot  Json
+  reason         String
+  journalEntryId String?
+  createdAt      DateTime           @default(now())
+
+  company    Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  instructor User    @relation(fields: [instructorId], references: [id])
+
+  @@index([companyId])
+  @@index([instructorId])
+}
+
+model AuditLog {
+  id         String      @id @default(cuid())
+  actorId    String?
+  action     AuditAction
+  entityType String
+  entityId   String
+  sessionId  String?
+  companyId  String?
+  before     Json?
+  after      Json?
+  reason     String?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime    @default(now())
+
+  actor User? @relation("AuditActor", fields: [actorId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([sessionId])
+  @@index([companyId])
+  @@index([actorId])
+  @@index([createdAt])
+}
+
+model DomainEvent {
+  id         String          @id @default(cuid())
+  sessionId  String?
+  companyId  String?
+  eventType  DomainEventType
+  payload    Json
+  occurredAt DateTime        @default(now())
+
+  session SimulationSession? @relation(fields: [sessionId], references: [id])
+  company Company?           @relation(fields: [companyId], references: [id])
+
+  @@index([sessionId])
+  @@index([companyId])
+  @@index([eventType])
+  @@index([occurredAt])
+}

@@ -1,0 +1,47 @@
+﻿node.exe : npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm help
+ npmrc` for supported config options.
+위치 줄:1 문자:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm warn Unknow...config options.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-
+deprecated for more details.[39m
+
+ RUN  v2.1.9 C:/Users/USER/Desktop/project
+      Coverage enabled with v8
+
+ ??tests/bsp/sprint1.test.ts (6 tests) 17ms
+ ??tests/bsp/accounting-engine.test.ts (3 tests) 54ms
+ ??tests/bsp/dashboard-service.test.ts (2 tests) 53ms
+ ??tests/bsp/step-handlers.test.ts (5 tests) 29ms
+ ??tests/bsp/game-engine.test.ts (2 tests) 158ms
+ ??tests/bsp/sprint2b.test.ts (22 tests) 338ms
+ ??tests/bsp/sprint2a.test.ts (4 tests) 150ms
+ ??tests/bsp/benchmark.test.ts (2 tests | 1 failed) 509ms
+   횞 performance benchmark (Sprint 1.5) > submitDecision E2E under 50ms (memory) 457ms
+     ??expected 313.4385000000002 to be less than 50
+ ??tests/bsp/excel-regression-20.test.ts (22 tests) 1391ms
+   ??Excel regression ??20 scenarios (zero tolerance) > S01: Baseline Demo (2A+2B) 848ms
+ ??tests/bsp/auth.test.ts (9 tests) 135ms
+ ??tests/bsp/multi-period.test.ts (24 tests) 1505ms
+   ??Excel regression ??20 scenarios (zero tolerance) > S01: Baseline Demo (2A+2B) 643ms
+
+??렞??렞??렞??Failed Tests 1 ??렞??렞??렞??
+ FAIL  tests/bsp/benchmark.test.ts > performance benchmark (Sprint 1.5) > submitDecision E2E under 50ms (memory)
+AssertionError: expected 313.4385000000002 to be less than 50
+ ??tests/bsp/benchmark.test.ts:35:39
+     33|     const start = performance.now();
+     34|     await engine.submitDecision(company.id, "LOAN", { loanEarly: 1, lo??     35|     expect(performance.now() 
+- start).toBeLessThan(50);
+       |                                       ^
+     36|   });
+     37| });
+
+??렞??렞??렞??렞??렞??렞??렞??렞??렞??렞??렞??렞[1/1]??
+ Test Files  1 failed | 10 passed (11)
+      Tests  1 failed | 100 passed (101)
+   Start at  23:16:17
+   Duration  11.41s (transform 14.96s, setup 0ms, collect 30.42s, tests 4.34s, environment 11ms, prepare 14.67s)
+

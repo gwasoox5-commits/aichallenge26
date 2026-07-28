@@ -1,0 +1,211 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bsp.education/schemas/v1/economy.json",
+  "title": "BSP Economy Schema",
+  "description": "EconomicState, Snapshot, Patch, Market — V1 canonical",
+  "$defs": {
+    "EconomyVariableKey": {
+      "type": "string",
+      "enum": [
+        "exchangeRate",
+        "interestRateLoan",
+        "interestRateDeposit",
+        "rawMaterialIndex",
+        "marketDemandIndex",
+        "marketSupplyIndex",
+        "logisticsCostMultiplier",
+        "tariffRate",
+        "corporateTaxRate",
+        "carbonTaxRatePerUnit",
+        "payrollCostMultiplier",
+        "techInnovationIndex",
+        "esgPressureIndex",
+        "businessCycleIndex"
+      ]
+    },
+    "EconomyValues": {
+      "type": "object",
+      "required": [
+        "exchangeRate",
+        "interestRateLoan",
+        "interestRateDeposit",
+        "rawMaterialIndex",
+        "marketDemandIndex",
+        "marketSupplyIndex",
+        "logisticsCostMultiplier",
+        "tariffRate",
+        "corporateTaxRate",
+        "carbonTaxRatePerUnit",
+        "payrollCostMultiplier",
+        "techInnovationIndex",
+        "esgPressureIndex",
+        "businessCycleIndex"
+      ],
+      "properties": {
+        "exchangeRate": { "type": "number", "default": 1300 },
+        "interestRateLoan": { "type": "number", "default": 10 },
+        "interestRateDeposit": { "type": "number", "default": 5 },
+        "rawMaterialIndex": { "type": "number", "default": 100 },
+        "marketDemandIndex": { "type": "number", "default": 100 },
+        "marketSupplyIndex": { "type": "number", "default": 100 },
+        "logisticsCostMultiplier": { "type": "number", "default": 1.0 },
+        "tariffRate": { "type": "number", "default": 0 },
+        "corporateTaxRate": { "type": "number", "default": 22 },
+        "carbonTaxRatePerUnit": { "type": "number", "default": 0 },
+        "payrollCostMultiplier": { "type": "number", "default": 1.0 },
+        "techInnovationIndex": { "type": "number", "default": 100 },
+        "esgPressureIndex": { "type": "number", "default": 100 },
+        "businessCycleIndex": { "type": "number", "default": 100 }
+      },
+      "additionalProperties": false
+    },
+    "PatchMode": {
+      "type": "string",
+      "enum": ["ABSOLUTE", "DELTA", "PERCENT", "MULTIPLY"]
+    },
+    "EconomyPatchEffect": {
+      "type": "object",
+      "required": ["key", "mode", "value"],
+      "properties": {
+        "key": { "$ref": "#/$defs/EconomyVariableKey" },
+        "mode": { "$ref": "#/$defs/PatchMode" },
+        "value": { "type": "number" },
+        "unit": { "type": "string", "enum": ["pct", "index", "multiplier", "krw_per_usd", "manwon"] }
+      },
+      "additionalProperties": false
+    },
+    "EconomicLiveState": {
+      "type": "object",
+      "required": ["sessionId", "values", "version", "updatedAt"],
+      "properties": {
+        "sessionId": { "$ref": "common.json#/$defs/Uuid" },
+        "values": { "$ref": "#/$defs/EconomyValues" },
+        "version": { "type": "integer", "minimum": 0 },
+        "updatedAt": { "$ref": "common.json#/$defs/DateTime" },
+        "updatedBy": { "$ref": "common.json#/$defs/Uuid" },
+        "pendingBadgeForCeo": { "type": "boolean", "default": false }
+      },
+      "additionalProperties": false
+    },
+    "EconomicSnapshot": {
+      "type": "object",
+      "description": "Period-open baseline — Decision resolve anchor",
+      "required": ["id", "sessionId", "periodId", "values", "snapshotType", "createdAt"],
+      "properties": {
+        "id": { "$ref": "common.json#/$defs/Uuid" },
+        "sessionId": { "$ref": "common.json#/$defs/Uuid" },
+        "periodId": { "$ref": "common.json#/$defs/Uuid" },
+        "values": { "$ref": "#/$defs/EconomyValues" },
+        "snapshotType": {
+          "type": "string",
+          "enum": ["PERIOD_OPEN", "PERIOD_CLOSE"]
+        },
+        "liveStateVersion": { "type": "integer" },
+        "createdAt": { "$ref": "common.json#/$defs/DateTime" }
+      },
+      "additionalProperties": false
+    },
+    "EconomicPatchRecord": {
+      "type": "object",
+      "required": ["id", "sessionId", "sequence", "source", "effects", "occurredAt"],
+      "properties": {
+        "id": { "$ref": "common.json#/$defs/Uuid" },
+        "sessionId": { "$ref": "common.json#/$defs/Uuid" },
+        "sequence": { "type": "integer", "minimum": 1 },
+        "source": {
+          "type": "string",
+          "enum": ["GM_MANUAL", "EVENT_FIRE", "SCENARIO_PRESET", "SYSTEM_PERIOD_OPEN"]
+        },
+        "simulationEventId": { "$ref": "common.json#/$defs/Uuid" },
+        "effects": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/EconomyPatchEffect" },
+          "minItems": 1
+        },
+        "valuesBefore": { "$ref": "#/$defs/EconomyValues" },
+        "valuesAfter": { "$ref": "#/$defs/EconomyValues" },
+        "actorUserId": { "$ref": "common.json#/$defs/Uuid" },
+        "occurredAt": { "$ref": "common.json#/$defs/DateTime" },
+        "effectiveFrom": {
+          "type": "string",
+          "const": "NEXT_DECISION_POST",
+          "description": "G-02"
+        }
+      },
+      "additionalProperties": false
+    },
+    "MarketRegionState": {
+      "type": "object",
+      "required": ["regionCode", "demandMultiplier", "saleLimitMultiplier", "materialLimitMultiplier"],
+      "properties": {
+        "regionCode": { "$ref": "common.json#/$defs/RegionCode" },
+        "demandMultiplier": { "type": "number", "default": 1.0 },
+        "saleLimitMultiplier": { "type": "number", "default": 1.0 },
+        "materialLimitMultiplier": { "type": "number", "default": 1.0 },
+        "priceCapMultiplier": { "type": "number", "default": 1.0 }
+      },
+      "additionalProperties": false
+    },
+    "EconomyAuditEntry": {
+      "type": "object",
+      "required": ["id", "sessionId", "actorUserId", "action", "occurredAt"],
+      "properties": {
+        "id": { "$ref": "common.json#/$defs/Uuid" },
+        "sessionId": { "$ref": "common.json#/$defs/Uuid" },
+        "economicPatchId": { "$ref": "common.json#/$defs/Uuid" },
+        "actorUserId": { "$ref": "common.json#/$defs/Uuid" },
+        "actorRole": { "$ref": "common.json#/$defs/PlatformRole" },
+        "action": { "type": "string", "enum": ["ECONOMY_PATCH", "ECONOMY_PREVIEW", "SNAPSHOT_CREATE"] },
+        "changes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["key", "before", "after"],
+            "properties": {
+              "key": { "$ref": "#/$defs/EconomyVariableKey" },
+              "before": { "type": "number" },
+              "after": { "type": "number" }
+            }
+          }
+        },
+        "occurredAt": { "$ref": "common.json#/$defs/DateTime" }
+      },
+      "additionalProperties": false
+    },
+    "PatchEconomyRequest": {
+      "type": "object",
+      "properties": {
+        "patch": {
+          "type": "object",
+          "additionalProperties": { "type": "number" },
+          "description": "Partial EconomyValues — ABSOLUTE set for listed keys"
+        },
+        "effects": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/EconomyPatchEffect" }
+        },
+        "reason": { "type": "string", "maxLength": 500 }
+      },
+      "additionalProperties": false
+    },
+    "PreviewEconomyRequest": {
+      "type": "object",
+      "required": ["effects"],
+      "properties": {
+        "effects": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/EconomyPatchEffect" }
+        },
+        "sampleContext": {
+          "type": "object",
+          "properties": {
+            "step": { "$ref": "common.json#/$defs/GameStep" },
+            "regionCode": { "$ref": "common.json#/$defs/RegionCode" },
+            "sampleQty": { "type": "integer", "default": 100 }
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

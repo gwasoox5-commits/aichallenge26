@@ -1,0 +1,286 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bsp.education/schemas/v1/common.json",
+  "title": "BSP Common Types",
+  "description": "Shared primitives and enums for V1 JSON Specification",
+  "$defs": {
+    "Uuid": {
+      "type": "string",
+      "format": "uuid",
+      "description": "RFC 4122 UUID"
+    },
+    "DateTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 UTC"
+    },
+    "MoneyManwon": {
+      "type": "integer",
+      "description": "Amount in 만원 (Rule Book §1.5). Display unit for all financial fields unless noted."
+    },
+    "NonNegativeMoneyManwon": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Non-negative 만원"
+    },
+    "RatePercent": {
+      "type": "number",
+      "description": "Percentage rate (e.g. 10 = 10%/year)"
+    },
+    "Index100": {
+      "type": "number",
+      "minimum": 0,
+      "default": 100,
+      "description": "Economic index with base 100"
+    },
+    "Multiplier": {
+      "type": "number",
+      "minimum": 0,
+      "default": 1.0
+    },
+    "PeriodIndex": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 6,
+      "description": "Fiscal period P1..P6"
+    },
+    "Year": {
+      "type": "integer",
+      "enum": [1, 2, 3]
+    },
+    "Half": {
+      "type": "string",
+      "enum": ["H1", "H2"]
+    },
+    "PeriodLabel": {
+      "type": "string",
+      "enum": ["P1", "P2", "P3", "P4", "P5", "P6"]
+    },
+    "PlatformRole": {
+      "type": "string",
+      "enum": ["ADMIN", "INSTRUCTOR", "USER"],
+      "description": "Login identity — Architecture Review M-04"
+    },
+    "SessionParticipantRole": {
+      "type": "string",
+      "enum": ["INSTRUCTOR", "CEO", "OBSERVER"],
+      "description": "Session-scoped role — OBSERVER reserved V2"
+    },
+    "UserRole": {
+      "type": "string",
+      "enum": ["INSTRUCTOR", "CEO"],
+      "deprecated": true,
+      "description": "Use PlatformRole + SessionParticipantRole (M-04)"
+    },
+    "SessionPhase": {
+      "type": "string",
+      "enum": ["PREPARE", "RUNNING", "PAUSED", "FINISHED"],
+      "description": "Game session lifecycle (05-game-state-machine-spec §5.2)"
+    },
+    "StepPhase": {
+      "type": "string",
+      "enum": [
+        "STEP1_FINANCE",
+        "STEP2_INVESTMENT",
+        "STEP3_HR",
+        "STEP4_PURCHASE",
+        "STEP5_PRODUCTION",
+        "STEP6_SALES",
+        "STEP7_SETTLEMENT",
+        "HALF_YEAR_END",
+        "GAME_END"
+      ]
+    },
+    "GameStep": {
+      "type": "string",
+      "enum": [
+        "LOAN",
+        "FACILITY",
+        "HIRING",
+        "MATERIAL",
+        "PRODUCTION",
+        "SALES",
+        "SETTLEMENT"
+      ],
+      "description": "Decision step code (maps 1:1 to StepPhase STEP1..7)"
+    },
+    "Step1SubPhase": {
+      "type": "string",
+      "enum": ["1A", "1B"],
+      "description": "D-01 LOAN wizard sub-phase"
+    },
+    "DecisionStatus": {
+      "type": "string",
+      "enum": [
+        "DRAFT",
+        "EDITING",
+        "SUBMITTED",
+        "VALIDATED",
+        "POSTED",
+        "LOCKED",
+        "SETTLED",
+        "FAILED"
+      ],
+      "description": "Decision lifecycle — Doc 02 §3"
+    },
+    "CompanyStepStatusKind": {
+      "type": "string",
+      "enum": [
+        "NOT_STARTED",
+        "IN_PROGRESS",
+        "SUBMITTED",
+        "SKIPPED_ZERO",
+        "COPIED_FROM_PREVIOUS"
+      ],
+      "description": "D-10 team step grid"
+    },
+    "FiscalPeriodStatus": {
+      "type": "string",
+      "enum": ["OPEN", "CLOSING", "CLOSED"]
+    },
+    "ClosingStatus": {
+      "type": "string",
+      "enum": [
+        "CLOSING_STARTED",
+        "PAYROLL_ACCRUAL",
+        "DEPRECIATION",
+        "INTEREST",
+        "TAX",
+        "SNAPSHOT",
+        "RANKING_UPDATE",
+        "AI_ANNUAL_ENQUEUE",
+        "CLOSING_COMPLETED"
+      ]
+    },
+    "RegionCode": {
+      "type": "string",
+      "enum": [
+        "EUROPE",
+        "ASIA",
+        "MIDDLE_EAST",
+        "AFRICA",
+        "OCEANIA",
+        "NORTH_AMERICA",
+        "SOUTH_AMERICA"
+      ],
+      "description": "Rule Book §1.5 seven regions"
+    },
+    "MaterialSku": {
+      "type": "string",
+      "enum": ["MAT_A", "MAT_B", "MAT_C", "MAT_D"]
+    },
+    "MachineType": {
+      "type": "string",
+      "enum": ["LARGE", "SMALL"]
+    },
+    "Department": {
+      "type": "string",
+      "enum": ["PURCHASE", "PRODUCTION", "SALES"]
+    },
+    "EventStoreSourceType": {
+      "type": "string",
+      "enum": [
+        "DECISION",
+        "SETTLEMENT",
+        "ECONOMY_PATCH",
+        "EVENT_FIRE",
+        "GM_OVERRIDE",
+        "DEPOSIT_RELEASE",
+        "SYSTEM"
+      ],
+      "description": "Journal / audit provenance"
+    },
+    "FeatureFlags": {
+      "type": "object",
+      "description": "V2+ optional features — V1 defaults all false (Principle 2)",
+      "properties": {
+        "replay": { "type": "boolean", "default": false },
+        "whatIf": { "type": "boolean", "default": false },
+        "advisor": { "type": "boolean", "default": false },
+        "copilot": { "type": "boolean", "default": false },
+        "analyticsV2": { "type": "boolean", "default": false },
+        "debriefFull": { "type": "boolean", "default": false },
+        "purchaseBidWorkflow": { "type": "boolean", "default": false }
+      },
+      "additionalProperties": false
+    },
+    "DefaultOrganizationId": {
+      "type": "string",
+      "const": "00000000-0000-0000-0000-000000000001",
+      "description": "V1 single-tenant seed — Architecture Review M-01"
+    },
+    "SchemaVersion": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "V1 JSON Spec bundle version"
+    },
+    "Extensions": {
+      "type": "object",
+      "description": "Forward-compatible bag for V2/V3 — V1 producers MUST NOT require consumers to read",
+      "additionalProperties": true
+    },
+    "AuditActor": {
+      "type": "object",
+      "required": ["userId", "platformRole"],
+      "properties": {
+        "userId": { "$ref": "#/$defs/Uuid" },
+        "platformRole": { "$ref": "#/$defs/PlatformRole" },
+        "sessionRole": { "$ref": "#/$defs/SessionParticipantRole" },
+        "displayName": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "DomainEventRecord": {
+      "type": "object",
+      "description": "Durable Education Event Store row — Architecture Review M-03, M-05",
+      "required": [
+        "id",
+        "sessionId",
+        "sequence",
+        "eventType",
+        "aggregateType",
+        "aggregateId",
+        "occurredAt",
+        "payload"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/Uuid" },
+        "sessionId": { "$ref": "#/$defs/Uuid" },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Monotonic per sessionId — Replay ordering SSOT"
+        },
+        "eventType": { "type": "string" },
+        "aggregateType": {
+          "type": "string",
+          "enum": ["GameSession", "Company", "Decision", "JournalEntry", "SimulationEvent"]
+        },
+        "aggregateId": { "$ref": "#/$defs/Uuid" },
+        "occurredAt": { "$ref": "#/$defs/DateTime" },
+        "payload": { "type": "object" },
+        "causationId": { "$ref": "#/$defs/Uuid" },
+        "correlationId": { "type": "string" },
+        "extensions": { "$ref": "#/$defs/Extensions" }
+      },
+      "additionalProperties": false
+    },
+    "IdempotencyKey": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 128,
+      "description": "Client-supplied; Decision POST uses companyId+periodId+step as server key"
+    },
+    "EntityMeta": {
+      "type": "object",
+      "required": ["schemaVersion", "createdAt"],
+      "properties": {
+        "schemaVersion": { "$ref": "#/$defs/SchemaVersion" },
+        "createdAt": { "$ref": "#/$defs/DateTime" },
+        "updatedAt": { "$ref": "#/$defs/DateTime" },
+        "extensions": { "$ref": "#/$defs/Extensions" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

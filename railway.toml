@@ -1,0 +1,13 @@
+[build]
+builder = "NIXPACKS"
+buildCommand = "npm ci && npm run bsp:generate && npm run build"
+
+[deploy]
+startCommand = "npm start"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 120
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+
+# Railway injects PORT automatically. Ensure NODE_ENV=production in service variables.
+# WebSocket requires the custom server (tsx server.ts) — do not use plain `next start`.

@@ -1,0 +1,27 @@
+{
+  "base": "http://localhost:3018",
+  "sessionId": "c21277be-5fa2-44df-975a-f6b780480732",
+  "joinCode": "BE1C2E2B344C1C442EBCEF63B8417569",
+  "gmAccessToken": "eyJzdWIiOiIxMTZhNTkyNC05NDE4LTRjYzYtYjZhYy1kNThhNmM0MDUxZTgiLCJyb2xlIjoiR00iLCJzZXNzaW9uSWQiOiJjMjEyNzdiZS01ZmEyLTQ0ZGYtOTc1YS1mNmI3ODA0ODA3MzIiLCJpYXQiOjE3ODUxMTc4NDAsImV4cCI6MTc4NTIwNDI0MH0.LVt3B7rgAjzNgDPa-cin75-fO_nNEdULR-QNxtywYnE",
+  "adminAccessToken": "eyJzdWIiOiIwNjdlMjMzMi0zMTEyLTQwNjUtOThlMS1jN2YxNDExNTQwYTMiLCJyb2xlIjoiUExBVEZPUk1fQURNSU4iLCJpYXQiOjE3ODUxMTc4MzksImV4cCI6MTc4NTIwNDIzOX0.WUMbND190OR7vksovzSjUq0imUnzqOMYVbYilGML8YU",
+  "teams": [
+    {
+      "teamName": "Team-Alpha",
+      "companyId": "a452e44b-3cc8-4b21-ae57-84592f9e832f",
+      "accessToken": "eyJzdWIiOiJhNDUyZTQ0Yi0zY2M4LTRiMjEtYWU1Ny04NDU5MmY5ZTgzMmYiLCJyb2xlIjoiQ0VPIiwic2Vzc2lvbklkIjoiYzIxMjc3YmUtNWZhMi00NGRmLTk3NWEtZjZiNzgwNDgwNzMyIiwiY29tcGFueUlkIjoiYTQ1MmU0NGItM2NjOC00YjIxLWFlNTctODQ1OTJmOWU4MzJmIiwidGVhbU5hbWUiOiJUZWFtLUFscGhhIiwiaWF0IjoxNzg1MTE3ODQwLCJleHAiOjE3ODUyMDQyNDB9.ZPWjo4XFvCUpZbfbOVNfh853y6G4QEzs8msxYf_zxUc"
+    },
+    {
+      "teamName": "Team-Beta",
+      "companyId": "a9808777-060a-4e8e-8c92-a2198f2fbdfd",
+      "accessToken": "eyJzdWIiOiJhOTgwODc3Ny0wNjBhLTRlOGUtOGM5Mi1hMjE5OGYyZmJkZmQiLCJyb2xlIjoiQ0VPIiwic2Vzc2lvbklkIjoiYzIxMjc3YmUtNWZhMi00NGRmLTk3NWEtZjZiNzgwNDgwNzMyIiwiY29tcGFueUlkIjoiYTk4MDg3NzctMDYwYS00ZThlLThjOTItYTIxOThmMmZiZGZkIiwidGVhbU5hbWUiOiJUZWFtLUJldGEiLCJpYXQiOjE3ODUxMTc4NDAsImV4cCI6MTc4NTIwNDI0MH0.yqOie_5K09JQqfj6PvHOufi3aQMytLH_hyLqNIiA7Uc"
+    },
+    {
+      "teamName": "Team-Gamma",
+      "companyId": "e7d754f2-2922-49c9-a760-2a51469f6030",
+      "accessToken": "eyJzdWIiOiJlN2Q3NTRmMi0yOTIyLTQ5YzktYTc2MC0yYTUxNDY5ZjYwMzAiLCJyb2xlIjoiQ0VPIiwic2Vzc2lvbklkIjoiYzIxMjc3YmUtNWZhMi00NGRmLTk3NWEtZjZiNzgwNDgwNzMyIiwiY29tcGFueUlkIjoiZTdkNzU0ZjItMjkyMi00OWM5LWE3NjAtMmE1MTQ2OWY2MDMwIiwidGVhbU5hbWUiOiJUZWFtLUdhbW1hIiwiaWF0IjoxNzg1MTE3ODQwLCJleHAiOjE3ODUyMDQyNDB9.DeLMlhZ1NKxOsQr8ptj1_HRvCrlHIvRlBiNGq84jZiY"
+    }
+  ],
+  "submittedTeam": "Team-Alpha",
+  "auditEntryCount": 6,
+  "createdAt": "2026-07-27T02:04:07.403Z"
+}

@@ -1,0 +1,277 @@
+// BSP V1 — Sprint 1 (Step LOAN + FACILITY)
+// Usage: npx prisma migrate dev --schema=prisma/bsp.schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/bsp-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("BSP_DATABASE_URL")
+}
+
+enum BspGameStep {
+  LOAN
+  FACILITY
+  HIRING
+  MATERIAL
+  PRODUCTION
+  SALES
+  SETTLEMENT
+}
+
+enum BspDecisionStatus {
+  DRAFT
+  EDITING
+  SUBMITTED
+  VALIDATED
+  POSTED
+  LOCKED
+  SETTLED
+  FAILED
+}
+
+enum BspSessionPhase {
+  PREPARE
+  RUNNING
+  PAUSED
+  FINISHED
+}
+
+enum BspStepPhase {
+  STEP1_FINANCE
+  STEP2_INVESTMENT
+  STEP3_HR
+  STEP4_PURCHASE
+  STEP5_PRODUCTION
+  STEP6_SALES
+  STEP7_SETTLEMENT
+  HALF_YEAR_END
+  GAME_END
+}
+
+model BspOrganization {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  sessions BspGameSession[]
+}
+
+model BspGameSession {
+  id               String          @id @default(uuid())
+  organizationId   String
+  name             String
+  joinCode         String          @unique
+  sessionPhase     BspSessionPhase @default(PREPARE)
+  stepDurationSec  Int             @default(900)
+  maxPeriodIndex   Int             @default(6)
+  economyPresetId  String?
+  wizardMeta       Json?
+  createdAt        DateTime        @default(now())
+  startedAt        DateTime?
+  archivedAt       DateTime?
+
+  organization BspOrganization @relation(fields: [organizationId], references: [id])
+  companies    BspCompany[]
+  progress     BspGameProgress?
+  periods      BspFiscalPeriod[]
+  economy      BspEconomicLiveState?
+  patches      BspEconomicPatch[]
+  presets      BspEconomyPresetApply[]
+  auditLogs    BspAuditLog[]
+
+  @@index([organizationId])
+  @@index([sessionPhase])
+  @@index([archivedAt])
+  @@index([createdAt(sort: Desc)])
+}
+
+model BspGameProgress {
+  sessionId     String       @id
+  sessionPhase  BspSessionPhase
+  periodId      String
+  stepPhase     BspStepPhase @default(STEP1_FINANCE)
+  stepStartedAt DateTime     @default(now())
+
+  session BspGameSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  period  BspFiscalPeriod @relation(fields: [periodId], references: [id])
+}
+
+model BspFiscalPeriod {
+  id          String   @id @default(uuid())
+  sessionId   String
+  periodIndex Int
+  year        Int
+  half        String
+  label       String
+  status      String   @default("OPEN")
+  openedAt    DateTime @default(now())
+
+  session   BspGameSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  progresses BspGameProgress[]
+  decisions BspDecision[]
+
+  @@unique([sessionId, periodIndex])
+}
+
+model BspCompany {
+  id            String   @id @default(uuid())
+  sessionId     String
+  teamName      String
+  statusVersion Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  session    BspGameSession          @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  operational BspCompanyOperational?
+  decisions  BspDecision[]
+  journals   BspJournalEntry[]
+  ledger     BspLedgerBalance[]
+
+  @@unique([sessionId, teamName])
+}
+
+model BspCompanyOperational {
+  companyId           String @id
+  cashManwon          Int
+  debtManwon          Int
+  depositManwon       Int
+  equityManwon        Int
+  landPlots           Int    @default(0)
+  machineBig          Int    @default(0)
+  machineSmall        Int    @default(0)
+  capacityMachine     Int    @default(0)
+  maxMaterials        Int    @default(0)
+
+  company BspCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+model BspDecision {
+  id                   String            @id @default(uuid())
+  companyId            String
+  periodId             String
+  step                 BspGameStep
+  status               BspDecisionStatus @default(POSTED)
+  source               String            @default("CEO")
+  payload              Json
+  validation           Json
+  computed             Json
+  companyStatusVersion Int
+  submittedAt          DateTime          @default(now())
+  journalEntryIds      String[]          @default([])
+
+  company BspCompany    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  period  BspFiscalPeriod @relation(fields: [periodId], references: [id])
+
+  @@unique([companyId, periodId, step])
+  @@index([companyId])
+}
+
+model BspJournalEntry {
+  id              String   @id @default(uuid())
+  companyId       String
+  periodId        String
+  decisionId      String?
+  transactionType String
+  description     String
+  postedAt        DateTime @default(now())
+
+  company BspCompany      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  lines   BspJournalLine[]
+
+  @@index([companyId, periodId])
+}
+
+model BspJournalLine {
+  id             String @id @default(uuid())
+  journalEntryId String
+  accountCode    String
+  debitManwon    Int    @default(0)
+  creditManwon   Int    @default(0)
+  memo           String?
+
+  journalEntry BspJournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+
+  @@index([journalEntryId])
+}
+
+model BspLedgerBalance {
+  id          String @id @default(uuid())
+  companyId   String
+  accountCode String
+  balanceManwon Int  @default(0)
+
+  company BspCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, accountCode])
+}
+
+model BspEconomicLiveState {
+  sessionId String @id
+  values    Json
+  version   Int    @default(0)
+  updatedAt DateTime @updatedAt
+
+  session BspGameSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+model BspEconomicPatch {
+  id        String   @id @default(uuid())
+  sessionId String
+  sequence  Int
+  source    String
+  effects   Json
+  valuesBefore Json
+  valuesAfter  Json
+  occurredAt DateTime @default(now())
+
+  session BspGameSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, sequence])
+}
+
+model BspDomainEvent {
+  id            String   @id @default(uuid())
+  sessionId     String
+  sequence      Int
+  eventType     String
+  aggregateType String
+  aggregateId   String
+  payload       Json
+  occurredAt    DateTime @default(now())
+
+  @@unique([sessionId, sequence])
+  @@index([sessionId])
+}
+
+model BspEconomyPresetApply {
+  id        String   @id @default(uuid())
+  sessionId String
+  presetId  String
+  appliedAt DateTime @default(now())
+
+  session BspGameSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, appliedAt(sort: Desc)])
+}
+
+model BspAuditLog {
+  id              String   @id @default(uuid())
+  sessionId       String?
+  actorId         String
+  actorRole       String
+  action          String
+  reason          String?
+  targetCompanyId String?
+  targetTeamName  String?
+  payload         Json     @default("{}")
+  occurredAt      DateTime @default(now())
+
+  session BspGameSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, occurredAt(sort: Desc)])
+  @@index([action, occurredAt(sort: Desc)])
+  @@index([actorRole])
+  @@index([occurredAt(sort: Desc)])
+}

@@ -1,0 +1,295 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bsp.education/schemas/v1/decision.json",
+  "title": "BSP Decision Schema",
+  "description": "Decision entity, step payloads, validation refs — V1 canonical",
+  "$defs": {
+    "DecisionSource": {
+      "type": "string",
+      "enum": ["CEO", "GM_ZERO", "GM_COPY_LAST_HALF", "SYSTEM_SETTLEMENT"]
+    },
+    "LoanPayload": {
+      "type": "object",
+      "required": ["loanEarly", "loanMid", "deposit", "loanRepayment"],
+      "properties": {
+        "loanEarly": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "천만원 units — stored; validated as ×1000 만원 (L01,L04,L05)"
+        },
+        "loanMid": { "type": "integer", "minimum": 0, "description": "천만원 (L02,L04,L05)" },
+        "deposit": { "type": "integer", "minimum": 0, "description": "천만원 (L03,L04,L05)" },
+        "loanRepayment": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "만원 (L06, D-03)"
+        },
+        "step1UiPhase": {
+          "type": "string",
+          "enum": ["1A", "1B", "COMPLETE"],
+          "description": "D-01 client hint; server validates full payload on POST"
+        }
+      },
+      "additionalProperties": false
+    },
+    "FacilityPayload": {
+      "type": "object",
+      "required": ["landPlotsPurchased", "machineBigPurchased", "machineSmallPurchased"],
+      "properties": {
+        "landPlotsPurchased": { "type": "integer", "minimum": 0, "maximum": 4 },
+        "machineBigPurchased": { "type": "integer", "minimum": 0 },
+        "machineSmallPurchased": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "HireTransfer": {
+      "type": "object",
+      "required": ["from", "to", "headcount"],
+      "properties": {
+        "from": { "type": "string", "enum": ["PURCHASE", "PRODUCTION", "SALES"] },
+        "to": { "type": "string", "enum": ["PURCHASE", "PRODUCTION", "SALES"] },
+        "headcount": { "type": "integer", "minimum": 1, "description": "Must be multiple of 30 for cross-dept (H02)" }
+      },
+      "additionalProperties": false
+    },
+    "HireResignations": {
+      "type": "object",
+      "properties": {
+        "purchase": { "type": "integer", "minimum": 0 },
+        "production": { "type": "integer", "minimum": 0 },
+        "sales": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "HiringPayload": {
+      "type": "object",
+      "required": ["headPurchase", "headProduction", "headSales"],
+      "properties": {
+        "headPurchase": { "type": "integer", "minimum": 0 },
+        "headProduction": { "type": "integer", "minimum": 0 },
+        "headSales": { "type": "integer", "minimum": 0 },
+        "transfers": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/HireTransfer" },
+          "default": []
+        },
+        "resignations": { "$ref": "#/$defs/HireResignations" }
+      },
+      "additionalProperties": false
+    },
+    "PurchaseBranchNew": {
+      "type": "object",
+      "required": ["regionCode"],
+      "properties": {
+        "regionCode": { "$ref": "common.json#/$defs/RegionCode" },
+        "displayName": { "type": "string", "maxLength": 50 }
+      },
+      "additionalProperties": false
+    },
+    "MaterialQuantities": {
+      "type": "object",
+      "properties": {
+        "A": { "type": "integer", "minimum": 0 },
+        "B": { "type": "integer", "minimum": 0 },
+        "C": { "type": "integer", "minimum": 0 },
+        "D": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "PurchaseLine": {
+      "type": "object",
+      "required": ["regionCode", "materials"],
+      "properties": {
+        "regionCode": { "$ref": "common.json#/$defs/RegionCode" },
+        "materials": { "$ref": "#/$defs/MaterialQuantities" }
+      },
+      "additionalProperties": false
+    },
+    "PurchasePayload": {
+      "type": "object",
+      "properties": {
+        "branchesNew": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/PurchaseBranchNew" },
+          "default": []
+        },
+        "lines": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/PurchaseLine" },
+          "default": []
+        }
+      },
+      "additionalProperties": false
+    },
+    "ProductionPayload": {
+      "type": "object",
+      "required": ["productionQty", "machineBigRun", "machineSmallRun"],
+      "properties": {
+        "productionQty": { "type": "integer", "minimum": 0 },
+        "machineBigRun": { "type": "integer", "minimum": 0 },
+        "machineSmallRun": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "SalesLine": {
+      "type": "object",
+      "required": ["regionCode", "unitPriceManwon", "qty"],
+      "properties": {
+        "regionCode": { "$ref": "common.json#/$defs/RegionCode" },
+        "unitPriceManwon": { "type": "integer", "minimum": 0 },
+        "qty": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "SalesPayload": {
+      "type": "object",
+      "properties": {
+        "branchesNew": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/PurchaseBranchNew" },
+          "default": []
+        },
+        "lines": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/SalesLine" },
+          "default": []
+        }
+      },
+      "additionalProperties": false
+    },
+    "SettlementRun": {
+      "type": "object",
+      "description": "Step 7 — system-generated per company per period (no CEO payload)",
+      "required": ["companyId", "periodId", "triggeredBy", "pipelineVersion"],
+      "properties": {
+        "companyId": { "$ref": "common.json#/$defs/Uuid" },
+        "periodId": { "$ref": "common.json#/$defs/Uuid" },
+        "triggeredBy": { "$ref": "common.json#/$defs/Uuid" },
+        "pipelineVersion": { "type": "string", "const": "1.0.0" },
+        "gmMiscIncomeManwon": { "type": "integer", "minimum": 0, "default": 0 }
+      },
+      "additionalProperties": false
+    },
+    "ValidationRuleResult": {
+      "type": "object",
+      "required": ["ruleId", "errorCode", "passed"],
+      "properties": {
+        "ruleId": { "type": "string" },
+        "errorCode": { "type": "string" },
+        "passed": { "type": "boolean" },
+        "field": { "type": "string" },
+        "message": { "type": "string" },
+        "params": { "type": "object" }
+      },
+      "additionalProperties": false
+    },
+    "ValidationResult": {
+      "type": "object",
+      "required": ["ok", "rules"],
+      "properties": {
+        "ok": { "type": "boolean" },
+        "rules": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ValidationRuleResult" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "DecisionComputed": {
+      "type": "object",
+      "description": "Server-only computed snapshot at POST time",
+      "additionalProperties": true
+    },
+    "Decision": {
+      "type": "object",
+      "required": [
+        "id",
+        "companyId",
+        "periodId",
+        "sessionId",
+        "step",
+        "status",
+        "source",
+        "schemaVersion",
+        "createdAt"
+      ],
+      "properties": {
+        "id": { "$ref": "common.json#/$defs/Uuid" },
+        "companyId": { "$ref": "common.json#/$defs/Uuid" },
+        "periodId": { "$ref": "common.json#/$defs/Uuid" },
+        "sessionId": { "$ref": "common.json#/$defs/Uuid" },
+        "step": { "$ref": "common.json#/$defs/GameStep" },
+        "status": { "$ref": "common.json#/$defs/DecisionStatus" },
+        "source": { "$ref": "#/$defs/DecisionSource" },
+        "payload": {
+          "description": "Step-specific; null for SETTLED system record",
+          "oneOf": [
+            { "$ref": "#/$defs/LoanPayload" },
+            { "$ref": "#/$defs/FacilityPayload" },
+            { "$ref": "#/$defs/HiringPayload" },
+            { "$ref": "#/$defs/PurchasePayload" },
+            { "$ref": "#/$defs/ProductionPayload" },
+            { "$ref": "#/$defs/SalesPayload" },
+            { "type": "null" }
+          ]
+        },
+        "validation": { "$ref": "#/$defs/ValidationResult" },
+        "computed": { "$ref": "#/$defs/DecisionComputed" },
+        "journalEntryIds": {
+          "type": "array",
+          "items": { "$ref": "common.json#/$defs/Uuid" }
+        },
+        "idempotencyKey": { "$ref": "common.json#/$defs/IdempotencyKey" },
+        "companyStatusVersion": { "type": "integer", "minimum": 0 },
+        "submittedAt": { "$ref": "common.json#/$defs/DateTime" },
+        "submittedBy": { "$ref": "common.json#/$defs/Uuid" },
+        "postedAt": { "$ref": "common.json#/$defs/DateTime" },
+        "lockedAt": { "$ref": "common.json#/$defs/DateTime" },
+        "settledAt": { "$ref": "common.json#/$defs/DateTime" },
+        "schemaVersion": { "$ref": "common.json#/$defs/SchemaVersion" },
+        "extensions": { "$ref": "common.json#/$defs/Extensions" }
+      },
+      "additionalProperties": false
+    },
+    "SubmitDecisionRequest": {
+      "type": "object",
+      "required": ["step", "payload"],
+      "properties": {
+        "step": { "$ref": "common.json#/$defs/GameStep" },
+        "payload": { "type": "object" },
+        "companyStatusVersion": { "type": "integer", "minimum": 0 },
+        "idempotencyKey": { "$ref": "common.json#/$defs/IdempotencyKey" }
+      },
+      "additionalProperties": false
+    },
+    "SubmitDecisionResponse": {
+      "type": "object",
+      "required": ["decision", "dashboard", "domainEventSequence"],
+      "properties": {
+        "decision": { "$ref": "#/$defs/Decision" },
+        "dashboard": { "type": "object", "description": "CeoStatusDTO — Doc 06" },
+        "domainEventSequence": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "ApiErrorBody": {
+      "type": "object",
+      "required": ["error", "traceId"],
+      "properties": {
+        "error": {
+          "type": "object",
+          "required": ["code", "message"],
+          "properties": {
+            "code": { "type": "string" },
+            "message": { "type": "string" },
+            "ruleId": { "type": "string" },
+            "field": { "type": "string" },
+            "details": { "type": "array", "items": { "type": "object" } }
+          }
+        },
+        "traceId": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

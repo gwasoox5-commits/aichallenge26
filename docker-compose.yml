@@ -1,0 +1,16 @@
+version: "3.9"
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: bsp-postgres
+    environment:
+      POSTGRES_USER: bsp
+      POSTGRES_PASSWORD: bsp
+      POSTGRES_DB: bsp
+    ports:
+      - "5433:5432"
+    volumes:
+      - bsp_pg_data:/var/lib/postgresql/data
+
+volumes:
+  bsp_pg_data:

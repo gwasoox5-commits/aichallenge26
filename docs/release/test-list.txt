@@ -1,0 +1,111 @@
+﻿node.exe : npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm help
+ npmrc` for supported config options.
+위치 줄:1 문자:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm warn Unknow...config options.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-
+deprecated for more details.[39m
+tests/bsp/accounting-engine.test.ts > AccountingEngine > creates initial ledger with cash and equity
+tests/bsp/accounting-engine.test.ts > AccountingEngine > posts loan journal and balances debits/credits
+tests/bsp/accounting-engine.test.ts > AccountingEngine > hiring journal has no lines per D-12
+tests/bsp/auth.test.ts > Auth ??join code (NFR-S07) > generates 128-bit hex join codes
+tests/bsp/auth.test.ts > Auth ??join code (NFR-S07) > rejects weak join codes
+tests/bsp/auth.test.ts > Auth ??session tokens > issues and verifies CEO token
+tests/bsp/auth.test.ts > Auth ??session tokens > rejects tampered token
+tests/bsp/auth.test.ts > Auth ??role & scope (NFR-S01/S02) > CEO cannot access another company
+tests/bsp/auth.test.ts > Auth ??role & scope (NFR-S01/S02) > GM token is session-scoped
+tests/bsp/auth.test.ts > Auth ??role & scope (NFR-S01/S02) > admin login and CEO join flow
+tests/bsp/auth.test.ts > Auth ??role & scope (NFR-S01/S02) > rejects invalid admin password
+tests/bsp/auth.test.ts > Auth ??join code entropy > uses 16 bytes randomness
+tests/bsp/benchmark.test.ts > performance benchmark (Sprint 1.5) > validateLoan 1000 iterations under 50ms
+tests/bsp/benchmark.test.ts > performance benchmark (Sprint 1.5) > submitDecision E2E under 50ms (memory)
+tests/bsp/dashboard-service.test.ts > DashboardService > builds dashboard DTO from aggregates
+tests/bsp/dashboard-service.test.ts > DashboardService > builds step progress with current step marked
+tests/bsp/excel-regression-20.test.ts > Excel regression ??20 scenarios (zero tolerance) > S01: Baseline Demo (2A+2B)
+tests/bsp/excel-regression-20.test.ts > Excel regression ??20 scenarios (zero tolerance) > S02: No external funding
+tests/bsp/excel-regression-20.test.ts > Excel regression ??20 scenarios (zero tolerance) > S03: Max early loan (10횞1000)
+tests/bsp/excel-regression-20.test.ts > Excel regression ??20 scenarios (zero tolerance) > S04: Loan with repayment
+tests/bsp/excel-regression-20.test.ts > Excel regression ??20 scenarios (zero tolerance) > S05: Small machine only
+tests/bsp/excel-regression-20.test.ts > Excel regression ??20 scenarios (zero tolerance) > S06: Zero production
+tests/bsp/excel-regression-20.test.ts > Excel regression ??20 scenarios (zero tolerance) > S07: Europe expensive material
+tests/bsp/excel-regression-20.test.ts > Excel regression ??20 scenarios (zero tolerance) > S08: Minimal hiring
+tests/bsp/excel-regression-20.test.ts > Excel regression ??20 scenarios (zero tolerance) > S09: High deposit
+tests/bsp/excel-regression-20.test.ts > Excel regression ??20 scenarios (zero tolerance) > S10: Mid-year loan
+tests/bsp/excel-regression-20.test.ts > Excel regression ??20 scenarios (zero tolerance) > S11: Africa low cost
+tests/bsp/excel-regression-20.test.ts > Excel regression ??20 scenarios (zero tolerance) > S12: Oceania region
+tests/bsp/excel-regression-20.test.ts > Excel regression ??20 scenarios (zero tolerance) > S13: North America
+tests/bsp/excel-regression-20.test.ts > Excel regression ??20 scenarios (zero tolerance) > S14: South America
+tests/bsp/excel-regression-20.test.ts > Excel regression ??20 scenarios (zero tolerance) > S15: Max price ASIA
+tests/bsp/excel-regression-20.test.ts > Excel regression ??20 scenarios (zero tolerance) > S16: Two land plots
+tests/bsp/excel-regression-20.test.ts > Excel regression ??20 scenarios (zero tolerance) > S17: Partial sales
+tests/bsp/excel-regression-20.test.ts > Excel regression ??20 scenarios (zero tolerance) > S18: Large team capacity
+tests/bsp/excel-regression-20.test.ts > Excel regression ??20 scenarios (zero tolerance) > S19: Misc income at settlement
+tests/bsp/excel-regression-20.test.ts > Excel regression ??20 scenarios (zero tolerance) > S20: Single unit minimal
+tests/bsp/excel-regression-20.test.ts > Lecture simulation ??10 teams > runs 10 teams through Step 1~7 in one session
+tests/bsp/excel-regression-20.test.ts > Performance ??100 teams stress > creates 100 companies and batch settlement under 5s
+tests/bsp/game-engine.test.ts > MemoryRepository + GameEngine > creates company and submits step1/step2
+tests/bsp/game-engine.test.ts > MemoryRepository + GameEngine > records domain events on submit
+tests/bsp/multi-period.test.ts > Excel regression ??20 scenarios (zero tolerance) > S01: Baseline Demo (2A+2B)
+tests/bsp/multi-period.test.ts > Excel regression ??20 scenarios (zero tolerance) > S02: No external funding
+tests/bsp/multi-period.test.ts > Excel regression ??20 scenarios (zero tolerance) > S03: Max early loan (10횞1000)
+tests/bsp/multi-period.test.ts > Excel regression ??20 scenarios (zero tolerance) > S04: Loan with repayment
+tests/bsp/multi-period.test.ts > Excel regression ??20 scenarios (zero tolerance) > S05: Small machine only
+tests/bsp/multi-period.test.ts > Excel regression ??20 scenarios (zero tolerance) > S06: Zero production
+tests/bsp/multi-period.test.ts > Excel regression ??20 scenarios (zero tolerance) > S07: Europe expensive material
+tests/bsp/multi-period.test.ts > Excel regression ??20 scenarios (zero tolerance) > S08: Minimal hiring
+tests/bsp/multi-period.test.ts > Excel regression ??20 scenarios (zero tolerance) > S09: High deposit
+tests/bsp/multi-period.test.ts > Excel regression ??20 scenarios (zero tolerance) > S10: Mid-year loan
+tests/bsp/multi-period.test.ts > Excel regression ??20 scenarios (zero tolerance) > S11: Africa low cost
+tests/bsp/multi-period.test.ts > Excel regression ??20 scenarios (zero tolerance) > S12: Oceania region
+tests/bsp/multi-period.test.ts > Excel regression ??20 scenarios (zero tolerance) > S13: North America
+tests/bsp/multi-period.test.ts > Excel regression ??20 scenarios (zero tolerance) > S14: South America
+tests/bsp/multi-period.test.ts > Excel regression ??20 scenarios (zero tolerance) > S15: Max price ASIA
+tests/bsp/multi-period.test.ts > Excel regression ??20 scenarios (zero tolerance) > S16: Two land plots
+tests/bsp/multi-period.test.ts > Excel regression ??20 scenarios (zero tolerance) > S17: Partial sales
+tests/bsp/multi-period.test.ts > Excel regression ??20 scenarios (zero tolerance) > S18: Large team capacity
+tests/bsp/multi-period.test.ts > Excel regression ??20 scenarios (zero tolerance) > S19: Misc income at settlement
+tests/bsp/multi-period.test.ts > Excel regression ??20 scenarios (zero tolerance) > S20: Single unit minimal
+tests/bsp/multi-period.test.ts > Lecture simulation ??10 teams > runs 10 teams through Step 1~7 in one session
+tests/bsp/multi-period.test.ts > Performance ??100 teams stress > creates 100 companies and batch settlement under 5s
+tests/bsp/multi-period.test.ts > Multi-period engine ??Sprint 3 > runs 6 half-years with carry-forward and game end
+tests/bsp/multi-period.test.ts > Multi-period engine ??Sprint 3 > rejects startNextHalf after period 6
+tests/bsp/sprint1.test.ts > Step 1 LOAN validation > passes default sprint scenario loanEarly=2 deposit=1
+tests/bsp/sprint1.test.ts > Step 1 LOAN validation > fails L01 when loan exceeds equity
+tests/bsp/sprint1.test.ts > Step 2 FACILITY validation > passes land=1 big=1 after step1
+tests/bsp/sprint1.test.ts > Journal builders > creates balanced loan journal
+tests/bsp/sprint1.test.ts > Journal builders > creates balanced facility journal
+tests/bsp/sprint1.test.ts > E2E domain flow > step1 ??step2 updates operational state
+tests/bsp/sprint2a.test.ts > Sprint 2A ??full demo flow > runs Step 1?? with journals and P/L
+tests/bsp/sprint2a.test.ts > Journal Rules catalog > maps LOAN, FACILITY, HIRING, MATERIAL to rule book
+tests/bsp/sprint2a.test.ts > Hiring domain > computes capacity and payroll forecast (2,3,2 ??2100)
+tests/bsp/sprint2a.test.ts > Material domain > validates purchase capacity M03
+tests/bsp/sprint2b.test.ts > Sprint 2B ??Production domain > computeProduction max capacity = min(material, machine, labor)
+tests/bsp/sprint2b.test.ts > Sprint 2B ??Production domain > P01 rejects productionQty > capacity
+tests/bsp/sprint2b.test.ts > Sprint 2B ??Production domain > P02 rejects machineBigRun > owned
+tests/bsp/sprint2b.test.ts > Sprint 2B ??Production domain > P04 rejects negative productionQty
+tests/bsp/sprint2b.test.ts > Sprint 2B ??Sales domain > computeSales revenue and logistics
+tests/bsp/sprint2b.test.ts > Sprint 2B ??Sales domain > S01 rejects price above region max
+tests/bsp/sprint2b.test.ts > Sprint 2B ??Sales domain > S02 rejects qty above region limit
+tests/bsp/sprint2b.test.ts > Sprint 2B ??Sales domain > S04 rejects sales > finished goods
+tests/bsp/sprint2b.test.ts > Sprint 2B ??Step 5 Production integration > posts production journal and updates inventory/FG
+tests/bsp/sprint2b.test.ts > Sprint 2B ??Step 6 Sales integration > posts sales journal with revenue and COGS
+tests/bsp/sprint2b.test.ts > Sprint 2B ??Settlement > CEO cannot POST settlement (G07)
+tests/bsp/sprint2b.test.ts > Sprint 2B ??Settlement > closePeriod runs settlement and locks journals
+tests/bsp/sprint2b.test.ts > Sprint 2B ??Settlement > settlement pipeline computes payroll and depreciation
+tests/bsp/sprint2b.test.ts > Sprint 2B ??Excel regression (zero tolerance) > matches Excel demo scenario end-to-end
+tests/bsp/sprint2b.test.ts > Sprint 2B ??Join Code & GM > createSession generates join code
+tests/bsp/sprint2b.test.ts > Sprint 2B ??Join Code & GM > joinGame creates company in session
+tests/bsp/sprint2b.test.ts > Sprint 2B ??Join Code & GM > findSessionByJoinCode resolves session
+tests/bsp/sprint2b.test.ts > Sprint 2B ??Join Code & GM > getGmDesk shows team submission status
+tests/bsp/sprint2b.test.ts > Sprint 2B ??Join Code & GM > gmAdvanceStep moves session phase
+tests/bsp/sprint2b.test.ts > Sprint 2B ??Join Code & GM > blocks decision when step gate mismatch (G02)
+tests/bsp/sprint2b.test.ts > Sprint 2B ??Join Code & GM > blocks duplicate decision (G05)
+tests/bsp/sprint2b.test.ts > Sprint 2B ??GAME_CONSTANTS > machine operating costs match rule book
+tests/bsp/step-handlers.test.ts > FinanceStepHandler > validates and returns Korean messages
+tests/bsp/step-handlers.test.ts > FacilityStepHandler > validates after loan step state
+tests/bsp/step-handlers.test.ts > HRStepHandler > validates hiring and returns empty journal
+tests/bsp/step-handlers.test.ts > StepHandlerRegistry > registers all 7 steps
+tests/bsp/step-handlers.test.ts > StepHandlerRegistry > settlement handler rejects CEO payload

@@ -1,0 +1,118 @@
+{
+  "results": [
+    {
+      "step": "① 관리자 로그인",
+      "ok": true,
+      "detail": "http://localhost:3000/admin",
+      "at": "2026-07-27T10:35:56.918Z"
+    },
+    {
+      "step": "② 데모 세션 생성",
+      "ok": true,
+      "detail": "session=749e0a93 joinVisible=1",
+      "at": "2026-07-27T10:35:57.024Z"
+    },
+    {
+      "step": "③ 실시간 연결됨",
+      "ok": true,
+      "detail": "connected, wsAttempts=1",
+      "at": "2026-07-27T10:35:59.139Z"
+    },
+    {
+      "step": "④ 학습자 2 브라우저 접속",
+      "ok": true,
+      "detail": "Alpha=true Bravo=true",
+      "at": "2026-07-27T10:36:18.165Z"
+    },
+    {
+      "step": "⑤ 이벤트 Publish",
+      "ok": true,
+      "detail": "원화 급격 약세",
+      "at": "2026-07-27T10:36:24.184Z"
+    },
+    {
+      "step": "⑥ Breaking News 수신",
+      "ok": true,
+      "detail": "L1=3 L2=3",
+      "at": "2026-07-27T10:36:29.725Z"
+    },
+    {
+      "step": "⑦ 새로고침 후 연결 유지",
+      "ok": true,
+      "detail": "admin=connected",
+      "at": "2026-07-27T10:36:46.218Z"
+    },
+    {
+      "step": "⑧ 다음 Step 진행",
+      "ok": true,
+      "detail": "",
+      "at": "2026-07-27T10:36:48.551Z"
+    },
+    {
+      "step": "⑨ 반기 결산",
+      "ok": true,
+      "detail": "",
+      "at": "2026-07-27T10:36:54.407Z"
+    },
+    {
+      "step": "⑩ 다음 반기 연결 유지",
+      "ok": true,
+      "detail": "connected",
+      "at": "2026-07-27T10:36:54.537Z"
+    },
+    {
+      "step": "복구: 관리자 새로고침",
+      "ok": true,
+      "detail": "connected",
+      "at": "2026-07-27T10:37:01.919Z"
+    },
+    {
+      "step": "복구: 학습자 새로고침",
+      "ok": true,
+      "detail": "",
+      "at": "2026-07-27T10:37:08.080Z"
+    },
+    {
+      "step": "복구: 네트워크 일시 끊김",
+      "ok": true,
+      "detail": "connected",
+      "at": "2026-07-27T10:37:11.232Z"
+    },
+    {
+      "step": "복구: GM 토큰 재발급",
+      "ok": true,
+      "detail": "connected",
+      "at": "2026-07-27T10:37:14.735Z"
+    }
+  ],
+  "wsLog": [
+    {
+      "url": "ws://localhost:3000/api/v1/ws?token=***",
+      "event": "open",
+      "time": 1785148555701
+    },
+    {
+      "url": "ws://localhost:3000/api/v1/ws?token=***",
+      "event": "open",
+      "time": 1785148595287
+    },
+    {
+      "url": "ws://localhost:3000/api/v1/ws?token=***",
+      "event": "open",
+      "time": 1785148621729
+    },
+    {
+      "url": "ws://localhost:3000/api/v1/ws?token=***",
+      "event": "open",
+      "time": 1785148634200
+    },
+    {
+      "event": "close",
+      "code": {
+        "_type": "WebSocket",
+        "_guid": "ws@5274b815142ec7f946f227e9474e1f21"
+      },
+      "time": 1785148634253
+    }
+  ]
+}

@@ -1,0 +1,392 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bsp.education/schemas/v1/core-domain.json",
+  "title": "BSP Core Domain",
+  "description": "Identity, Session, Game, Company — V1 core entities (Event Store anchors)",
+  "$comment": "Principles: 00-v1-development-principles.md · Rules: 01-game-rule-book.md v1.1",
+  "$defs": {
+    "User": {
+      "type": "object",
+      "required": ["id", "platformRole", "displayName", "createdAt"],
+      "properties": {
+        "id": { "$ref": "common.json#/$defs/Uuid" },
+        "email": { "type": "string", "format": "email" },
+        "platformRole": { "$ref": "common.json#/$defs/PlatformRole" },
+        "displayName": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "createdAt": { "$ref": "common.json#/$defs/DateTime" },
+        "extensions": { "$ref": "common.json#/$defs/Extensions" }
+      },
+      "additionalProperties": false
+    },
+    "SessionSettings": {
+      "type": "object",
+      "properties": {
+        "maxTeams": { "type": "integer", "minimum": 1, "maximum": 20, "default": 10 },
+        "initialCashManwon": { "type": "integer", "const": 10000 },
+        "locale": { "type": "string", "default": "ko-KR" },
+        "featureFlags": { "$ref": "common.json#/$defs/FeatureFlags" },
+        "rankingModeP1P2": {
+          "type": "string",
+          "const": "OPERATING_ONLY",
+          "description": "D-14"
+        }
+      },
+      "additionalProperties": false
+    },
+    "GameSession": {
+      "type": "object",
+      "description": "Top-level game container (GM Desk session)",
+      "required": [
+        "id",
+        "organizationId",
+        "name",
+        "joinCode",
+        "instructorId",
+        "scenarioId",
+        "settings",
+        "schemaVersion",
+        "createdAt"
+      ],
+      "properties": {
+        "id": { "$ref": "common.json#/$defs/Uuid" },
+        "organizationId": {
+          "$ref": "common.json#/$defs/Uuid",
+          "description": "V1: default org seed (M-01). V2: RLS tenant scope."
+        },
+        "courseId": {
+          "anyOf": [
+            { "$ref": "common.json#/$defs/Uuid" },
+            { "type": "null" }
+          ],
+          "description": "Optional cohort link — V2 multi-tenant"
+        },
+        "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "joinCode": {
+          "type": "string",
+          "pattern": "^[A-Z0-9]{6,8}$",
+          "description": "CEO join code (NFR-S07)"
+        },
+        "instructorId": { "$ref": "common.json#/$defs/Uuid" },
+        "scenarioId": { "$ref": "common.json#/$defs/Uuid" },
+        "settings": { "$ref": "#/$defs/SessionSettings" },
+        "schemaVersion": { "$ref": "common.json#/$defs/SchemaVersion" },
+        "startedAt": { "$ref": "common.json#/$defs/DateTime" },
+        "finishedAt": { "$ref": "common.json#/$defs/DateTime" },
+        "createdAt": { "$ref": "common.json#/$defs/DateTime" },
+        "extensions": { "$ref": "common.json#/$defs/Extensions" }
+      },
+      "additionalProperties": false
+    },
+    "SessionParticipant": {
+      "type": "object",
+      "required": ["id", "sessionId", "userId", "role"],
+      "properties": {
+        "id": { "$ref": "common.json#/$defs/Uuid" },
+        "sessionId": { "$ref": "common.json#/$defs/Uuid" },
+        "userId": { "$ref": "common.json#/$defs/Uuid" },
+        "companyId": {
+          "anyOf": [
+            { "$ref": "common.json#/$defs/Uuid" },
+            { "type": "null" }
+          ],
+          "description": "null for GM participant row if modeled"
+        },
+        "role": { "$ref": "common.json#/$defs/SessionParticipantRole" },
+        "joinedAt": { "$ref": "common.json#/$defs/DateTime" },
+        "extensions": { "$ref": "common.json#/$defs/Extensions" }
+      },
+      "additionalProperties": false
+    },
+    "Company": {
+      "type": "object",
+      "required": ["id", "sessionId", "teamName", "ceoUserId", "statusVersion"],
+      "properties": {
+        "id": { "$ref": "common.json#/$defs/Uuid" },
+        "sessionId": { "$ref": "common.json#/$defs/Uuid" },
+        "teamName": { "type": "string", "minLength": 1, "maxLength": 50 },
+        "ceoUserId": { "$ref": "common.json#/$defs/Uuid" },
+        "statusVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Optimistic lock for CompanyStatus (NFR-C02)"
+        },
+        "createdAt": { "$ref": "common.json#/$defs/DateTime" },
+        "extensions": { "$ref": "common.json#/$defs/Extensions" }
+      },
+      "additionalProperties": false
+    },
+    "FiscalPeriod": {
+      "type": "object",
+      "required": [
+        "id",
+        "sessionId",
+        "periodIndex",
+        "year",
+        "half",
+        "label",
+        "status"
+      ],
+      "properties": {
+        "id": { "$ref": "common.json#/$defs/Uuid" },
+        "sessionId": { "$ref": "common.json#/$defs/Uuid" },
+        "periodIndex": { "$ref": "common.json#/$defs/PeriodIndex" },
+        "year": { "$ref": "common.json#/$defs/Year" },
+        "half": { "$ref": "common.json#/$defs/Half" },
+        "label": { "$ref": "common.json#/$defs/PeriodLabel" },
+        "status": { "$ref": "common.json#/$defs/FiscalPeriodStatus" },
+        "openedAt": { "$ref": "common.json#/$defs/DateTime" },
+        "closedAt": { "$ref": "common.json#/$defs/DateTime" },
+        "extensions": { "$ref": "common.json#/$defs/Extensions" }
+      },
+      "additionalProperties": false
+    },
+    "GameProgress": {
+      "type": "object",
+      "description": "Singleton per session — sessionPhase SSOT (M-02)",
+      "required": [
+        "sessionId",
+        "sessionPhase",
+        "periodId",
+        "periodIndex",
+        "year",
+        "half",
+        "stepPhase",
+        "stepStartedAt"
+      ],
+      "properties": {
+        "sessionId": { "$ref": "common.json#/$defs/Uuid" },
+        "sessionPhase": { "$ref": "common.json#/$defs/SessionPhase" },
+        "periodId": { "$ref": "common.json#/$defs/Uuid" },
+        "periodIndex": { "$ref": "common.json#/$defs/PeriodIndex" },
+        "year": { "$ref": "common.json#/$defs/Year" },
+        "half": { "$ref": "common.json#/$defs/Half" },
+        "stepPhase": { "$ref": "common.json#/$defs/StepPhase" },
+        "currentGameStep": {
+          "$ref": "common.json#/$defs/GameStep",
+          "description": "Derived from stepPhase when in STEP1..7"
+        },
+        "step1SubPhase": {
+          "anyOf": [
+            { "$ref": "common.json#/$defs/Step1SubPhase" },
+            { "type": "null" }
+          ],
+          "description": "D-01; non-null only when stepPhase=STEP1_FINANCE"
+        },
+        "stepStartedAt": { "$ref": "common.json#/$defs/DateTime" },
+        "closingStatus": {
+          "anyOf": [
+            { "$ref": "common.json#/$defs/ClosingStatus" },
+            { "type": "null" }
+          ]
+        },
+        "extensions": { "$ref": "common.json#/$defs/Extensions" }
+      },
+      "additionalProperties": false
+    },
+    "CompanyStepStatus": {
+      "type": "object",
+      "description": "Per team per step within current period — GM Desk grid",
+      "required": ["companyId", "periodId", "step", "status"],
+      "properties": {
+        "companyId": { "$ref": "common.json#/$defs/Uuid" },
+        "periodId": { "$ref": "common.json#/$defs/Uuid" },
+        "step": { "$ref": "common.json#/$defs/GameStep" },
+        "status": { "$ref": "common.json#/$defs/CompanyStepStatusKind" },
+        "decisionId": {
+          "anyOf": [
+            { "$ref": "common.json#/$defs/Uuid" },
+            { "type": "null" }
+          ]
+        },
+        "submittedAt": { "$ref": "common.json#/$defs/DateTime" },
+        "appliedByGmAction": {
+          "type": "string",
+          "enum": ["NONE", "ZERO", "COPY_LAST_HALF"],
+          "description": "D-10"
+        },
+        "extensions": { "$ref": "common.json#/$defs/Extensions" }
+      },
+      "additionalProperties": false
+    },
+    "RegionMaster": {
+      "type": "object",
+      "description": "Static region catalog (Rule Book §1.5); session may override remaining via RegionRemaining",
+      "required": ["code", "displayName", "branchSetupFeeManwon", "materialUnitPriceManwon", "materialLimit", "salesSetupFeeManwon", "maxSalePriceManwon", "saleLimit"],
+      "properties": {
+        "code": { "$ref": "common.json#/$defs/RegionCode" },
+        "displayName": { "type": "string" },
+        "branchSetupFeeManwon": { "$ref": "common.json#/$defs/NonNegativeMoneyManwon" },
+        "materialUnitPriceManwon": { "$ref": "common.json#/$defs/NonNegativeMoneyManwon" },
+        "materialLimit": { "type": "integer", "minimum": 0 },
+        "salesSetupFeeManwon": { "$ref": "common.json#/$defs/NonNegativeMoneyManwon" },
+        "maxSalePriceManwon": { "$ref": "common.json#/$defs/NonNegativeMoneyManwon" },
+        "saleLimit": { "type": "integer", "minimum": 0 },
+        "importWeighted": {
+          "type": "boolean",
+          "default": false,
+          "description": "FX-sensitive import region"
+        },
+        "extensions": { "$ref": "common.json#/$defs/Extensions" }
+      },
+      "additionalProperties": false
+    },
+    "RegionRemaining": {
+      "type": "object",
+      "description": "GM-editable per-session region caps (D-07)",
+      "required": ["sessionId", "regionCode", "materialRemaining", "saleRemaining"],
+      "properties": {
+        "sessionId": { "$ref": "common.json#/$defs/Uuid" },
+        "regionCode": { "$ref": "common.json#/$defs/RegionCode" },
+        "materialRemaining": { "type": "integer", "minimum": 0 },
+        "saleRemaining": { "type": "integer", "minimum": 0 },
+        "updatedAt": { "$ref": "common.json#/$defs/DateTime" },
+        "updatedBy": { "$ref": "common.json#/$defs/Uuid" },
+        "extensions": { "$ref": "common.json#/$defs/Extensions" }
+      },
+      "additionalProperties": false
+    },
+    "Scenario": {
+      "type": "object",
+      "required": ["id", "name", "isPublic"],
+      "properties": {
+        "id": { "$ref": "common.json#/$defs/Uuid" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "isPublic": { "type": "boolean" },
+        "recommendedFor": {
+          "type": "array",
+          "items": { "$ref": "common.json#/$defs/PeriodLabel" }
+        },
+        "extensions": { "$ref": "common.json#/$defs/Extensions" }
+      },
+      "additionalProperties": false
+    },
+    "ScenarioAction": {
+      "type": "object",
+      "required": ["id", "scenarioId", "order", "actionType", "payload"],
+      "properties": {
+        "id": { "$ref": "common.json#/$defs/Uuid" },
+        "scenarioId": { "$ref": "common.json#/$defs/Uuid" },
+        "order": { "type": "integer", "minimum": 0 },
+        "year": { "$ref": "common.json#/$defs/Year" },
+        "half": { "$ref": "common.json#/$defs/Half" },
+        "onStep": { "$ref": "common.json#/$defs/GameStep" },
+        "actionType": {
+          "type": "string",
+          "enum": ["ECONOMY_PRESET", "SCHEDULE_EVENT", "BROADCAST"]
+        },
+        "payload": { "type": "object" },
+        "extensions": { "$ref": "common.json#/$defs/Extensions" }
+      },
+      "additionalProperties": false
+    },
+    "AuditLogEntry": {
+      "type": "object",
+      "description": "Append-only GM/system audit (Principle 5)",
+      "required": ["id", "sessionId", "actor", "action", "entityType", "entityId", "occurredAt"],
+      "properties": {
+        "id": { "$ref": "common.json#/$defs/Uuid" },
+        "sessionId": { "$ref": "common.json#/$defs/Uuid" },
+        "actor": { "$ref": "common.json#/$defs/AuditActor" },
+        "action": {
+          "type": "string",
+          "examples": [
+            "SESSION_START",
+            "STEP_ADVANCE",
+            "HALF_CLOSE",
+            "ECONOMY_PATCH",
+            "EVENT_FIRE",
+            "OVERRIDE",
+            "DECISION_ZERO",
+            "DECISION_COPY_LAST"
+          ]
+        },
+        "entityType": { "type": "string" },
+        "entityId": { "$ref": "common.json#/$defs/Uuid" },
+        "diff": {
+          "type": "object",
+          "properties": {
+            "before": {},
+            "after": {}
+          }
+        },
+        "occurredAt": { "$ref": "common.json#/$defs/DateTime" },
+        "extensions": { "$ref": "common.json#/$defs/Extensions" }
+      },
+      "additionalProperties": false
+    },
+    "DomainEventEnvelope": {
+      "type": "object",
+      "description": "WebSocket / bus view of DomainEventRecord (M-03)",
+      "required": ["eventType", "sessionId", "sequence", "occurredAt", "payload"],
+      "properties": {
+        "eventType": {
+          "type": "string",
+          "enum": [
+            "session.phaseChanged",
+            "step.changed",
+            "decision.submitted",
+            "decision.validated",
+            "decision.failed",
+            "decision.posted",
+            "journal.posted",
+            "settlement.step.completed",
+            "ranking.updated",
+            "half.closed",
+            "game.finished",
+            "economy.patched",
+            "event.fired",
+            "gm.override.applied"
+          ]
+        },
+        "sessionId": { "$ref": "common.json#/$defs/Uuid" },
+        "sequence": { "type": "integer", "minimum": 1 },
+        "aggregateType": { "type": "string" },
+        "aggregateId": { "$ref": "common.json#/$defs/Uuid" },
+        "occurredAt": { "$ref": "common.json#/$defs/DateTime" },
+        "payload": { "type": "object" },
+        "traceId": { "type": "string" },
+        "correlationId": { "type": "string" },
+        "extensions": { "$ref": "common.json#/$defs/Extensions" }
+      },
+      "additionalProperties": false
+    },
+    "GameConstants": {
+      "type": "object",
+      "description": "Rule Book §1.5 — server-side constants (read-only reference object)",
+      "required": ["schemaVersion", "currencyUnit", "initialCashManwon", "bomRatio", "landPriceManwon", "landMaxPlots"],
+      "properties": {
+        "schemaVersion": { "$ref": "common.json#/$defs/SchemaVersion" },
+        "currencyUnit": { "type": "string", "const": "MANWON" },
+        "initialCashManwon": { "type": "integer", "const": 10000 },
+        "bomRatio": { "type": "integer", "const": 4 },
+        "loanRatePercent": { "type": "number", "const": 10 },
+        "depositRatePercent": { "type": "number", "const": 5 },
+        "landPriceManwon": { "type": "integer", "const": 3000 },
+        "landMaxPlots": { "type": "integer", "const": 4 },
+        "machineLargeCostManwon": { "type": "integer", "const": 600 },
+        "machineLargeCapacity": { "type": "integer", "const": 30 },
+        "machineLargeOpCostManwon": { "type": "integer", "const": 80 },
+        "machineSmallCostManwon": { "type": "integer", "const": 300 },
+        "machineSmallCapacity": { "type": "integer", "const": 10 },
+        "machineSmallOpCostManwon": { "type": "integer", "const": 40 },
+        "logisticsMaterialPerUnitManwon": { "type": "integer", "const": 5 },
+        "logisticsSalesPerUnitManwon": { "type": "integer", "const": 10 },
+        "purchaseCapacityPerHead": { "type": "integer", "const": 30 },
+        "productionCapacityPerHead": { "type": "integer", "const": 10 },
+        "salesCapacityPerHead": { "type": "integer", "const": 10 },
+        "defaultCorporateTaxRatePercent": { "type": "number", "const": 22 },
+        "loanMidMaxManwon": { "type": "integer", "const": 10000 },
+        "extensions": { "$ref": "common.json#/$defs/Extensions" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "oneOf": [
+    { "$ref": "#/$defs/User" },
+    { "$ref": "#/$defs/GameSession" },
+    { "$ref": "#/$defs/Company" },
+    { "$ref": "#/$defs/FiscalPeriod" },
+    { "$ref": "#/$defs/GameProgress" }
+  ]
+}

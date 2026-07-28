@@ -1,0 +1,129 @@
+"use client";
+
+import { REGION_CATALOG } from "@/src/bsp/domain/regions/region-catalog";
+import { StepSubmitBar } from "./StepSubmitBar";
+
+function fmt(n: number) {
+  return n.toLocaleString("ko-KR") + " 만원";
+}
+
+export type SalesLineForm = {
+  regionCode: string;
+  unitPriceManwon: number;
+  qty: number;
+  openBranch: boolean;
+};
+
+type Props = {
+  lines: SalesLineForm[];
+  finishedGoodsQty: number;
+  salesCapacity: number;
+  preview: {
+    totalRevenueManwon: number;
+    totalSoldQty: number;
+    cogsManwon: number;
+    logisticsSalesManwon: number;
+    branchFeesManwon: number;
+    cashAfterManwon: number;
+  };
+  loading: boolean;
+  checklistReady?: boolean;
+  onChange: (lines: SalesLineForm[]) => void;
+  onValidate: () => void;
+  onSubmit: () => void;
+};
+
+export function StepSalesForm({
+  lines,
+  finishedGoodsQty,
+  salesCapacity,
+  preview,
+  loading,
+  checklistReady = true,
+  onChange,
+  onValidate,
+  onSubmit,
+}: Props) {
+  const updateLine = (index: number, patch: Partial<SalesLineForm>) => {
+    const next = lines.map((l, i) => (i === index ? { ...l, ...patch } : l));
+    onChange(next);
+  };
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-6">
+      <h2 className="mb-1 text-lg font-semibold">Step 6 — 판매</h2>
+      <p className="mb-4 text-sm text-slate-600">
+        7개 지역 · 지역별 수요/최대가 · 물류비 10만/단위 · 완제품 {finishedGoodsQty} · Capacity {salesCapacity}
+      </p>
+
+      <div className="space-y-4">
+        {lines.map((line, index) => {
+          const region = REGION_CATALOG.find((r) => r.code === line.regionCode);
+          return (
+            <div key={line.regionCode} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <p className="mb-2 font-medium">{region?.displayName ?? line.regionCode}</p>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <label className="text-sm">
+                  <span className="text-slate-600">판매가 (최대 {region?.maxSalePriceManwon})</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={region?.maxSalePriceManwon}
+                    value={line.unitPriceManwon}
+                    onChange={(e) => updateLine(index, { unitPriceManwon: Number(e.target.value) })}
+                    className="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2"
+                  />
+                </label>
+                <label className="text-sm">
+                  <span className="text-slate-600">판매량 (수요 {region?.saleLimit})</span>
+                  <input
+                    type="number"
+                    min={0}
+                    value={line.qty}
+                    onChange={(e) => updateLine(index, { qty: Number(e.target.value) })}
+                    className="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2"
+                  />
+                </label>
+                <label className="flex items-end gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={line.openBranch}
+                    onChange={(e) => updateLine(index, { openBranch: e.target.checked })}
+                    className="rounded"
+                  />
+                  <span>판매 브랜치 (+{region?.salesSetupFeeManwon ?? 0}만)</span>
+                </label>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="my-4 rounded-lg bg-white/80 p-4 text-sm text-slate-700">
+        <p>
+          매출 {fmt(preview.totalRevenueManwon)} · 매출원가 {fmt(preview.cogsManwon)} · 물류 {fmt(preview.logisticsSalesManwon)}
+        </p>
+        <p className="mt-1">
+          판매량 {preview.totalSoldQty} · 브랜치비 {fmt(preview.branchFeesManwon)} · 생산 후 현금 {fmt(preview.cashAfterManwon)}
+        </p>
+      </div>
+
+      <div className="flex gap-2">
+        <button
+          onClick={onValidate}
+          disabled={loading}
+          className="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-100 disabled:opacity-50"
+        >
+          Validation
+        </button>
+        <button
+          onClick={onSubmit}
+          disabled={loading}
+          className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium hover:bg-sky-500 disabled:opacity-50"
+        >
+          판매 제출
+        </button>
+      </div>
+    </div>
+  );
+}

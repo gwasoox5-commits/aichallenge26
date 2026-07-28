@@ -1,0 +1,35 @@
+{
+    "companyId":  "5becb79c-0246-478f-8f8c-fc4ec28ad2de",
+    "joinCode":  "DEADBEEF000000000000000000000001",
+    "security":  {
+                     "noAuthGmSession":  {
+                                             "body":  "{\"error\":\"Authentication required\",\"code\":\"ERR_UNAUTHORIZED\"}",
+                                             "status":  401
+                                         },
+                     "logout":  {
+                                    "ok":  true
+                                },
+                     "invalidJoinCode":  {
+                                             "body":  "{\"error\":\"Join code must be 32 hex characters (128-bit)\",\"code\":\"ERR_INVALID_JOIN_CODE\"}",
+                                             "status":  400
+                                         },
+                     "ceoWrongCompany":  {
+                                             "body":  "{\"error\":\"Access denied to this company\",\"code\":\"ERR_FORBIDDEN_COMPANY\"}",
+                                             "status":  403
+                                         },
+                     "wrongAdminPassword":  {
+                                                "body":  "{\"error\":\"Invalid admin credentials\",\"code\":\"ERR_INVALID_CREDENTIALS\"}",
+                                                "status":  401
+                                            }
+                 },
+    "sessionId":  "6e0faa54-c9f8-4b9a-9d06-524da9309af8",
+    "base":  "http://localhost:3015",
+    "urls":  {
+                 "gm":  "http://localhost:3015/gm",
+                 "play":  "http://localhost:3015/play?companyId=5becb79c-0246-478f-8f8c-fc4ec28ad2de",
+                 "join":  "http://localhost:3015/join"
+             },
+    "ceoToken":  "eyJzdWIiOiI1YmVjYjc5Yy0wMjQ2LTQ3OGYtOGY4Yy1mYzRlYzI4YWQyZGUiLCJyb2xlIjoiQ0VPIiwic2Vzc2lvbklkIjoiNmUwZmFhNTQtYzlmOC00YjlhLTlkMDYtNTI0ZGE5MzA5YWY4IiwiY29tcGFueUlkIjoiNWJlY2I3OWMtMDI0Ni00NzhmLThmOGMtZmM0ZWMyOGFkMmRlIiwidGVhbU5hbWUiOiJQMi1SZXZpZXctVGVhbSIsImlhdCI6MTc4NTA3NTgzNywiZXhwIjoxNzg1MTYyMjM3fQ.Rhgfb1jZ1ppwrTM1RLx0QLKn_bN2pku6mDWh5AYtM64",
+    "adminToken":  "eyJzdWIiOiJiNWNkNjY0Ni1iYTkxLTQzMmItYmEwYy0xOWI2Nzc0ZmNiODQiLCJyb2xlIjoiUExBVEZPUk1fQURNSU4iLCJpYXQiOjE3ODUwNzU4MzYsImV4cCI6MTc4NTE2MjIzNn0.tN7IXiSAf_l_BX9Fbi7-mrZeCSyh-YqcG3Nhn9Z68t0",
+    "gmToken":  "eyJzdWIiOiIxMmM5Yzg0Ni0zYWY5LTQ2YmItOTYwOS1jY2MwNzM2MzYwYjMiLCJyb2xlIjoiR00iLCJzZXNzaW9uSWQiOiI2ZTBmYWE1NC1jOWY4LTRiOWEtOWQwNi01MjRkYTkzMDlhZjgiLCJpYXQiOjE3ODUwNzU4MzYsImV4cCI6MTc4NTE2MjIzNn0.0cFDXAemOy8Xu44wdZ3l9LfBA6o_niSBPtVwhs0b708"
+}

@@ -1,0 +1,23 @@
+{
+  "generatedAt": "2026-07-28T08:37:24+09:00",
+  "unit": "manwon",
+  "tolerance": 0,
+  "suites": {
+    "accounting-validation": { "tests": 4, "passed": 4, "failed": 0 },
+    "excel-regression-20": { "tests": 22, "passed": 22, "failed": 0 }
+  },
+  "equationsVerified": [
+    "journal_debit_equals_credit",
+    "trial_balance_balanced",
+    "assets_equals_liabilities_plus_equity",
+    "income_statement_net_income",
+    "retained_earnings_rollforward",
+    "cash_rollforward"
+  ],
+  "scenarioIds": [
+    "S01", "S02", "S03", "S04", "S05", "S06", "S07", "S08", "S09", "S10",
+    "S11", "S12", "S13", "S14", "S15", "S16", "S17", "S18", "S19", "S20"
+  ],
+  "allScenariosPass": true,
+  "multiPeriodTests": "multi-period.test.ts + p9-rc-pilot.test.ts PASS"
+}
