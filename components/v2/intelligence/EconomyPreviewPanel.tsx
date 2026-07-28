@@ -46,7 +46,7 @@ export function EconomyPreviewPanel({ scenarioKey, impacts }: Props) {
                           : "bg-slate-100"
                     }`}
                   >
-                    {v.confidence}
+                    {formatConfidence(v.confidence)}
                   </span>
                   {v.lowAccuracyWarning && (
                     <p className="mt-0.5 text-xs text-amber-700">{v.lowAccuracyWarning}</p>
@@ -64,4 +64,15 @@ export function EconomyPreviewPanel({ scenarioKey, impacts }: Props) {
       </div>
     </section>
   );
+}
+
+function formatConfidence(label: VariableImpactExplainability["confidence"]): string {
+  switch (label) {
+    case "HIGH":
+      return "높음";
+    case "LOW":
+      return "낮음";
+    default:
+      return "중간";
+  }
 }

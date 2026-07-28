@@ -13,6 +13,7 @@ import type {
 import type { ScenarioKey } from "@/lib/v2/event-studio/types";
 import { toExplainability } from "./economy-mapper";
 import { scoreScenarioQuality } from "./quality-scorer";
+import { CURRENT_PROMPT_VERSION } from "./prompt-registry";
 
 export const DEMO_ARTICLES = articles as NewsArticle[];
 
@@ -41,7 +42,7 @@ function citationsFrom(articles: NewsArticle[]): NewsSourceCitation[] {
 
 export function demoAnalysis(selected: NewsArticle[]): NewsAnalysis {
   const base = analysisBase as Omit<NewsAnalysis, "citations">;
-  return { ...base, citations: citationsFrom(selected), promptVersion: "v1.1" };
+  return { ...base, citations: citationsFrom(selected), promptVersion: CURRENT_PROMPT_VERSION };
 }
 
 export function demoScenarios(): IntelligenceScenario[] {
@@ -71,7 +72,7 @@ export function demoScenarios(): IntelligenceScenario[] {
 }
 
 export function demoConsultant(): ConsultantOutput {
-  return { ...(consultantData as ConsultantOutput), gmOnly: true, promptVersion: "v1.1" };
+  return { ...(consultantData as ConsultantOutput), gmOnly: true, promptVersion: CURRENT_PROMPT_VERSION };
 }
 
 export function demoQuality(analysis: NewsAnalysis, scenarios: IntelligenceScenario[]) {

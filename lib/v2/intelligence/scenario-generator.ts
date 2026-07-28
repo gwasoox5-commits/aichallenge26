@@ -8,6 +8,7 @@ import scenariosSchema from "@/docs/integrations/schemas/intelligence-scenarios.
 import { getOpenAiConfig } from "@/lib/integrations/config";
 import { callOpenAiStructured } from "@/lib/integrations/openai-client";
 import { IntegrationError } from "@/lib/integrations/errors";
+import { KOREAN_OUTPUT_INSTRUCTIONS } from "./korean-output";
 
 export interface ScenarioGenMeta {
   model: string;
@@ -139,7 +140,8 @@ function mapLiveScenarios(data: LiveScenarioPayload, _promptVersion: PromptVersi
 function buildScenarioPrompt(analysis: NewsAnalysis, promptVersion: PromptVersion): string {
   return [
     "Generate pessimistic, neutral, optimistic scenarios for Korean educational simulation.",
-    "Write ALL descriptions, headlines, and rationales in Korean (한국어).",
+    KOREAN_OUTPUT_INSTRUCTIONS,
+    "Scenario labels must be Korean (e.g. 비관적, 중립적, 낙관적).",
     `Prompt version: ${promptVersion}`,
     `Event summary: ${analysis.eventSummary}`,
     `Risks: ${analysis.riskFactors.join("; ")}`,

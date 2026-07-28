@@ -8,6 +8,7 @@ import { IntegrationError } from "@/lib/integrations/errors";
 import { cacheKey, getCache, setCache, CACHE_TTL } from "@/lib/integrations/cache";
 import type { ContentSourceKind } from "@/lib/integrations/types";
 import { normalizeIntelligenceAnalysis } from "./normalize-analysis-output";
+import { KOREAN_OUTPUT_INSTRUCTIONS } from "./korean-output";
 
 export interface AnalysisMeta {
   model: string;
@@ -51,10 +52,11 @@ function buildAnalysisPrompt(articles: NewsArticle[], promptVersion: PromptVersi
     .map((a) => `[${a.id}] ${a.title} (${a.source})\nSummary: ${a.summary || "(none)"}\nURL: ${a.url}`)
     .join("\n\n");
   return [
-    "You are an educational business simulation analyst.",
+    "You are an educational business simulation analyst for Korean instructors.",
+    KOREAN_OUTPUT_INSTRUCTIONS,
     `Prompt version: ${promptVersion}`,
     `Content available: ${contentSource}. Do NOT claim full article analysis if only title/snippet provided.`,
-    "Analyze news for supply chain, production, sales, financial impacts.",
+    "Analyze news for supply chain, production, sales, and financial impacts.",
     "Mark uncertain items as estimates. Distinguish SOURCE_FACT vs MODEL_INFERENCE vs ASSUMPTION.",
     "Articles:",
     content,

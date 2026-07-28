@@ -5,6 +5,7 @@ import consultantSchema from "@/docs/integrations/schemas/consultant-output.sche
 import { getOpenAiConfig } from "@/lib/integrations/config";
 import { callOpenAiStructured } from "@/lib/integrations/openai-client";
 import { IntegrationError } from "@/lib/integrations/errors";
+import { KOREAN_OUTPUT_INSTRUCTIONS } from "./korean-output";
 
 export interface ConsultantMeta {
   model: string;
@@ -47,12 +48,12 @@ function buildConsultantPrompt(
   promptVersion: PromptVersion
 ): string {
   return [
-    "Generate GM-only AI Management Consultant briefing for instructors.",
+    "Generate GM-only AI Management Consultant briefing for Korean instructors.",
+    KOREAN_OUTPUT_INSTRUCTIONS,
     `Prompt version: ${promptVersion}`,
     `Summary: ${analysis.eventSummary}`,
     `Scenarios: ${scenarios.map((s) => s.label).join(", ")}`,
-    "Include Korean discussion questions. NOT for student view.",
-    "Provide consultantCommentary and educationalCommentary separately.",
+    "NOT for student view. Provide consultantCommentary and educationalCommentary separately.",
   ].join("\n");
 }
 

@@ -14,7 +14,7 @@ export type IntelligenceStatus = "DRAFT" | "ANALYZED" | "SCENARIOS" | "PREVIEW" 
 
 
 
-export type PromptVersion = "v1.0" | "v1.1";
+export type PromptVersion = "v1.0" | "v1.1" | "v1.2";
 
 
 

@@ -8,7 +8,7 @@ export function AnalysisPanel({ analysis }: { analysis: NewsAnalysis }) {
       <h2 className="text-lg font-semibold text-violet-800">2. AI 뉴스 분석</h2>
       <div className="mt-2 flex flex-wrap gap-2 text-xs">
         <span className="rounded bg-slate-100 px-2 py-0.5">프롬프트 {analysis.promptVersion}</span>
-        <span className="rounded bg-slate-100 px-2 py-0.5">신뢰도 {analysis.confidenceLabel}</span>
+        <span className="rounded bg-slate-100 px-2 py-0.5">신뢰도 {formatConfidence(analysis.confidenceLabel)}</span>
         {analysis.isEstimate && <span className="rounded bg-amber-100 px-2 py-0.5 text-amber-800">추정 포함</span>}
       </div>
       <p className="mt-4 text-sm text-slate-800">{analysis.eventSummary}</p>
@@ -36,6 +36,17 @@ export function AnalysisPanel({ analysis }: { analysis: NewsAnalysis }) {
       </ul>
     </section>
   );
+}
+
+function formatConfidence(label: NewsAnalysis["confidenceLabel"]): string {
+  switch (label) {
+    case "HIGH":
+      return "높음";
+    case "LOW":
+      return "낮음";
+    default:
+      return "중간";
+  }
 }
 
 function Block({ title, items }: { title: string; items: string[] }) {
