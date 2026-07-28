@@ -2,6 +2,7 @@ import { ECONOMY_BOUNDS } from "@/src/bsp/domain/economy/economy-variable-meta";
 import { DEFAULT_ECONOMY_VALUES } from "@/src/bsp/domain/types";
 import type { EconomyPatchEffect } from "@/src/bsp/domain/events/event-types";
 import {
+  isStudioVariableKey,
   mapStudioEffectToEngine,
   STUDIO_TO_ENGINE_MAP,
 } from "@/lib/v2/event-studio/variable-mapper";
@@ -30,8 +31,15 @@ export const STUDIO_VARIABLE_BOUNDS: Record<
   businessCycleIndex: { min: -25, max: 25, defaultMode: "PERCENT" },
 };
 
-export function clampStudioValue(key: StudioVariableKey, value: number): number {
-  const b = STUDIO_VARIABLE_BOUNDS[key];
+const FALLBACK_STUDIO_BOUNDS = { min: -50, max: 50, defaultMode: "PERCENT" as EffectMode };
+
+export function studioBoundsFor(key: string): { min: number; max: number; defaultMode: EffectMode } {
+  if (isStudioVariableKey(key)) return STUDIO_VARIABLE_BOUNDS[key];
+  return FALLBACK_STUDIO_BOUNDS;
+}
+
+export function clampStudioValue(key: StudioVariableKey | string, value: number): number {
+  const b = studioBoundsFor(key);
   return Math.min(b.max, Math.max(b.min, value));
 }
 
@@ -45,7 +53,7 @@ export function toExplainability(
     assumption?: string;
   }
 ): VariableImpactExplainability {
-  const bounds = STUDIO_VARIABLE_BOUNDS[effect.key];
+  const bounds = studioBoundsFor(effect.key);
   const confidence = effect.confidence ?? (effect.isEstimate ? "LOW" : "MEDIUM");
   const clampedValue = clampStudioValue(effect.key, effect.value);
   return {

@@ -1,4 +1,5 @@
 import type { ScenarioKey, StudioVariableEffect } from "@/lib/v2/event-studio/types";
+import { sanitizeStudioEffects } from "@/lib/v2/event-studio/normalize-studio-output";
 import type { IntelligenceScenario, NewsAnalysis, PromptVersion } from "./types";
 import { toExplainability } from "./economy-mapper";
 import { resolvePromptVersion } from "./prompt-registry";
@@ -72,22 +73,55 @@ function mapScenario(key: ScenarioKey, s: FixtureScenario): IntelligenceScenario
   };
 }
 
-function mapLiveScenarios(data: LiveScenarioPayload, promptVersion: PromptVersion): IntelligenceScenario[] {
+function mapLiveScenarios(data: LiveScenarioPayload, _promptVersion: PromptVersion): IntelligenceScenario[] {
+  const fixtureData = scenariosFixture as { scenarios: Record<ScenarioKey, FixtureScenario> };
   const keys: ScenarioKey[] = ["pessimistic", "neutral", "optimistic"];
   return keys.map((key) => {
     const s = data.scenarios[key];
+    const sanitized = sanitizeStudioEffects(s.effects);
+    const effects: Array<
+      StudioVariableEffect & {
+        confidence?: "LOW" | "MEDIUM" | "HIGH";
+        assumption?: string;
+        evidenceType?: string;
+        sourceIds?: string[];
+      }
+    > =
+      sanitized.length > 0
+        ? sanitized.map((effect) => {
+            const raw = (s.effects as unknown as Array<Record<string, unknown>>).find(
+              (item) => typeof item?.key === "string" && sanitizeStudioEffects([item])[0]?.key === effect.key
+            );
+            return {
+              ...effect,
+              confidence:
+                raw?.confidence === "LOW" || raw?.confidence === "MEDIUM" || raw?.confidence === "HIGH"
+                  ? raw.confidence
+                  : undefined,
+              assumption: typeof raw?.assumption === "string" ? raw.assumption : undefined,
+              evidenceType: typeof raw?.evidenceType === "string" ? raw.evidenceType : undefined,
+              sourceIds: Array.isArray(raw?.sourceIds)
+                ? raw.sourceIds.filter((id): id is string => typeof id === "string")
+                : undefined,
+            };
+          })
+        : fixtureData.scenarios[key].effects;
+
     return {
       scenarioKey: key,
       label: s.label,
       description: s.description,
       assumptions: s.assumptions,
       expectedOutcomes: s.expectedOutcomes,
-      variableImpacts: s.effects.map((e) => {
+      variableImpacts: effects.map((e) => {
         const exp = toExplainability({
           key: e.key,
           mode: e.mode,
           value: e.value,
-          rationale: (e as { reason?: string; rationale?: string }).reason ?? (e as { rationale?: string }).rationale ?? String(e.key),
+          rationale:
+            (e as { reason?: string; rationale?: string }).reason ??
+            (e as { rationale?: string }).rationale ??
+            String(e.key),
           isEstimate: e.isEstimate ?? true,
           confidence: e.confidence,
           assumption: e.assumption,

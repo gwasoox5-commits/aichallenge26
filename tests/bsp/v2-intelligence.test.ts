@@ -155,6 +155,18 @@ describe("V2.3 Economy Mapping & Clamp", () => {
     expect(ex.lowAccuracyWarning).toBe("추정 정확도가 낮음");
   });
 
+  it("does not throw for unknown studio variable keys", () => {
+    const ex = toExplainability({
+      key: "warRisk" as "demand",
+      mode: "PERCENT",
+      value: 12,
+      rationale: "unknown key from AI",
+      isEstimate: true,
+    });
+    expect(ex.clampedValue).toBe(12);
+    expect(ex.allowedMax).toBe(50);
+  });
+
   it("maps scenario effects to engine preview", () => {
     const { engineEffects, boundsWarnings } = mapScenarioToEnginePreview([
       { key: "demand", mode: "PERCENT", value: -10, rationale: "demand drop" },

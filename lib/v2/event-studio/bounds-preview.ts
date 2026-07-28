@@ -32,6 +32,7 @@ export function previewMappedEffects(
         validateBounds(valuesAfter);
       } catch {
         const b = ECONOMY_BOUNDS[effect.key];
+        if (!b) continue;
         const clamped = Math.min(b.max, Math.max(b.min, before));
         warnings.push({
           engineKey: effect.key,
@@ -48,6 +49,7 @@ export function previewMappedEffects(
 
   for (const key of Object.keys(valuesAfter) as (keyof EconomyValues)[]) {
     const b = ECONOMY_BOUNDS[key];
+    if (!b) continue;
     if (valuesAfter[key] < b.min || valuesAfter[key] > b.max) {
       const clamped = Math.min(b.max, Math.max(b.min, valuesAfter[key]));
       warnings.push({

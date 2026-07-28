@@ -165,7 +165,7 @@ export function IntelligenceWorkflow() {
     }
   }, [keywords, sessionId]);
 
-  const runDemoPipeline = () => {
+  const runDemoPipeline = (apiError?: string) => {
     const a = demoAnalysis(selectedArticles);
     const s = demoScenarios();
     const c = demoConsultant();
@@ -176,7 +176,12 @@ export function IntelligenceWorkflow() {
     setConsultant(c);
     setQuality(q);
     setDemoMode(true);
-    setStatusNote("API 연결 실패로 샘플 분석 결과를 표시합니다.");
+    setError(null);
+    setStatusNote(
+      apiError
+        ? `API 연결 실패(${apiError}) — 샘플 분석 결과를 표시합니다.`
+        : "API 연결 실패로 샘플 분석 결과를 표시합니다."
+    );
   };
 
   const runPipeline = async () => {
@@ -233,8 +238,8 @@ export function IntelligenceWorkflow() {
       setDemoMode(false);
       setStatusNote("AI 분석·시나리오·Preview가 완료되었습니다.");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "파이프라인 실행 실패");
-      runDemoPipeline();
+      const apiError = e instanceof Error ? e.message : "파이프라인 실행 실패";
+      runDemoPipeline(apiError);
     } finally {
       setLoading(false);
     }
