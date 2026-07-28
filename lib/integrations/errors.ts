@@ -20,7 +20,7 @@ const USER_MESSAGES: Record<IntegrationErrorCode, string> = {
   INVALID_RESPONSE: "외부 API 응답 형식이 올바르지 않습니다.",
   SCHEMA_VALIDATION_FAILED: "응답 형식 검증에 실패했습니다. 다시 생성해 주세요.",
   PROVIDER_UNAVAILABLE: "외부 서비스를 일시적으로 사용할 수 없습니다.",
-  QUOTA_EXCEEDED: "OpenAI 사용 한도 또는 결제 설정이 필요합니다. platform.openai.com에서 Billing을 확인하세요.",
+  QUOTA_EXCEEDED: "외부 API 일일 사용 한도를 초과했습니다. 요금제 또는 Billing 설정을 확인하세요.",
 };
 
 export class IntegrationError extends Error {
@@ -65,6 +65,46 @@ function statusForCode(code: IntegrationErrorCode): number {
     default:
       return 502;
   }
+}
+
+export function unwrapIntegrationError(e: unknown): IntegrationError | null {
+  if (!(e instanceof IntegrationError)) return null;
+  const cause = (e as Error & { cause?: unknown }).cause;
+  if (cause instanceof IntegrationError) return unwrapIntegrationError(cause);
+  return e;
+}
+
+function parseGNewsErrorBody(bodyText?: string): string | null {
+  if (!bodyText) return null;
+  try {
+    const j = JSON.parse(bodyText) as { errors?: string[] };
+    if (j.errors?.length) return j.errors.join("; ");
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+export function mapGNewsHttpError(status: number, bodyText?: string): IntegrationError {
+  const detail = parseGNewsErrorBody(bodyText);
+  if (status === 401) {
+    return new IntegrationError("API_KEY_INVALID", {
+      message: detail ?? "GNews API Key가 올바르지 않습니다. gnews.io 대시보드에서 키를 확인하세요.",
+    });
+  }
+  if (status === 403) {
+    return new IntegrationError("QUOTA_EXCEEDED", {
+      message:
+        detail ??
+        "GNews 일일 호출 한도를 초과했습니다. 00:00 UTC 이후 재시도하거나 gnews.io에서 요금제를 확인하세요.",
+    });
+  }
+  if (status === 429) {
+    return new IntegrationError("RATE_LIMITED", {
+      message: detail ?? "GNews 호출 속도 제한입니다. 무료 플랜은 1초에 1회까지 가능합니다.",
+    });
+  }
+  return mapHttpStatusToIntegrationError(status, "GNews", bodyText);
 }
 
 export function mapHttpStatusToIntegrationError(status: number, provider: string, bodyText?: string): IntegrationError {

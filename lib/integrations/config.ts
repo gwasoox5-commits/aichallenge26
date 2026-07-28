@@ -35,7 +35,7 @@ export function getOpenAiConfig() {
 
 export function getNewsConfig() {
   const rawProvider = (process.env.BSP_NEWS_PROVIDER ?? process.env.NEWS_PROVIDER ?? "fixture").toLowerCase();
-  const apiKey = process.env.BSP_GNEWS_API_KEY ?? process.env.GNEWS_API_KEY ?? "";
+  const apiKey = (process.env.BSP_GNEWS_API_KEY ?? process.env.GNEWS_API_KEY ?? "").trim();
   // Production: API key alone enables GNews even when provider was left at default "fixture"
   const provider =
     rawProvider === "fixture" && apiKey.length > 0 && isProductionRuntime() ? "gnews" : rawProvider;

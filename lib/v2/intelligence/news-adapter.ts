@@ -2,7 +2,7 @@ import type { NewsArticle, NewsSearchQuery, NewsSearchResult } from "./types";
 
 import fixtureArticles from "@/tests/fixtures/v2/news-articles.fixture.json";
 
-import { IntegrationError, mapHttpStatusToIntegrationError } from "@/lib/integrations/errors";
+import { IntegrationError, mapGNewsHttpError } from "@/lib/integrations/errors";
 
 import { isFixtureFallbackAllowed, isProductionRuntime } from "@/lib/bsp/runtime-config";
 
@@ -132,14 +132,26 @@ type GNewsApiArticle = {
   source?: { name?: string };
 };
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function buildGNewsQuery(keywords: string[], mode: "or" | "phrase"): string {
+  const cleaned = keywords.map((k) => k.trim()).filter(Boolean);
+  if (cleaned.length === 0) return "economy";
+  if (mode === "phrase") return cleaned.join(" ");
+  if (cleaned.length === 1) return cleaned[0]!;
+  return cleaned.map((k) => `"${k.replace(/"/g, "")}"`).join(" OR ");
+}
+
 /** GNews adapter — no silent fixture fallback in production */
 export class GNewsAdapter implements NewsAdapter {
   readonly name = "gnews";
+  private readonly apiKey: string;
 
-  constructor(
-    private readonly apiKey: string,
-    private readonly devFallback?: NewsAdapter
-  ) {}
+  constructor(apiKey: string, private readonly devFallback?: NewsAdapter) {
+    this.apiKey = apiKey.trim();
+  }
 
   private async fetchGNews(
     queryText: string,
@@ -149,13 +161,16 @@ export class GNewsAdapter implements NewsAdapter {
   ): Promise<NewsArticle[]> {
     const q = encodeURIComponent(queryText);
     const url = `https://gnews.io/api/v4/search?q=${q}&lang=${language}&max=${limit}&apikey=${this.apiKey}`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    const bodyText = await res.text().catch(() => undefined);
     if (!res.ok) {
-      const bodyText = await res.text().catch(() => undefined);
-      throw mapHttpStatusToIntegrationError(res.status, "GNews", bodyText);
+      throw mapGNewsHttpError(res.status, bodyText);
     }
 
-    const body = (await res.json()) as { articles?: GNewsApiArticle[] };
+    const body = JSON.parse(bodyText ?? "{}") as { articles?: GNewsApiArticle[]; errors?: string[] };
+    if (body.errors?.length) {
+      throw new IntegrationError("INVALID_RESPONSE", { message: body.errors.join("; ") });
+    }
     return (body.articles ?? []).map((a, i) => ({
       id: `gnews-${i}-${Date.now()}`,
       title: a.title,
@@ -175,49 +190,32 @@ export class GNewsAdapter implements NewsAdapter {
 
   private async searchWithRetries(query: NewsSearchQuery): Promise<NewsArticle[]> {
     const limit = query.limit ?? 10;
-    const primaryLang = query.language ?? "ko";
     const keywords = query.keywords;
-    const fullQuery = keywords.join(" ");
+    const attempts: Array<{ q: string; lang: string }> = [
+      { q: buildGNewsQuery(keywords, "or"), lang: "en" },
+      { q: buildGNewsQuery(keywords, "phrase"), lang: "en" },
+      { q: buildGNewsQuery(keywords, "or"), lang: query.language ?? "ko" },
+    ];
 
-    let articles = await this.fetchGNews(fullQuery, primaryLang, limit, keywords);
-    if (articles.length > 0) return articles;
-
-    if (primaryLang !== "en") {
-      articles = await this.fetchGNews(fullQuery, "en", limit, keywords);
-      if (articles.length > 0) return articles;
-    }
-
-    if (keywords.length > 1) {
-      articles = await this.fetchMergedKeywordResults(keywords, primaryLang, limit);
-      if (articles.length > 0) return articles;
-
-      if (primaryLang !== "en") {
-        articles = await this.fetchMergedKeywordResults(keywords, "en", limit);
+    let lastError: unknown;
+    for (let i = 0; i < attempts.length; i++) {
+      if (i > 0) await sleep(1100);
+      try {
+        const articles = await this.fetchGNews(attempts[i]!.q, attempts[i]!.lang, limit, keywords);
+        if (articles.length > 0) return articles;
+      } catch (e) {
+        lastError = e;
+        if (e instanceof IntegrationError && (e.code === "RATE_LIMITED" || e.code === "QUOTA_EXCEEDED")) {
+          throw e;
+        }
+        if (e instanceof IntegrationError && e.code === "API_KEY_INVALID") {
+          throw e;
+        }
       }
     }
 
-    return articles;
-  }
-
-  private async fetchMergedKeywordResults(
-    keywords: string[],
-    language: string,
-    limit: number
-  ): Promise<NewsArticle[]> {
-    const seen = new Set<string>();
-    const merged: NewsArticle[] = [];
-
-    for (const kw of keywords) {
-      const kwArticles = await this.fetchGNews(kw.trim(), language, limit, keywords);
-      for (const article of kwArticles) {
-        if (seen.has(article.url)) continue;
-        seen.add(article.url);
-        merged.push(article);
-        if (merged.length >= limit) return merged;
-      }
-    }
-
-    return merged;
+    if (lastError instanceof IntegrationError) throw lastError;
+    return [];
   }
 
   async search(query: NewsSearchQuery): Promise<NewsSearchResult> {
@@ -225,13 +223,8 @@ export class GNewsAdapter implements NewsAdapter {
       const articles = await this.searchWithRetries(query);
       return { articles, provider: this.name, usedFixture: false, fetchedAt: new Date().toISOString() };
     } catch (e) {
-      if (isProductionRuntime() && !isFixtureFallbackAllowed()) {
-        throw new IntegrationError("PROVIDER_UNAVAILABLE", {
-          message: "GNews 호출에 실패했습니다. Fixture로 대체하지 않습니다.",
-          cause: e,
-        });
-      }
       if (!this.devFallback) {
+        if (e instanceof IntegrationError) throw e;
         throw new IntegrationError("PROVIDER_UNAVAILABLE", { cause: e });
       }
       const fallback = await this.devFallback.search(query);

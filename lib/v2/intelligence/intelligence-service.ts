@@ -1,6 +1,6 @@
 import type { GmActor } from "@/src/bsp/domain/gm/audit-types";
 import type { ScenarioKey } from "@/lib/v2/event-studio/types";
-import { IntegrationError } from "@/lib/integrations/errors";
+import { IntegrationError, unwrapIntegrationError } from "@/lib/integrations/errors";
 import { getFixtureArticle, listFixtureArticles, searchFixtureArticlesEducational, searchNews } from "./news-adapter";
 import { analyzeNewsArticles } from "./openai-analyzer";
 import { generateIntelligenceScenarios } from "./scenario-generator";
@@ -195,6 +195,24 @@ export function resetIntelligenceService() {
   globalRef.v2IntelligenceService = new IntelligenceService();
 }
 
+function formatGNewsFailureNote(e: unknown): string {
+  const root = unwrapIntegrationError(e);
+  if (!root) {
+    return "뉴스 Provider를 사용할 수 없어 교육용 샘플 뉴스를 표시합니다.";
+  }
+  switch (root.code) {
+    case "PROVIDER_DISABLED":
+      return "GNews가 비활성화되어 있습니다. Railway에 BSP_NEWS_PROVIDER=gnews 와 BSP_GNEWS_API_KEY를 설정하세요.";
+    case "API_KEY_INVALID":
+      return `${root.message} 교육용 샘플 뉴스를 표시합니다.`;
+    case "QUOTA_EXCEEDED":
+    case "RATE_LIMITED":
+      return `${root.message} 교육용 샘플 뉴스를 표시합니다.`;
+    default:
+      return `GNews 연결 실패 (${root.message}). 교육용 샘플 뉴스를 표시합니다.`;
+  }
+}
+
 export async function searchNewsForIntelligence(
   query: NewsSearchQuery,
   sessionId?: string
@@ -222,20 +240,13 @@ export async function searchNewsForIntelligence(
     if (sessionId && fallback.articles.length > 0) {
       getIntelligenceSessionStore().cacheArticles(sessionId, fallback.articles);
     }
-    const errorMessage = e instanceof Error ? e.message : "News search failed";
-    let note = "뉴스 Provider를 사용할 수 없어 교육용 샘플 뉴스를 표시합니다.";
-    if (e instanceof IntegrationError) {
-      if (e.code === "PROVIDER_DISABLED") {
-        note = "GNews가 비활성화되어 있습니다. Railway에 BSP_NEWS_PROVIDER=gnews 와 BSP_GNEWS_API_KEY를 설정하세요.";
-      } else if (e.code === "API_KEY_INVALID" || e.code === "PROVIDER_UNAVAILABLE") {
-        note = `GNews 연결 실패 (${errorMessage}). API Key와 요금제를 확인하세요. 교육용 샘플 뉴스를 표시합니다.`;
-      }
-    }
+    const root = unwrapIntegrationError(e);
+    const errorMessage = root?.message ?? (e instanceof Error ? e.message : "News search failed");
     return {
       ...fallback,
       degraded: true,
       errorMessage,
-      note,
+      note: formatGNewsFailureNote(e),
     };
   }
 }
