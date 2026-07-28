@@ -5,10 +5,9 @@ import {
   buildGoogleNewsRssAttempts,
   buildGoogleNewsRssUrl,
   parseGoogleNewsRss,
+  rssRequestHeaders,
   stableGoogleRssArticleId,
 } from "./google-news-rss";
-
-const RSS_USER_AGENT = "Mozilla/5.0 (compatible; BSP-Intelligence/1.0)";
 
 export class GoogleNewsRssAdapter implements NewsAdapter {
   readonly name = "google-news-rss";
@@ -19,10 +18,7 @@ export class GoogleNewsRssAdapter implements NewsAdapter {
     const url = buildGoogleNewsRssUrl(queryText, locale);
     const res = await fetch(url, {
       signal: AbortSignal.timeout(8000),
-      headers: {
-        "User-Agent": RSS_USER_AGENT,
-        Accept: "application/rss+xml, application/xml, text/xml;q=0.9, */*;q=0.8",
-      },
+      headers: rssRequestHeaders(locale),
     });
     if (!res.ok) {
       throw new IntegrationError("PROVIDER_UNAVAILABLE", {
@@ -54,22 +50,23 @@ export class GoogleNewsRssAdapter implements NewsAdapter {
   async search(query: NewsSearchQuery): Promise<NewsSearchResult> {
     const limit = query.limit ?? 10;
     const attempts = buildGoogleNewsRssAttempts(query.keywords);
+    const seen = new Set<string>();
+    const merged: NewsArticle[] = [];
 
     try {
       for (const attempt of attempts) {
         const articles = await this.fetchRss(attempt.query, attempt.locale, limit, query.keywords);
-        if (articles.length > 0) {
-          return {
-            articles,
-            provider: this.name,
-            usedFixture: false,
-            fetchedAt: new Date().toISOString(),
-          };
+        for (const article of articles) {
+          if (seen.has(article.url)) continue;
+          seen.add(article.url);
+          merged.push(article);
+          if (merged.length >= limit) break;
         }
+        if (merged.length >= limit) break;
       }
 
       return {
-        articles: [],
+        articles: merged,
         provider: this.name,
         usedFixture: false,
         fetchedAt: new Date().toISOString(),

@@ -234,7 +234,7 @@ export async function searchNewsForIntelligence(
       ...fallback,
       degraded: true,
       note:
-        "Google News RSS에서 해당 키워드 실뉴스를 찾지 못했습니다. 키워드를 줄이거나 영문(Iran, war)으로 다시 검색하세요. 교육용 샘플 뉴스를 표시합니다.",
+        "실시간 뉴스를 찾지 못했습니다. 키워드를 줄이거나 다른 단어로 다시 검색하세요. 교육용 샘플 뉴스를 표시합니다.",
     };
   } catch (e) {
     const fallback = searchFixtureArticlesEducational(query);

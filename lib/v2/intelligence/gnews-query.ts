@@ -1,6 +1,6 @@
-/** Map common Korean Intelligence keywords to GNews-friendly English queries */
+/** Map common Korean Intelligence keywords to English news search terms */
 
-const KO_TO_EN: Record<string, string> = {
+export const KO_TO_EN: Record<string, string> = {
   미국: "United States",
   usa: "United States",
   이란: "Iran",
@@ -28,7 +28,34 @@ const KO_TO_EN: Record<string, string> = {
   금리: "interest rate",
   인플레: "inflation",
   inflation: "inflation",
+  수출: "export",
+  수입: "import",
+  규제: "regulation",
+  제재: "sanctions",
+  협상: "negotiation",
+  정상회담: "summit",
 };
+
+export function hasHangul(keywords: string[]): boolean {
+  return keywords.some((k) => /[\uAC00-\uD7A3]/.test(k));
+}
+
+/** English-only terms for en locale RSS — never pass untranslated Korean to English feed */
+export function expandKeywordsForEnglishSearch(keywords: string[]): string[] {
+  const expanded: string[] = [];
+  for (const raw of keywords) {
+    const trimmed = raw.trim();
+    if (!trimmed) continue;
+    const lower = trimmed.toLowerCase();
+    const mapped = KO_TO_EN[trimmed] ?? KO_TO_EN[lower];
+    if (mapped) {
+      expanded.push(mapped);
+    } else if (/^[a-z0-9\s\-]+$/i.test(trimmed)) {
+      expanded.push(trimmed);
+    }
+  }
+  return [...new Set(expanded)];
+}
 
 export function expandKeywordsForGNews(keywords: string[]): string[] {
   const expanded: string[] = [];
