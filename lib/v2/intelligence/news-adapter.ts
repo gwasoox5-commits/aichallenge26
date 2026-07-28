@@ -7,6 +7,7 @@ import { IntegrationError, mapGNewsHttpError } from "@/lib/integrations/errors";
 import { isFixtureFallbackAllowed, isProductionRuntime } from "@/lib/bsp/runtime-config";
 
 import { getNewsConfig } from "@/lib/integrations/config";
+import { buildGNewsSearchQueries } from "./gnews-query";
 
 export interface NewsAdapter {
   readonly name: string;
@@ -136,13 +137,6 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function buildGNewsQuery(keywords: string[], mode: "single" | "phrase"): string {
-  const cleaned = keywords.map((k) => k.trim()).filter(Boolean);
-  if (cleaned.length === 0) return "economy";
-  if (mode === "single") return cleaned[0]!;
-  return cleaned.join(" ");
-}
-
 /** GNews adapter — no silent fixture fallback in production */
 export class GNewsAdapter implements NewsAdapter {
   readonly name = "gnews";
@@ -154,12 +148,20 @@ export class GNewsAdapter implements NewsAdapter {
 
   private async fetchGNews(
     queryText: string,
-    language: string,
+    options: { language?: string; country?: string },
     limit: number,
     keywords: string[]
   ): Promise<NewsArticle[]> {
-    const q = encodeURIComponent(queryText);
-    const url = `https://gnews.io/api/v4/search?q=${q}&lang=${language}&max=${limit}&apikey=${this.apiKey}`;
+    const params = new URLSearchParams({
+      q: queryText,
+      max: String(limit),
+      apikey: this.apiKey,
+      sortby: "relevance",
+    });
+    if (options.language) params.set("lang", options.language);
+    if (options.country) params.set("country", options.country);
+
+    const url = `https://gnews.io/api/v4/search?${params.toString()}`;
     const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
     const bodyText = await res.text().catch(() => undefined);
     if (!res.ok) {
@@ -179,7 +181,7 @@ export class GNewsAdapter implements NewsAdapter {
       url: a.url,
       keywords,
       provider: this.name,
-      language,
+      language: options.language ?? "any",
       query: queryText,
       fetchedAt: new Date().toISOString(),
       bodyStatus: a.description ? ("SNIPPET_ONLY" as const) : ("METADATA_ONLY" as const),
@@ -190,17 +192,19 @@ export class GNewsAdapter implements NewsAdapter {
   private async searchWithRetries(query: NewsSearchQuery): Promise<NewsArticle[]> {
     const limit = query.limit ?? 10;
     const keywords = query.keywords;
-    const attempts: Array<{ q: string; lang: string }> = [
-      { q: buildGNewsQuery(keywords, "single"), lang: "en" },
-      { q: buildGNewsQuery(keywords, "phrase"), lang: "en" },
-      { q: buildGNewsQuery(keywords, "single"), lang: query.language ?? "ko" },
+    const gnewsQueries = buildGNewsSearchQueries(keywords);
+    const attempts: Array<{ q: string; language?: string; country?: string }> = [
+      { q: gnewsQueries[0] ?? "world news", language: "en" },
+      { q: gnewsQueries[1] ?? gnewsQueries[0] ?? "world news" },
+      { q: gnewsQueries[2] ?? gnewsQueries[0] ?? "world news", language: "en", country: "us" },
     ];
 
     let lastError: unknown;
     for (let i = 0; i < attempts.length; i++) {
       if (i > 0) await sleep(1100);
       try {
-        const articles = await this.fetchGNews(attempts[i]!.q, attempts[i]!.lang, limit, keywords);
+        const attempt = attempts[i]!;
+        const articles = await this.fetchGNews(attempt.q, attempt, limit, keywords);
         if (articles.length > 0) return articles;
       } catch (e) {
         lastError = e;

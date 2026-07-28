@@ -233,7 +233,8 @@ export async function searchNewsForIntelligence(
     return {
       ...fallback,
       degraded: true,
-      note: "실시간 검색 결과가 없어 교육용 샘플 뉴스를 표시합니다.",
+      note:
+        "GNews에서 해당 키워드 실뉴스를 찾지 못했습니다. 영문 키워드(Iran, semiconductor)로 다시 검색하거나 키워드를 줄여 보세요. 교육용 샘플 뉴스를 표시합니다.",
     };
   } catch (e) {
     const fallback = searchFixtureArticlesEducational(query);
