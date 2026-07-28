@@ -4,6 +4,7 @@ buildCommand = "npm ci && npm run bsp:generate && npm run build"
 
 [deploy]
 startCommand = "npm start"
+preDeployCommand = "npm run bsp:migrate:deploy"
 healthcheckPath = "/api/health"
 healthcheckTimeout = 120
 restartPolicyType = "ON_FAILURE"
