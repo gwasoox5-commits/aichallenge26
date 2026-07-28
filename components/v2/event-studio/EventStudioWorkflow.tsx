@@ -13,7 +13,7 @@ import type {
   SelectionMode,
 } from "@/lib/v2/event-studio/types";
 import type { EventApplyTiming } from "@/src/bsp/domain/events/event-types";
-import { SCENARIO_LABEL_KO } from "@/lib/v2/event-studio/scenario-labels";
+import { SCENARIO_LABEL_KO, SELECTION_MODE_LABEL_KO } from "@/lib/v2/event-studio/scenario-labels";
 
 const DEFAULT_INPUT: EventStudioInput = {
   naturalLanguagePrompt:
@@ -288,7 +288,7 @@ export function EventStudioWorkflow() {
                 onClick={() => setSelectionMode(m)}
                 className={`rounded-lg px-4 py-2 text-sm ${selectionMode === m ? "bg-violet-600" : "bg-slate-200"}`}
               >
-                {m}
+                {SELECTION_MODE_LABEL_KO[m]}
               </button>
             ))}
           </div>
@@ -307,7 +307,7 @@ export function EventStudioWorkflow() {
               ))}
             </div>
           )}
-          <Field label="Random Seed (optional)" value={randomSeed} onChange={setRandomSeed} />
+          <Field label="랜덤 시드 (선택)" value={randomSeed} onChange={setRandomSeed} />
         </section>
       )}
 
