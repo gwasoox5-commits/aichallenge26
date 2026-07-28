@@ -36,10 +36,39 @@ export interface StructuredOpenAiResult<T> {
   meta: OpenAiCallMeta;
 }
 
-function extractOutputText(body: {
-  output?: Array<{ content?: Array<{ text?: string }> }>;
+type ResponsesOutputBlock = {
+  type?: string;
+  text?: string;
+  content?: Array<{ type?: string; text?: string }>;
+};
+
+/** Extract JSON text from OpenAI Responses API (message + output_text blocks). */
+export function extractOpenAiResponseText(body: {
+  output_text?: string;
+  output?: ResponsesOutputBlock[];
 }): string {
-  return body.output?.[0]?.content?.[0]?.text ?? "";
+  if (typeof body.output_text === "string" && body.output_text.trim()) {
+    return body.output_text.trim();
+  }
+
+  for (const item of body.output ?? []) {
+    if (item.type && item.type !== "message") continue;
+    for (const block of item.content ?? []) {
+      if (block.type === "output_text" && block.text?.trim()) {
+        return block.text.trim();
+      }
+      if (block.text?.trim()) {
+        return block.text.trim();
+      }
+    }
+  }
+
+  return body.output?.[0]?.content?.[0]?.text?.trim() ?? "";
+}
+
+export function sanitizeJsonSchemaForOpenAi(schema: Record<string, unknown>): Record<string, unknown> {
+  const { $schema, $id, title, description, ...rest } = schema;
+  return rest;
 }
 
 function sleep(ms: number) {
@@ -73,6 +102,7 @@ export async function callOpenAiStructured<T>(req: StructuredOpenAiRequest<T>): 
   const started = Date.now();
   let retryCount = 0;
   let lastError: unknown;
+  const openAiSchema = sanitizeJsonSchemaForOpenAi(req.schema);
 
   const attempt = async (repairHint?: string): Promise<StructuredOpenAiResult<T>> => {
     const input = repairHint
@@ -97,8 +127,8 @@ export async function callOpenAiStructured<T>(req: StructuredOpenAiRequest<T>): 
             format: {
               type: "json_schema",
               name: req.schemaName,
-              schema: req.schema,
-              strict: true,
+              schema: openAiSchema,
+              strict: false,
             },
           },
           max_output_tokens: req.maxOutputTokens ?? cfg.intelligenceMaxTokens,
@@ -117,11 +147,12 @@ export async function callOpenAiStructured<T>(req: StructuredOpenAiRequest<T>): 
 
       const body = (await res.json()) as {
         id: string;
-        output?: Array<{ content?: Array<{ text?: string }> }>;
+        output_text?: string;
+        output?: ResponsesOutputBlock[];
         usage?: { input_tokens?: number; output_tokens?: number; total_tokens?: number };
       };
-      const text = extractOutputText(body);
-      if (!text) throw new IntegrationError("INVALID_RESPONSE");
+      const text = extractOpenAiResponseText(body);
+      if (!text) throw new IntegrationError("INVALID_RESPONSE", { message: "OpenAI가 빈 응답을 반환했습니다." });
 
       let parsed: T;
       try {

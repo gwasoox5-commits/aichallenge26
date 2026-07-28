@@ -4,6 +4,7 @@ import fixtureOutput from "@/tests/fixtures/v2/scenario-output.fixture.json";
 import studioSchemaDocument from "@/docs/v2/schemas/event-scenario-studio-output.schema.json";
 import { getOpenAiConfig } from "@/lib/integrations/config";
 import { IntegrationError } from "@/lib/integrations/errors";
+import { extractOpenAiResponseText } from "@/lib/integrations/openai-client";
 import { isFixtureFallbackAllowed } from "@/lib/bsp/runtime-config";
 import { applyKoreanScenarioLabels, SCENARIO_LABEL_KO } from "./scenario-labels";
 import { normalizeStudioOutput } from "./normalize-studio-output";
@@ -180,10 +181,11 @@ export async function generateScenarioOutput(input: EventStudioInput): Promise<G
 
     const body = (await res.json()) as {
       id: string;
-      output?: Array<{ content?: Array<{ text?: string }> }>;
+      output_text?: string;
+      output?: Array<{ type?: string; content?: Array<{ type?: string; text?: string }> }>;
       usage?: { total_tokens?: number };
     };
-    const text = body.output?.[0]?.content?.[0]?.text;
+    const text = extractOpenAiResponseText(body);
     if (!text) {
       if (isFixtureFallbackAllowed()) return fixtureResult(input, started);
       throw new IntegrationError("INVALID_RESPONSE", {

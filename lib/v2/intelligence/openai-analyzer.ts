@@ -7,6 +7,7 @@ import { callOpenAiStructured } from "@/lib/integrations/openai-client";
 import { IntegrationError } from "@/lib/integrations/errors";
 import { cacheKey, getCache, setCache, CACHE_TTL } from "@/lib/integrations/cache";
 import type { ContentSourceKind } from "@/lib/integrations/types";
+import { normalizeIntelligenceAnalysis } from "./normalize-analysis-output";
 
 export interface AnalysisMeta {
   model: string;
@@ -109,7 +110,7 @@ export async function analyzeNewsArticles(
     };
   }
 
-  const { data, meta } = await callOpenAiStructured<Omit<NewsAnalysis, "citations" | "promptVersion">>({
+  const { data, meta } = await callOpenAiStructured<Partial<Omit<NewsAnalysis, "citations" | "promptVersion">>>({
     feature: "intelligence_analyze",
     input: buildAnalysisPrompt(articles, promptVersion, contentSource),
     schema: analysisSchema as Record<string, unknown>,
@@ -120,12 +121,13 @@ export async function analyzeNewsArticles(
     idempotencyKey: opts?.idempotencyKey,
   });
 
+  const normalized = normalizeIntelligenceAnalysis(data, contentSource);
+
   const result: AnalysisResult = {
     analysis: {
-      ...data,
+      ...normalized,
       citations: toCitations(articles),
       promptVersion,
-      contentSource: data.contentSource ?? contentSource,
     },
     meta: {
       model: meta.model,
@@ -138,7 +140,7 @@ export async function analyzeNewsArticles(
       promptVersion,
       retryCount: meta.retryCount,
       resultStatus: "success",
-      contentSource: data.contentSource ?? contentSource,
+      contentSource: normalized.contentSource,
     },
   };
 
