@@ -13,7 +13,7 @@ import type {
   SelectionMode,
 } from "@/lib/v2/event-studio/types";
 import type { EventApplyTiming } from "@/src/bsp/domain/events/event-types";
-import { SCENARIO_LABEL_KO, SELECTION_MODE_LABEL_KO } from "@/lib/v2/event-studio/scenario-labels";
+import { SCENARIO_LABEL_KO, SELECTION_MODE_LABEL_KO, EFFECT_MODE_LABEL_KO, DISPLAY_MODE_LABEL_KO, economyVariableLabelKo, formatEffectValueKo } from "@/lib/v2/event-studio/scenario-labels";
 
 const DEFAULT_INPUT: EventStudioInput = {
   naturalLanguagePrompt:
@@ -29,7 +29,7 @@ const STEPS = [
   "자연어 입력",
   "AI 분석",
   "전망 비교",
-  "변수 Preview",
+  "경제 변수",
   "선택 정책",
   "발행 시점",
   "뉴스 공개 수준",
@@ -257,21 +257,21 @@ export function EventStudioWorkflow() {
 
       {step === 3 && draft?.studioOutput && (
         <section className="rounded-xl border border-slate-200 bg-white p-6">
-          <h2 className="text-lg font-semibold text-violet-800">4. Economy 변수 Preview</h2>
+          <h2 className="text-lg font-semibold text-violet-800">4. 경제 변수 미리보기</h2>
           <table className="mt-3 w-full text-sm">
             <thead>
               <tr className="border-b border-slate-300 text-left text-slate-500">
-                <th className="pb-2">Engine Key</th>
-                <th className="pb-2">Mode</th>
-                <th className="pb-2 text-right">Value</th>
+                <th className="pb-2">경제 변수</th>
+                <th className="pb-2">적용 방식</th>
+                <th className="pb-2 text-right">변화량</th>
               </tr>
             </thead>
             <tbody>
               {mappedEffects.map((e, i) => (
                 <tr key={`${e.key}-${i}`} className="border-b border-slate-200">
-                  <td className="py-2 font-mono text-sky-700">{e.key}</td>
-                  <td className="py-2">{e.mode}</td>
-                  <td className="py-2 text-right font-mono">{e.value}</td>
+                  <td className="py-2 font-medium text-sky-800">{economyVariableLabelKo(e.key)}</td>
+                  <td className="py-2">{EFFECT_MODE_LABEL_KO[e.mode]}</td>
+                  <td className="py-2 text-right font-mono">{formatEffectValueKo(e.mode, e.value)}</td>
                 </tr>
               ))}
             </tbody>
@@ -336,9 +336,9 @@ export function EventStudioWorkflow() {
             value={displayMode}
             onChange={(e) => setDisplayMode(e.target.value as NewsDisplayMode)}
           >
-            <option value="HEADLINE_ONLY">HEADLINE_ONLY</option>
-            <option value="DIRECTIONAL">DIRECTIONAL</option>
-            <option value="DETAILED">DETAILED</option>
+            <option value="HEADLINE_ONLY">{DISPLAY_MODE_LABEL_KO.HEADLINE_ONLY}</option>
+            <option value="DIRECTIONAL">{DISPLAY_MODE_LABEL_KO.DIRECTIONAL}</option>
+            <option value="DETAILED">{DISPLAY_MODE_LABEL_KO.DETAILED}</option>
           </select>
         </section>
       )}
@@ -352,7 +352,7 @@ export function EventStudioWorkflow() {
             value={approveReason}
             onChange={(e) => setApproveReason(e.target.value)}
           />
-          <p className="text-xs text-slate-500">승인 시 뉴스 발행 + Economy Patch가 원자적으로 적용됩니다.</p>
+          <p className="text-xs text-slate-500">승인 시 뉴스 발행과 경제 변수 패치가 함께 적용됩니다.</p>
         </section>
       )}
 
