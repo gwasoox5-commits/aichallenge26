@@ -143,6 +143,32 @@ model BspCompanyOperational {
   machineSmall        Int    @default(0)
   capacityMachine     Int    @default(0)
   maxMaterials        Int    @default(0)
+  headPurchase        Int    @default(0)
+  headProduction      Int    @default(0)
+  headSales           Int    @default(0)
+  purchaseCapacity    Int    @default(0)
+  productionCapacity  Int    @default(0)
+  salesCapacity       Int    @default(0)
+  payrollForecastHalfManwon Int @default(0)
+  welfareForecastHalfManwon Int @default(0)
+  inventory           Json   @default("{\"A\":0,\"B\":0,\"C\":0,\"D\":0}")
+  inventoryCostManwon Int    @default(0)
+  finishedGoodsQty    Int    @default(0)
+  finishedGoodsCostManwon Int @default(0)
+  unitFinishedGoodsCostManwon Int @default(0)
+  halfYearProductionQty Int  @default(0)
+  halfYearSalesQty    Int    @default(0)
+  halfYearRevenueManwon Int  @default(0)
+  openBranches        String[] @default([])
+  openSalesBranches   String[] @default([])
+  miscIncomeManwon    Int    @default(0)
+  netIncomeManwon     Int    @default(0)
+  journalsLocked      Boolean @default(false)
+  settlementComplete  Boolean @default(false)
+  periodOpenFinancials Json?
+  lastBalanceSheetValidation Json?
+  lastTrialBalanceValidation Json?
+  lastExcelDiffReport Json?
 
   company BspCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
 }
