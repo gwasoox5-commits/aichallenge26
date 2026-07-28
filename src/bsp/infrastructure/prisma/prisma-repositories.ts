@@ -28,6 +28,27 @@ import { createPrismaAuditRepository } from "./prisma-audit-repository";
 import { createPrismaSimulationEventRepository } from "./prisma-simulation-event-repository";
 import { DEFAULT_STEP_DURATION_SEC } from "../../domain/types";
 
+function toOperationalPrismaData(
+  state: CompanyOperationalState,
+): Prisma.BspCompanyOperationalCreateWithoutCompanyInput {
+  const {
+    periodOpenFinancials,
+    lastBalanceSheetValidation,
+    lastTrialBalanceValidation,
+    lastExcelDiffReport,
+    inventory,
+    ...rest
+  } = state;
+  return {
+    ...rest,
+    inventory: inventory as unknown as Prisma.InputJsonValue,
+    periodOpenFinancials: (periodOpenFinancials ?? Prisma.JsonNull) as unknown as Prisma.InputJsonValue,
+    lastBalanceSheetValidation: (lastBalanceSheetValidation ?? Prisma.JsonNull) as unknown as Prisma.InputJsonValue,
+    lastTrialBalanceValidation: (lastTrialBalanceValidation ?? Prisma.JsonNull) as unknown as Prisma.InputJsonValue,
+    lastExcelDiffReport: (lastExcelDiffReport ?? Prisma.JsonNull) as unknown as Prisma.InputJsonValue,
+  };
+}
+
 class PrismaSessionRepository implements SessionRepository {
   private async ensureDefaultOrganization(): Promise<void> {
     await bspPrisma.bspOrganization.upsert({
@@ -374,7 +395,7 @@ class PrismaCompanyRepository implements CompanyRepository {
         teamName,
         statusVersion: 0,
         operational: {
-          create: { ...initial },
+          create: toOperationalPrismaData(initial),
         },
         ledger: {
           create: buildInitialLedgerBalances().map((b) => ({
@@ -404,7 +425,7 @@ class PrismaCompanyRepository implements CompanyRepository {
   async updateOperational(companyId: string, operational: CompanyOperationalState): Promise<void> {
     await bspPrisma.bspCompanyOperational.update({
       where: { companyId },
-      data: operational,
+      data: toOperationalPrismaData(operational),
     });
   }
 
