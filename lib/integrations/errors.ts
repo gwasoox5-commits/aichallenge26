@@ -87,6 +87,19 @@ function parseGNewsErrorBody(bodyText?: string): string | null {
 
 export function mapGNewsHttpError(status: number, bodyText?: string): IntegrationError {
   const detail = parseGNewsErrorBody(bodyText);
+  if (status === 400 && detail?.toLowerCase().includes("api key")) {
+    return new IntegrationError("API_KEY_INVALID", {
+      message:
+        detail.includes("did not provide")
+          ? "GNews API Key가 서버에 전달되지 않았습니다. Railway 변수 BSP_GNEWS_API_KEY 이름·값을 확인하고 재배포하세요."
+          : detail,
+    });
+  }
+  if (status === 400) {
+    return new IntegrationError("INVALID_RESPONSE", {
+      message: detail ?? "GNews 검색어 형식 오류입니다. 키워드를 줄여 다시 시도하세요.",
+    });
+  }
   if (status === 401) {
     return new IntegrationError("API_KEY_INVALID", {
       message: detail ?? "GNews API Key가 올바르지 않습니다. gnews.io 대시보드에서 키를 확인하세요.",

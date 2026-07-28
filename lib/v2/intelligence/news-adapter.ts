@@ -136,12 +136,11 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function buildGNewsQuery(keywords: string[], mode: "or" | "phrase"): string {
+function buildGNewsQuery(keywords: string[], mode: "single" | "phrase"): string {
   const cleaned = keywords.map((k) => k.trim()).filter(Boolean);
   if (cleaned.length === 0) return "economy";
-  if (mode === "phrase") return cleaned.join(" ");
-  if (cleaned.length === 1) return cleaned[0]!;
-  return cleaned.map((k) => `"${k.replace(/"/g, "")}"`).join(" OR ");
+  if (mode === "single") return cleaned[0]!;
+  return cleaned.join(" ");
 }
 
 /** GNews adapter — no silent fixture fallback in production */
@@ -192,9 +191,9 @@ export class GNewsAdapter implements NewsAdapter {
     const limit = query.limit ?? 10;
     const keywords = query.keywords;
     const attempts: Array<{ q: string; lang: string }> = [
-      { q: buildGNewsQuery(keywords, "or"), lang: "en" },
+      { q: buildGNewsQuery(keywords, "single"), lang: "en" },
       { q: buildGNewsQuery(keywords, "phrase"), lang: "en" },
-      { q: buildGNewsQuery(keywords, "or"), lang: query.language ?? "ko" },
+      { q: buildGNewsQuery(keywords, "single"), lang: query.language ?? "ko" },
     ];
 
     let lastError: unknown;
