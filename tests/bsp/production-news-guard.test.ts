@@ -25,7 +25,16 @@ describe("production news fixture guard", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("BSP_ALLOW_FIXTURE", "false");
     vi.stubEnv("BSP_NEWS_PROVIDER", "fixture");
+    vi.stubEnv("BSP_GNEWS_API_KEY", "");
     expect(createNewsAdapter().name).toBe("disabled");
+  });
+
+  it("uses GNews in production when API key is set even if provider is fixture", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("BSP_ALLOW_FIXTURE", "false");
+    vi.stubEnv("BSP_NEWS_PROVIDER", "fixture");
+    vi.stubEnv("BSP_GNEWS_API_KEY", "test-key-present");
+    expect(createNewsAdapter().name).toBe("gnews");
   });
 
   it("reports NOT_CONFIGURED for news health in production without provider", async () => {

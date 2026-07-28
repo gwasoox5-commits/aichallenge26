@@ -120,19 +120,35 @@ export function IntelligenceWorkflow() {
           keywords: parseKeywords(keywords),
         }),
       });
-      const data = (await res.json()) as { articles?: NewsArticle[]; usedFixture?: boolean; error?: string };
-      if (res.ok && data.articles) {
+      const data = (await res.json()) as {
+        articles?: NewsArticle[];
+        usedFixture?: boolean;
+        error?: string;
+        errorMessage?: string;
+        note?: string;
+      };
+      if (res.ok && data.articles && data.articles.length > 0) {
         setArticles(data.articles);
         setSelectedIds(new Set());
         setDemoMode(Boolean(data.usedFixture));
         setStatusNote(
-          data.usedFixture
-            ? "샘플 뉴스 모드입니다. 실뉴스 검색은 GNews API Key(BSP_GNEWS_API_KEY) 설정이 필요합니다."
-            : "실시간 뉴스 검색 결과입니다."
+          data.note ??
+            (data.errorMessage ? `${data.errorMessage}` : undefined) ??
+            (data.usedFixture
+              ? "샘플 뉴스 모드입니다. 실뉴스 검색은 GNews API Key(BSP_GNEWS_API_KEY) 설정이 필요합니다."
+              : "실시간 뉴스 검색 결과입니다.")
         );
         return;
       }
-      const message = data.error ?? (await readApiError(res, "뉴스 검색 실패"));
+      if (res.ok) {
+        const fallback = demoSearch(keywords);
+        setArticles(fallback);
+        setSelectedIds(new Set());
+        setDemoMode(true);
+        setStatusNote(data.note ?? "검색 결과가 없어 샘플 뉴스를 표시합니다.");
+        return;
+      }
+      const message = data.error ?? `뉴스 검색 실패 (${res.status})`;
       const fallback = demoSearch(keywords);
       setArticles(fallback);
       setSelectedIds(new Set());

@@ -57,6 +57,7 @@ export interface NewsSearchResult {
   usedFixture: boolean;
   degraded?: boolean;
   errorMessage?: string;
+  note?: string;
   cacheHit?: boolean;
   fetchedAt?: string;
 }

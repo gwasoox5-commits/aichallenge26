@@ -11,11 +11,12 @@ export function toGmActor(ctx: { userId: string; role: GmActor["role"] }, reason
 export async function v2GmJson(
   req: Request,
   sessionId: string,
-  handler: (actor: GmActor, body: Record<string, unknown>) => Promise<unknown>
+  handler: (actor: GmActor, body: Record<string, unknown>) => Promise<unknown>,
+  parsedBody?: Record<string, unknown>
 ) {
   try {
     const ctx = requireGmSession(req, sessionId);
-    const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+    const body = parsedBody ?? ((await req.json().catch(() => ({}))) as Record<string, unknown>);
     const reason = typeof body.reason === "string" ? body.reason : undefined;
     const result = await handler(toGmActor(ctx, reason), body);
     return NextResponse.json(result);

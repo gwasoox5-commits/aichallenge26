@@ -1,5 +1,7 @@
 /** Server-side integration configuration — never expose secrets to client */
 
+import { isProductionRuntime } from "@/lib/bsp/runtime-config";
+
 export type IntegrationMode = "live" | "fixture" | "disabled";
 
 function envBool(key: string, fallback = false): boolean {
@@ -32,14 +34,18 @@ export function getOpenAiConfig() {
 }
 
 export function getNewsConfig() {
-  const provider = (process.env.BSP_NEWS_PROVIDER ?? process.env.NEWS_PROVIDER ?? "fixture").toLowerCase();
+  const rawProvider = (process.env.BSP_NEWS_PROVIDER ?? process.env.NEWS_PROVIDER ?? "fixture").toLowerCase();
   const apiKey = process.env.BSP_GNEWS_API_KEY ?? process.env.GNEWS_API_KEY ?? "";
+  // Production: API key alone enables GNews even when provider was left at default "fixture"
+  const provider =
+    rawProvider === "fixture" && apiKey.length > 0 && isProductionRuntime() ? "gnews" : rawProvider;
   return {
     provider,
+    rawProvider,
     apiKey,
     timeoutMs: envInt("NEWS_TIMEOUT_MS", 8000),
     maxRetries: envInt("NEWS_MAX_RETRIES", 2),
-    liveEnabled: provider !== "fixture" && apiKey.length > 0,
+    liveEnabled: provider === "gnews" && apiKey.length > 0,
     configured: provider === "fixture" || apiKey.length > 0,
   };
 }

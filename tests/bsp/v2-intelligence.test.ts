@@ -1,8 +1,8 @@
 /**
  * V2.3 Real-world Intelligence — unit & pipeline tests (fixtures only, no live OpenAI/news)
  */
-import { describe, expect, it, beforeEach } from "vitest";
-import { FixtureNewsAdapter, getFixtureArticle, searchNews } from "@/lib/v2/intelligence/news-adapter";
+import { describe, expect, it, beforeEach, vi } from "vitest";
+import { FixtureNewsAdapter, getFixtureArticle, searchFixtureArticlesEducational, searchNews } from "@/lib/v2/intelligence/news-adapter";
 import { analyzeNewsArticles } from "@/lib/v2/intelligence/openai-analyzer";
 import { generateIntelligenceScenarios } from "@/lib/v2/intelligence/scenario-generator";
 import { generateConsultantBriefing } from "@/lib/v2/intelligence/consultant-generator";
@@ -16,10 +16,11 @@ import {
 import { scoreScenarioQuality, qualityBadgeTone } from "@/lib/v2/intelligence/quality-scorer";
 import { CURRENT_PROMPT_VERSION, resolvePromptVersion, PROMPT_VERSIONS } from "@/lib/v2/intelligence/prompt-registry";
 import { IntelligenceLibraryStore } from "@/lib/v2/intelligence/library-store";
-import { IntelligenceSessionStore } from "@/lib/v2/intelligence/session-store";
+import { IntelligenceSessionStore, getIntelligenceSessionStore, resetIntelligenceSessionStore } from "@/lib/v2/intelligence/session-store";
 import {
   getIntelligenceService,
   resetIntelligenceService,
+  searchNewsForIntelligence,
 } from "@/lib/v2/intelligence/intelligence-service";
 import fixtureArticles from "@/tests/fixtures/v2/news-articles.fixture.json";
 import type { NewsArticle } from "@/lib/v2/intelligence/types";
@@ -46,6 +47,7 @@ beforeEach(() => {
   delete process.env.BSP_GNEWS_API_KEY;
   process.env.BSP_NEWS_PROVIDER = "fixture";
   resetIntelligenceService();
+  resetIntelligenceSessionStore({ persist: false });
 });
 
 describe("V2.3 News Adapter", () => {
@@ -53,6 +55,19 @@ describe("V2.3 News Adapter", () => {
     const result = await searchNews({ keywords: ["반도체"], limit: 5 });
     expect(result.usedFixture).toBe(true);
     expect(result.articles.some((a) => a.id === "news-semiconductor-001")).toBe(true);
+  });
+
+  it("returns top fixture articles when keywords do not match", async () => {
+    const result = await new FixtureNewsAdapter().search({ keywords: ["nonexistent-xyz-404"] });
+    expect(result.usedFixture).toBe(true);
+    expect(result.articles.length).toBeGreaterThan(0);
+  });
+
+  it("searchFixtureArticlesEducational bypasses production guard", () => {
+    const result = searchFixtureArticlesEducational({ keywords: ["미국", "이란"], limit: 5 });
+    expect(result.usedFixture).toBe(true);
+    expect(result.articles.length).toBeGreaterThan(0);
+    expect(result.provider).toBe("fixture-educational");
   });
 
   it("returns all articles when keywords empty", async () => {
@@ -305,6 +320,51 @@ describe("V2.3 Citation & Confidence", () => {
   });
 });
 
+describe("V2.3 Intelligence news fallback", () => {
+  it("falls back to educational fixtures when live search returns empty", async () => {
+    const newsModule = await import("@/lib/v2/intelligence/news-adapter");
+    const spy = vi.spyOn(newsModule, "searchNews").mockResolvedValue({
+      articles: [],
+      provider: "gnews",
+      usedFixture: false,
+    });
+
+    const result = await searchNewsForIntelligence({ keywords: ["미국", "이란", "전쟁"] }, SESSION);
+    expect(result.usedFixture).toBe(true);
+    expect(result.degraded).toBe(true);
+    expect(result.articles.length).toBeGreaterThan(0);
+    expect(result.note).toContain("샘플");
+
+    spy.mockRestore();
+  });
+
+  it("falls back to educational fixtures when live provider throws", async () => {
+    const newsModule = await import("@/lib/v2/intelligence/news-adapter");
+    const spy = vi.spyOn(newsModule, "searchNews").mockRejectedValue(
+      Object.assign(new Error("PROVIDER_DISABLED"), { code: "PROVIDER_DISABLED" })
+    );
+
+    const result = await searchNewsForIntelligence({ keywords: ["economy"] }, SESSION);
+    expect(result.usedFixture).toBe(true);
+    expect(result.degraded).toBe(true);
+    expect(result.articles.length).toBeGreaterThan(0);
+    expect(result.note).toContain("Provider");
+
+    spy.mockRestore();
+  });
+
+  it("caches articles on successful intelligence search", async () => {
+    const svc = getIntelligenceService();
+    const result = await svc.searchNews({ keywords: ["관세"] }, SESSION);
+    expect(result.articles.length).toBeGreaterThan(0);
+
+    const store = getIntelligenceSessionStore();
+    for (const article of result.articles) {
+      expect(store.getCachedArticle(SESSION, article.id)?.id).toBe(article.id);
+    }
+  });
+});
+
 describe("V2.3 External failure isolation", () => {
   it("OpenAI absence uses fixture without throwing", async () => {
     delete process.env.BSP_OPENAI_API_KEY;
@@ -314,9 +374,8 @@ describe("V2.3 External failure isolation", () => {
   });
 
   it("news search never throws on fixture provider", async () => {
-    await expect(searchNews({ keywords: ["nonexistent-xyz-404"] })).resolves.toMatchObject({
-      articles: [],
-      usedFixture: true,
-    });
+    const result = await searchNews({ keywords: ["nonexistent-xyz-404"] });
+    expect(result.usedFixture).toBe(true);
+    expect(result.articles.length).toBeGreaterThan(0);
   });
 });
