@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import type { EventApplyTiming } from "@/src/bsp/domain/events/event-types";
 import { authFetch } from "@/lib/bsp/auth-client";
 import type {
   DirectorSuggestion,
@@ -115,7 +116,7 @@ export function WorldDashboard() {
     }
   };
 
-  const publish = async (proposalId: string) => {
+  const publish = async (proposalId: string, applyTiming: EventApplyTiming) => {
     if (!sessionId) return;
     setLoading(true);
     try {
@@ -124,7 +125,7 @@ export function WorldDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sessionId,
-          applyTiming: "NEXT_HALF",
+          applyTiming,
           reason: "V3 World proposal publish",
         }),
       });
