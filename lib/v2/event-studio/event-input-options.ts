@@ -42,3 +42,15 @@ export function normalizeDurationValue(raw: string): string {
   if (byLabel) return byLabel.value;
   return raw;
 }
+
+export function impactPeriodLabelForPrompt(targetHalfLabel: string): string {
+  const normalized = normalizeImpactPeriodValue(targetHalfLabel);
+  const opt = EVENT_IMPACT_PERIOD_OPTIONS.find((o) => o.value === normalized);
+  return opt ? `${opt.label} (${opt.hint})` : targetHalfLabel;
+}
+
+export function durationLabelForPrompt(expectedDuration: string): string {
+  const normalized = normalizeDurationValue(expectedDuration);
+  const opt = EVENT_DURATION_OPTIONS.find((o) => o.value === normalized);
+  return opt ? `${opt.label} — ${opt.hint}` : expectedDuration;
+}

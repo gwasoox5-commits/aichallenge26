@@ -8,6 +8,8 @@ import { extractOpenAiResponseText } from "@/lib/integrations/openai-client";
 import { isFixtureFallbackAllowed } from "@/lib/bsp/runtime-config";
 import { applyKoreanScenarioLabels, SCENARIO_LABEL_KO } from "./scenario-labels";
 import { normalizeStudioOutput } from "./normalize-studio-output";
+import { durationLabelForPrompt, impactPeriodLabelForPrompt } from "./event-input-options";
+import { SIMULATION_CALENDAR_PROMPT_RULES } from "./news-copy";
 
 export interface GenerateMeta {
   model: string;
@@ -61,7 +63,7 @@ function buildInputAwareFixture(input: EventStudioInput): EventScenarioStudioOut
     meta: {
       ...base.meta,
       title,
-      summary: `「${prompt}」 — ${ctx} 맥락의 교육용 what-if 시나리오 (${input.expectedDuration}).`,
+      summary: `「${prompt}」 — ${ctx} 맥락의 GM 교육용 시나리오 (${input.expectedDuration}, ${impactPeriodLabelForPrompt(input.targetHalfLabel)}).`,
       targetIndustry: input.targetIndustry,
       targetMarketOrRegion: input.targetMarketOrRegion,
       expectedDuration: input.expectedDuration,
@@ -216,6 +218,7 @@ export async function generateScenarioOutput(input: EventStudioInput): Promise<G
 function buildPrompt(input: EventStudioInput): string {
   return [
     "You are an educational business simulation scenario analyst for Korean HRD learners.",
+    SIMULATION_CALENDAR_PROMPT_RULES,
     "Write ALL human-readable text in Korean (한국어): meta.title, meta.summary, assumptions, impactPathways,",
     "narrative, rationale, discussionQuestions, newsHeadline, newsArticleBody, uncertainty fields, and effect rationale.",
     "Do NOT use English sentences. JSON keys and severity enums (LOW|MEDIUM|HIGH|CRITICAL) stay in English.",
@@ -227,8 +230,8 @@ function buildPrompt(input: EventStudioInput): string {
     `Event description: ${input.naturalLanguagePrompt}`,
     `Industry: ${input.targetIndustry}`,
     `Market/Region: ${input.targetMarketOrRegion}`,
-    `Duration: ${input.expectedDuration}`,
-    `Target period: ${input.targetHalfLabel}`,
+    `Duration (game periods): ${durationLabelForPrompt(input.expectedDuration)}`,
+    `Impact starts at (game period): ${impactPeriodLabelForPrompt(input.targetHalfLabel)}`,
     `Analysis intensity: ${input.analysisIntensity}`,
   ].join("\n");
 }

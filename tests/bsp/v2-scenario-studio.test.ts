@@ -196,10 +196,15 @@ describe("V2.1a Scenario Studio — E2E", () => {
     const session = await engine.createSession("V2-ImmNews");
     const draftId = await pipelineToSelected(studio, session.id, "neutral");
     const result = await studio.approveDraft(draftId, { reason: "Immediate" }, GM);
-    const news = studio.listSessionNews(session.id);
-    expect(news.length).toBe(1);
-    expect(news[0].newsId).toBe(result.newsId);
-    expect(news[0].publishedAt).toBeTruthy();
+    const gmNews = studio.listSessionNews(session.id);
+    expect(gmNews.length).toBe(1);
+    expect(gmNews[0].newsId).toBe(result.newsId);
+    expect(gmNews[0].publishedAt).toBeTruthy();
+    expect(gmNews[0].instructorSummary).toBeTruthy();
+
+    const learnerNews = studio.listSessionNews(session.id, "ceo-company-1");
+    expect(learnerNews[0].instructorSummary).toBeUndefined();
+    expect(learnerNews[0].summary).not.toMatch(/본 시나리오는/);
   });
 
   it("Scenario 8: Next step scheduled publish", async () => {

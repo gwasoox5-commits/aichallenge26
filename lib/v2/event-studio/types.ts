@@ -133,6 +133,8 @@ export interface NewsPublication {
   effectiveAt: string;
   duration?: string;
   affectedAreas: string[];
+  /** GM/instructor briefing — not shown to CEOs. */
+  instructorSummary?: string;
   selectedScenario: ScenarioKey;
   simulationEventId?: string;
   patchSequence?: number;

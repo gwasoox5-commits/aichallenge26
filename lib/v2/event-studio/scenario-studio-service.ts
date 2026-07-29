@@ -23,6 +23,7 @@ import type {
   ScenarioWeights,
   SelectionMode,
 } from "./types";
+import { appendLearnerDisclaimer, buildInstructorNewsSummary, buildLearnerNewsSummary, stripInstructorMetaFromLearnerText } from "./news-copy";
 
 function nowIso() {
   return new Date().toISOString();
@@ -273,8 +274,15 @@ export class ScenarioStudioService {
       draftId: draft.draftId,
       sessionId: draft.sessionId,
       headline: scenario.newsHeadline,
-      summary: draft.studioOutput.meta.summary,
-      articleBody: scenario.newsArticleBody,
+      summary: buildLearnerNewsSummary({
+        narrative: scenario.narrative,
+        articleBody: scenario.newsArticleBody,
+        targetMarketOrRegion: draft.input.targetMarketOrRegion,
+        targetIndustry: draft.input.targetIndustry,
+        effects,
+      }),
+      instructorSummary: buildInstructorNewsSummary(draft.studioOutput.meta.summary),
+      articleBody: appendLearnerDisclaimer(scenario.newsArticleBody),
       category: draft.studioOutput.meta.category,
       severity: scenario.severity,
       displayMode,
@@ -453,11 +461,21 @@ export class ScenarioStudioService {
     const news = this.store().listNewsBySession(sessionId);
     const acks = this.store().listAcknowledgements(sessionId, companyId);
     const ackSet = new Set(acks.map((a) => a.newsId));
-    return news.map((n) => ({
-      ...n,
-      acknowledged: companyId ? ackSet.has(n.newsId) : undefined,
-      unread: companyId ? !ackSet.has(n.newsId) : undefined,
-    }));
+    return news.map((n) => {
+      const ackMeta = {
+        acknowledged: companyId ? ackSet.has(n.newsId) : undefined,
+        unread: companyId ? !ackSet.has(n.newsId) : undefined,
+      };
+      if (companyId) {
+        const learnerSummary =
+          n.instructorSummary !== undefined
+            ? n.summary
+            : stripInstructorMetaFromLearnerText(n.summary) || n.articleBody.split("\n")[0]?.trim() || n.summary;
+        const { instructorSummary: _omit, ...learnerNews } = n;
+        return { ...learnerNews, summary: learnerSummary, ...ackMeta };
+      }
+      return { ...n, ...ackMeta };
+    });
   }
 
   acknowledgeNews(newsId: string, sessionId: string, companyId: string, userId: string): EventAcknowledgement {
