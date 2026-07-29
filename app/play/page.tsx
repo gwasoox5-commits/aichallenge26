@@ -11,7 +11,7 @@ import { REALTIME_EVENT_TYPES } from "@/src/bsp/domain/realtime/realtime-event-t
 import { CeoCommandDashboard } from "@/components/bsp/CeoCommandDashboard";
 import { CeoEventFeed } from "@/components/bsp/CeoEventFeed";
 import { DashboardPanel } from "@/components/bsp/DashboardPanel";
-import { StepEducationPanel } from "@/components/bsp/StepEducationPanel";
+import { StepEducationPanel, getStepEducation } from "@/components/bsp/StepEducationPanel";
 import { FinancialStatementsPanel } from "@/components/bsp/FinancialStatementsPanel";
 import { JournalSummaryPanel, type JournalView } from "@/components/bsp/JournalSummaryPanel";
 import { StepFacilityForm } from "@/components/bsp/StepFacilityForm";
@@ -123,8 +123,14 @@ export default function PlayPage() {
   const economy = dashboard?.economy ?? DEFAULT_ECONOMY_VALUES;
 
   useEffect(() => {
-    setChecklistReady(false);
-  }, [step]);
+    if (step === "STEP7_SETTLEMENT") {
+      setChecklistReady(true);
+      setValidation(null);
+      return;
+    }
+    const edu = currentGameStep ? getStepEducation(currentGameStep) : null;
+    setChecklistReady(edu === null);
+  }, [step, currentGameStep]);
 
   const facilityPreview = useMemo(() => {
     const landCost = landPlots * 3000;
@@ -465,7 +471,7 @@ export default function PlayPage() {
 
               <StepProgressStepper stepPhase={step} completedSteps={completed} />
 
-              {!isSubmitted && (
+              {!isSubmitted && step !== "STEP7_SETTLEMENT" && (
                 <SubmitChecklistGate validation={validation} checklistReady={checklistReady} alreadySubmitted={isSubmitted} />
               )}
 
@@ -609,7 +615,7 @@ export default function PlayPage() {
                 </div>
               )}
 
-              <ValidationPanel validation={validation} mode={validationMode} />
+              <ValidationPanel validation={step === "STEP7_SETTLEMENT" ? null : validation} mode={validationMode} />
               <JournalSummaryPanel journals={journals} />
               {message && <p className="text-sm text-sky-700">{message}</p>}
             </>

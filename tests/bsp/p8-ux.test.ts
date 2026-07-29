@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { canSubmitFromGate } from "@/components/bsp/SubmitChecklistGate";
 import { STEP_EDUCATION, getStepEducation } from "@/src/bsp/domain/steps/step-education-content";
 
 describe("P8 step education content", () => {
@@ -15,6 +16,11 @@ describe("P8 step education content", () => {
 
   it("returns null for settlement step", () => {
     expect(getStepEducation("SETTLEMENT")).toBeNull();
+  });
+
+  it("settlement has no learner checklist to confirm", () => {
+    expect(canSubmitFromGate({ ok: true, rules: [] }, true)).toBe(true);
+    expect(canSubmitFromGate({ ok: true, rules: [] }, false)).toBe(false);
   });
 
   it("does not contain strategy hints or AI wording", () => {
