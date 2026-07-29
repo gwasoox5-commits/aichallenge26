@@ -21,9 +21,16 @@ type SessionRow = {
 type Props = {
   onSelectSession?: (sessionId: string) => void;
   onMessage?: (msg: string) => void;
+  activeSessionId?: string | null;
+  onActiveSessionRemoved?: () => void;
 };
 
-export function AdminOperationsPanel({ onSelectSession, onMessage }: Props) {
+export function AdminOperationsPanel({
+  onSelectSession,
+  onMessage,
+  activeSessionId,
+  onActiveSessionRemoved,
+}: Props) {
   const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [auditEntries, setAuditEntries] = useState<GmAuditLogEntry[]>([]);
   const [auditTotal, setAuditTotal] = useState(0);
@@ -123,6 +130,7 @@ export function AdminOperationsPanel({ onSelectSession, onMessage }: Props) {
     if (res.ok) {
       onMessage?.(`세션 "${deleteTarget.name}" 삭제 완료`);
       if (selectedSession === deleteTarget.id) setSelectedSession("");
+      if (activeSessionId === deleteTarget.id) onActiveSessionRemoved?.();
       setDeleteTarget(null);
       setDeleteReason("");
       await loadSessions();

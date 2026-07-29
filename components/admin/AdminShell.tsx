@@ -13,6 +13,7 @@ import { useRealtime } from "@/lib/bsp/use-realtime";
 const NAV = [
   { href: "/admin", label: "운영 개요", exact: true },
   { href: "/admin/sessions/new", label: "세션 생성" },
+  { href: "/admin/sessions", label: "세션 관리" },
   { href: "/admin/teams", label: "팀 현황" },
   { href: "/admin/accounting-audit", label: "회계 감사" },
   { href: "/admin/control", label: "게임 진행" },
