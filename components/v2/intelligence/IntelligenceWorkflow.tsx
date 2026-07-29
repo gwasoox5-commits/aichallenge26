@@ -215,9 +215,21 @@ export function IntelligenceWorkflow() {
       if (!analyzeRes.ok) {
         throw new Error(await readApiError(analyzeRes, "AI 분석 실패"));
       }
-      const analyzed = (await analyzeRes.json()) as { previewId: string; analysis: NewsAnalysis };
+      const analyzed = (await analyzeRes.json()) as {
+        previewId: string;
+        analysis: NewsAnalysis;
+        analysisMeta?: { usedFixture?: boolean; resultStatus?: string; fallbackMessage?: string };
+      };
       setPreviewId(analyzed.previewId);
       setAnalysis(analyzed.analysis);
+      if (analyzed.analysisMeta?.resultStatus === "fallback" || analyzed.analysisMeta?.usedFixture) {
+        setDemoMode(true);
+        setStatusNote(
+          analyzed.analysisMeta.fallbackMessage
+            ? `OpenAI 연결 문제(${analyzed.analysisMeta.fallbackMessage}) — 샘플 분석 결과를 표시합니다.`
+            : "OpenAI 연결 문제로 샘플 분석 결과를 표시합니다."
+        );
+      }
 
       const scenRes = await authFetch("/api/v2/intelligence/scenarios", {
         method: "POST",

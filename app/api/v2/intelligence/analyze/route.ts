@@ -24,6 +24,11 @@ export async function POST(req: Request) {
     });
     const preview = await svc.createPreviewFromArticles(body.sessionId!, articles, actor);
     const analyzed = await svc.analyzePreview(preview.previewId, body.promptVersion);
-    return { previewId: analyzed.previewId, analysis: analyzed.analysis, status: analyzed.status };
+    return {
+      previewId: analyzed.previewId,
+      analysis: analyzed.analysis,
+      analysisMeta: analyzed.analysisMeta,
+      status: analyzed.status,
+    };
   });
 }

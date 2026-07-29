@@ -3,6 +3,14 @@ import { getOpenAiConfig } from "./config";
 import { IntegrationError, mapOpenAiHttpError } from "./errors";
 import type { AiFeature } from "./types";
 import { makeAiMeta } from "./usage-store";
+import {
+  extractOpenAiResponseText,
+  extractOpenAiStructuredPayload,
+  openAiResponseIssue,
+  type OpenAiResponsesBody,
+} from "./openai-json";
+
+export { extractOpenAiResponseText } from "./openai-json";
 
 export interface StructuredOpenAiRequest<T> {
   feature: AiFeature;
@@ -36,36 +44,6 @@ export interface StructuredOpenAiResult<T> {
   meta: OpenAiCallMeta;
 }
 
-type ResponsesOutputBlock = {
-  type?: string;
-  text?: string;
-  content?: Array<{ type?: string; text?: string }>;
-};
-
-/** Extract JSON text from OpenAI Responses API (message + output_text blocks). */
-export function extractOpenAiResponseText(body: {
-  output_text?: string;
-  output?: ResponsesOutputBlock[];
-}): string {
-  if (typeof body.output_text === "string" && body.output_text.trim()) {
-    return body.output_text.trim();
-  }
-
-  for (const item of body.output ?? []) {
-    if (item.type && item.type !== "message") continue;
-    for (const block of item.content ?? []) {
-      if (block.type === "output_text" && block.text?.trim()) {
-        return block.text.trim();
-      }
-      if (block.text?.trim()) {
-        return block.text.trim();
-      }
-    }
-  }
-
-  return body.output?.[0]?.content?.[0]?.text?.trim() ?? "";
-}
-
 export function sanitizeJsonSchemaForOpenAi(schema: Record<string, unknown>): Record<string, unknown> {
   const { $schema, $id, title, description, ...rest } = schema;
   return rest;
@@ -84,6 +62,16 @@ function validateAgainstSchema(data: unknown, schema: Record<string, unknown>): 
     return true;
   }
   return data !== null && data !== undefined;
+}
+
+function parseOpenAiHttpErrorDetail(status: number, bodyText: string): string | undefined {
+  try {
+    const parsed = JSON.parse(bodyText) as { error?: { message?: string } };
+    if (parsed.error?.message) return `OpenAI 오류 (${status}): ${parsed.error.message}`;
+  } catch {
+    /* ignore */
+  }
+  return undefined;
 }
 
 /** OpenAI Responses API with structured JSON schema, retry, repair, usage tracking */
@@ -142,23 +130,37 @@ export async function callOpenAiStructured<T>(req: StructuredOpenAiRequest<T>): 
           return attempt(repairHint);
         }
         const errText = await res.text();
+        const detail = parseOpenAiHttpErrorDetail(res.status, errText);
+        if (detail) {
+          throw new IntegrationError("INVALID_RESPONSE", {
+            message: detail,
+            status: res.status >= 400 && res.status < 500 ? 422 : 502,
+          });
+        }
         throw mapOpenAiHttpError(res.status, errText);
       }
 
-      const body = (await res.json()) as {
-        id: string;
-        output_text?: string;
-        output?: ResponsesOutputBlock[];
-        usage?: { input_tokens?: number; output_tokens?: number; total_tokens?: number };
-      };
-      const text = extractOpenAiResponseText(body);
-      if (!text) throw new IntegrationError("INVALID_RESPONSE", { message: "OpenAI가 빈 응답을 반환했습니다." });
+      const body = (await res.json()) as OpenAiResponsesBody & { id: string };
+      const responseIssue = openAiResponseIssue(body);
+      if (responseIssue) {
+        throw new IntegrationError("INVALID_RESPONSE", { message: responseIssue });
+      }
 
-      let parsed: T;
+      let parsed: T | null = null;
       try {
-        parsed = JSON.parse(text) as T;
-      } catch {
-        throw new IntegrationError("INVALID_RESPONSE");
+        const payload = extractOpenAiStructuredPayload(body);
+        if (payload == null) {
+          throw new IntegrationError("INVALID_RESPONSE", { message: "OpenAI가 빈 응답을 반환했습니다." });
+        }
+        parsed = payload as T;
+      } catch (e) {
+        if (e instanceof IntegrationError) throw e;
+        const text = extractOpenAiResponseText(body);
+        throw new IntegrationError("INVALID_RESPONSE", {
+          message: text
+            ? "OpenAI 응답 JSON을 해석할 수 없습니다."
+            : "OpenAI가 빈 응답을 반환했습니다.",
+        });
       }
 
       if (!validateAgainstSchema(parsed, req.schema)) {

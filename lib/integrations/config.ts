@@ -28,7 +28,7 @@ export function getOpenAiConfig() {
     maxRetries: envInt("OPENAI_MAX_RETRIES", 2),
     enabled: enabled && apiKey.length > 0,
     configured: apiKey.length > 0,
-    intelligenceMaxTokens: envInt("BSP_INTELLIGENCE_MAX_TOKENS", 2000),
+    intelligenceMaxTokens: envInt("BSP_INTELLIGENCE_MAX_TOKENS", 3500),
     studioMaxTokens: envInt("BSP_STUDIO_MAX_TOKENS", 2500),
   };
 }

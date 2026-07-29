@@ -13,8 +13,7 @@
     "opportunityFactors",
     "isEstimate",
     "confidenceLabel",
-    "contentSource",
-    "groundingNotes"
+    "contentSource"
   ],
   "properties": {
     "eventSummary": { "type": "string" },

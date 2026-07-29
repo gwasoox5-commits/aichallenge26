@@ -233,6 +233,8 @@ export interface IntelligencePreview {
 
   analysis?: NewsAnalysis;
 
+  analysisMeta?: import("./openai-analyzer").AnalysisMeta;
+
   scenarios?: IntelligenceScenario[];
 
   consultant?: ConsultantOutput;

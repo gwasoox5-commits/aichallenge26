@@ -24,6 +24,8 @@ export interface AnalysisMeta {
   resultStatus: "success" | "fixture" | "fallback" | "failed";
   cacheHit?: boolean;
   contentSource?: ContentSourceKind;
+  fallbackReason?: string;
+  fallbackMessage?: string;
 }
 
 export interface AnalysisResult {
@@ -114,42 +116,57 @@ export async function analyzeNewsArticles(
     };
   }
 
-  const { data, meta } = await callOpenAiStructured<Partial<Omit<NewsAnalysis, "citations" | "promptVersion">>>({
-    feature: "intelligence_analyze",
-    input: buildAnalysisPrompt(articles, promptVersion, contentSource),
-    schema: analysisSchema as Record<string, unknown>,
-    schemaName: "IntelligenceAnalysis",
-    promptVersion,
-    sessionId: opts?.sessionId,
-    userRole: opts?.userRole,
-    idempotencyKey: opts?.idempotencyKey,
-  });
-
-  const normalized = normalizeIntelligenceAnalysis(data, contentSource);
-
-  const result: AnalysisResult = {
-    analysis: {
-      ...normalized,
-      citations: toCitations(articles),
+  try {
+    const { data, meta } = await callOpenAiStructured<Partial<Omit<NewsAnalysis, "citations" | "promptVersion">>>({
+      feature: "intelligence_analyze",
+      input: buildAnalysisPrompt(articles, promptVersion, contentSource),
+      schema: analysisSchema as Record<string, unknown>,
+      schemaName: "IntelligenceAnalysis",
       promptVersion,
-    },
-    meta: {
-      model: meta.model,
-      responseId: meta.responseId,
-      requestId: meta.requestId,
-      correlationId: meta.correlationId,
-      tokensUsed: meta.totalTokens,
-      latencyMs: meta.latencyMs,
-      usedFixture: false,
-      promptVersion,
-      retryCount: meta.retryCount,
-      resultStatus: "success",
-      contentSource: normalized.contentSource,
-    },
-  };
+      sessionId: opts?.sessionId,
+      userRole: opts?.userRole,
+      idempotencyKey: opts?.idempotencyKey,
+    });
 
-  setCache(ck, result, CACHE_TTL.aiOptionalMs, promptVersion);
-  return result;
+    const normalized = normalizeIntelligenceAnalysis(data, contentSource);
+
+    const result: AnalysisResult = {
+      analysis: {
+        ...normalized,
+        citations: toCitations(articles),
+        promptVersion,
+      },
+      meta: {
+        model: meta.model,
+        responseId: meta.responseId,
+        requestId: meta.requestId,
+        correlationId: meta.correlationId,
+        tokensUsed: meta.totalTokens,
+        latencyMs: meta.latencyMs,
+        usedFixture: false,
+        promptVersion,
+        retryCount: meta.retryCount,
+        resultStatus: "success",
+        contentSource: normalized.contentSource,
+      },
+    };
+
+    setCache(ck, result, CACHE_TTL.aiOptionalMs, promptVersion);
+    return result;
+  } catch (e) {
+    if (!(e instanceof IntegrationError)) throw e;
+    const fallback = fromFixture(articles, promptVersion, contentSource);
+    return {
+      ...fallback,
+      meta: {
+        ...fallback.meta,
+        latencyMs: Date.now() - started,
+        resultStatus: "fallback",
+        fallbackReason: e.code,
+        fallbackMessage: e.message,
+      },
+    };
+  }
 }
 
 export { CURRENT_PROMPT_VERSION };

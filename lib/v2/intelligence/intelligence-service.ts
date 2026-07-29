@@ -55,10 +55,13 @@ export class IntelligenceService {
       throw Object.assign(new Error("No articles selected"), { code: "ERR_INTEL_ARTICLES", status: 400 });
     }
 
-    const { analysis } = await analyzeNewsArticles(preview.articles, promptVersion);
+    const { analysis, meta } = await analyzeNewsArticles(preview.articles, promptVersion, {
+      sessionId: preview.sessionId,
+    });
     const updated: IntelligencePreview = {
       ...preview,
       analysis,
+      analysisMeta: meta,
       status: "ANALYZED",
       updatedAt: new Date().toISOString(),
     };

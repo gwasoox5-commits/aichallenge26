@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireGmSession } from "@/src/bsp/infrastructure/auth/access-control";
 import { authErrorResponse } from "@/src/bsp/infrastructure/auth/api-guard";
 import type { GmActor } from "@/src/bsp/domain/gm/audit-types";
+import { IntegrationError, integrationErrorResponse } from "@/lib/integrations/errors";
 import { BspError } from "@/src/bsp/application/game-engine";
 
 export function toGmActor(ctx: { userId: string; role: GmActor["role"] }, reason?: string): GmActor {
@@ -25,6 +26,9 @@ export async function v2GmJson(
     if (authRes) return authRes;
     if (e instanceof BspError) {
       return NextResponse.json({ error: e.message, code: e.code, details: e.details }, { status: e.status });
+    }
+    if (e instanceof IntegrationError) {
+      return integrationErrorResponse(e);
     }
     const err = e as { status?: number; message?: string; code?: string };
     return NextResponse.json({ error: err.message ?? "Internal error", code: err.code }, { status: err.status ?? 500 });
