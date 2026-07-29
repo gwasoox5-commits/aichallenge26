@@ -23,6 +23,7 @@ import {
   resetIntelligenceService,
   searchNewsForIntelligence,
 } from "@/lib/v2/intelligence/intelligence-service";
+import { restorePreviewFromClient } from "@/lib/v2/intelligence/preview-sync";
 import fixtureArticles from "@/tests/fixtures/v2/news-articles.fixture.json";
 import type { NewsArticle } from "@/lib/v2/intelligence/types";
 
@@ -332,6 +333,25 @@ describe("V2.3 Citation & Confidence", () => {
     const { scenarios } = await generateIntelligenceScenarios(analysis);
     const impacts = scenarios.flatMap((s) => s.variableImpacts);
     expect(impacts.every((i) => ["LOW", "MEDIUM", "HIGH"].includes(i.confidence))).toBe(true);
+  });
+});
+
+describe("V2.3 Intelligence preview sync", () => {
+  it("restores preview snapshot when server store is empty", async () => {
+    const svc = getIntelligenceService();
+    const preview = await svc.createPreviewFromArticles(SESSION, [articles[0]], GM);
+    const analyzed = await svc.analyzePreview(preview.previewId);
+    await svc.generateScenariosForPreview(analyzed.previewId);
+    const full = await svc.buildFullPreview(analyzed.previewId);
+    resetIntelligenceSessionStore({ persist: false });
+
+    restorePreviewFromClient({
+      previewId: full.previewId,
+      sessionId: SESSION,
+      preview: full,
+    });
+
+    expect(getIntelligenceSessionStore().getPreview(full.previewId)?.status).toBe("PREVIEW");
   });
 });
 

@@ -20,6 +20,7 @@ import {
   demoSearch,
   DEMO_ARTICLES,
 } from "@/lib/v2/intelligence/client-fixtures";
+import { buildClientPreviewSnapshot } from "@/lib/v2/intelligence/preview-sync";
 import { NewsDiscoveryPanel } from "./NewsDiscoveryPanel";
 import { AnalysisPanel } from "./AnalysisPanel";
 import { ScenarioComparePanel } from "./ScenarioComparePanel";
@@ -52,6 +53,7 @@ export function IntelligenceWorkflow() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [previewId, setPreviewId] = useState<string | null>(null);
+  const [intelligencePreview, setIntelligencePreview] = useState<IntelligencePreview | null>(null);
   const [analysis, setAnalysis] = useState<NewsAnalysis | null>(null);
   const [scenarios, setScenarios] = useState<IntelligenceScenario[] | null>(null);
   const [consultant, setConsultant] = useState<ConsultantOutput | null>(null);
@@ -62,13 +64,17 @@ export function IntelligenceWorkflow() {
   const [statusNote, setStatusNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [authRole, setAuthRole] = useState<string | null>(null);
+  const [authSessionId, setAuthSessionId] = useState<string | null>(null);
 
   useEffect(() => {
     authFetch("/api/v1/auth/me")
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (d?.role) setAuthRole(d.role);
-        if (d?.sessionId && !sessionId) setSessionId(d.sessionId);
+        if (d?.sessionId) {
+          setAuthSessionId(d.sessionId);
+          if (!sessionId) setSessionId(d.sessionId);
+        }
       })
       .catch(() => undefined);
   }, [sessionId]);
@@ -233,6 +239,7 @@ export function IntelligenceWorkflow() {
         throw new Error(await readApiError(prevRes, "Preview 생성 실패"));
       }
       const prev = (await prevRes.json()) as { preview: IntelligencePreview };
+      setIntelligencePreview(prev.preview);
       setConsultant(prev.preview.consultant ?? null);
       setQuality(prev.preview.quality ?? null);
       setDemoMode(false);
@@ -290,6 +297,31 @@ export function IntelligenceWorkflow() {
 
   const currentImpacts = scenarios?.find((s) => s.scenarioKey === selectedScenario)?.variableImpacts ?? [];
   const gmReady = authRole === "GM" || authRole === "PLATFORM_ADMIN";
+  const publishSessionId = authSessionId || sessionId;
+  const previewSnapshot = useMemo(() => {
+    if (!previewId || !analysis || !scenarios || !publishSessionId) return intelligencePreview;
+    return (
+      intelligencePreview ??
+      buildClientPreviewSnapshot({
+        previewId,
+        sessionId: publishSessionId,
+        articles: selectedArticles,
+        analysis,
+        scenarios,
+        consultant: consultant ?? undefined,
+        quality: quality ?? undefined,
+      })
+    );
+  }, [
+    analysis,
+    consultant,
+    intelligencePreview,
+    previewId,
+    publishSessionId,
+    quality,
+    scenarios,
+    selectedArticles,
+  ]);
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 px-6 py-8">
@@ -302,6 +334,15 @@ export function IntelligenceWorkflow() {
         <section className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
           <p className="font-medium">GM/관리자 로그인 필요</p>
           <p className="mt-1">현재 역할: {authRole ?? "미로그인"}</p>
+        </section>
+      )}
+
+      {gmReady && authSessionId && sessionId && authSessionId !== sessionId && (
+        <section className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+          <p className="font-medium">세션 ID 불일치</p>
+          <p className="mt-1">
+            로그인 GM 세션({authSessionId})과 입력값이 다릅니다. 발행 시 로그인 세션 ID를 사용합니다.
+          </p>
         </section>
       )}
 
@@ -361,7 +402,12 @@ export function IntelligenceWorkflow() {
       {consultant && <ConsultantPanel consultant={consultant} />}
 
       {analysis && scenarios && previewId && !demoMode && (
-        <PublishWorkflowPanel sessionId={sessionId} previewId={previewId} selectedScenario={selectedScenario} />
+        <PublishWorkflowPanel
+          sessionId={publishSessionId}
+          previewId={previewId}
+          preview={previewSnapshot}
+          selectedScenario={selectedScenario}
+        />
       )}
 
       {analysis && scenarios && demoMode && (

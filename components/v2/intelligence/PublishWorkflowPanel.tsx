@@ -11,12 +11,14 @@ import type {
   IntelligencePublishRecord,
   PublishResult,
 } from "@/lib/v2/intelligence/publish-types";
+import type { IntelligencePreview } from "@/lib/v2/intelligence/types";
 import { ConflictPreviewPanel } from "./ConflictPreviewPanel";
 import { EventTimelinePanel } from "./EventTimelinePanel";
 
 interface Props {
   sessionId: string;
   previewId: string | null;
+  preview?: IntelligencePreview | null;
   selectedScenario: ScenarioKey;
   disabled?: boolean;
   onPublished?: (result: PublishResult) => void;
@@ -37,6 +39,7 @@ async function readApiError(res: Response, fallback: string): Promise<string> {
 export function PublishWorkflowPanel({
   sessionId,
   previewId,
+  preview,
   selectedScenario,
   disabled,
   onPublished,
@@ -94,6 +97,7 @@ export function PublishWorkflowPanel({
         body: JSON.stringify({
           sessionId,
           previewId,
+          preview,
           selectedScenario,
           workflow: "initiate",
         }),
@@ -120,6 +124,7 @@ export function PublishWorkflowPanel({
         body: JSON.stringify({
           sessionId,
           previewId,
+          preview,
           selectedScenario,
           applyTiming,
           displayMode: "DIRECTIONAL",

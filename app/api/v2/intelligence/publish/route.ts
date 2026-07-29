@@ -2,6 +2,8 @@ import { v2GmGet, v2GmJson } from "@/lib/v2/event-studio/api-route";
 import { getV2IntelligencePublish } from "@/lib/v2/event-studio/v2-service";
 import type { ScenarioKey } from "@/lib/v2/event-studio/types";
 import type { PublishScheduleInput } from "@/lib/v2/intelligence/publish-types";
+import { restorePreviewFromClient } from "@/lib/v2/intelligence/preview-sync";
+import type { IntelligencePreview } from "@/lib/v2/intelligence/types";
 
 /** GET list / POST initiate or full publish */
 export async function GET(req: Request) {
@@ -20,6 +22,7 @@ export async function POST(req: Request) {
   const body = (await req.json()) as {
     sessionId?: string;
     previewId?: string;
+    preview?: IntelligencePreview;
     selectedScenario?: ScenarioKey;
     applyTiming?: PublishScheduleInput["applyTiming"];
     displayMode?: PublishScheduleInput["displayMode"];
@@ -36,6 +39,12 @@ export async function POST(req: Request) {
   }
 
   return v2GmJson(req, body.sessionId, async (actor) => {
+    restorePreviewFromClient({
+      previewId: body.previewId!,
+      sessionId: body.sessionId!,
+      preview: body.preview,
+    });
+
     const svc = getV2IntelligencePublish();
     const scenario = body.selectedScenario ?? "neutral";
     const reason = body.reason ?? actor.reason ?? "Intelligence publish";
