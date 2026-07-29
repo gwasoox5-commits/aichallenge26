@@ -55,6 +55,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const [desk, setDesk] = useState<GmDeskDto | null>(null);
   const [sessions, setSessions] = useState<{ id: string; name: string }[]>([]);
   const [sessionsFetched, setSessionsFetched] = useState(false);
+  const [sessionsLoadOk, setSessionsLoadOk] = useState(false);
   const [loading, setLoading] = useState(true);
   const [gmTokenReady, setGmTokenReady] = useState(false);
   const [tokenAttachError, setTokenAttachError] = useState<string | null>(null);
@@ -86,29 +87,32 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           return;
         }
         setAuthRole(d.role);
-        if (d.sessionId && !sessionId) setSessionId(d.sessionId);
       })
       .finally(() => setLoading(false));
-  }, [router, sessionId, setSessionId]);
+  }, [router]);
 
   useEffect(() => {
     if (loading || !authRole) return;
 
     authFetch("/api/v1/admin/sessions?includeArchived=1", { usePlatformToken: true })
-      .then((r) => (r.ok ? r.json() : []))
-      .then((list: { id: string; name: string }[]) => {
+      .then(async (r) => {
+        if (!r.ok) return { list: [] as { id: string; name: string }[], ok: false };
+        return { list: await r.json(), ok: true };
+      })
+      .then(({ list, ok }) => {
         setSessions(list);
+        setSessionsLoadOk(ok);
         setSessionsFetched(true);
       });
   }, [loading, authRole]);
 
   useEffect(() => {
-    if (!sessionsFetched || !sessionId) return;
+    if (!sessionsFetched || !sessionsLoadOk || !sessionId) return;
     if (!sessions.some((s) => s.id === sessionId)) {
       setSessionId(null);
       setDesk(null);
     }
-  }, [sessionsFetched, sessions, sessionId, setSessionId]);
+  }, [sessionsFetched, sessionsLoadOk, sessions, sessionId, setSessionId]);
 
   useEffect(() => {
     if (sessionId) refreshDesk(sessionId);
