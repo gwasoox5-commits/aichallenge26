@@ -2,6 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { authFetch } from "@/lib/bsp/auth-client";
+import {
+  LEARNER_APPLY_TIMING_HINTS,
+  sanitizeLearnerEventDescription,
+} from "@/lib/bsp/learner-event-copy";
 
 type EnvironmentDto = {
   activeEvents: Array<{
@@ -30,11 +34,7 @@ type Props = {
   syncToken?: number;
 };
 
-const TIMING_LABELS: Record<string, string> = {
-  IMMEDIATE: "즉시 적용됨",
-  NEXT_STEP: "다음 Step부터 적용",
-  NEXT_HALF: "다음 반기부터 적용",
-};
+const TIMING_LABELS: Record<string, string> = LEARNER_APPLY_TIMING_HINTS;
 
 export function CeoEventFeed({ companyId, syncToken = 0 }: Props) {
   const [env, setEnv] = useState<EnvironmentDto | null>(null);
@@ -115,14 +115,19 @@ export function CeoEventFeed({ companyId, syncToken = 0 }: Props) {
           <p className="text-sm text-slate-500">현재 활성 이벤트 없음</p>
         ) : (
           <ul className="space-y-3">
-            {env.activeEvents.map((e) => (
+            {env.activeEvents.map((e) => {
+              const description = sanitizeLearnerEventDescription(e.description);
+              return (
               <li key={e.id} className="rounded-lg border border-slate-200 bg-white/95 p-4">
                 <div className="font-medium text-slate-900">{e.title}</div>
-                <p className="mt-1 text-sm text-slate-600">{e.description}</p>
+                {description ? (
+                  <p className="mt-1 text-sm text-slate-600 whitespace-pre-wrap">{description}</p>
+                ) : null}
                 <p className="mt-2 text-sm text-amber-800/80">영향: {e.impactDescription}</p>
                 <p className="mt-1 text-xs text-slate-500">{TIMING_LABELS[e.applyTiming] ?? e.applyTiming}</p>
               </li>
-            ))}
+            );
+            })}
           </ul>
         )}
       </div>

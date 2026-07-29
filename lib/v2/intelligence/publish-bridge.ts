@@ -16,6 +16,7 @@ import type {
 } from "@/lib/v2/event-studio/types";
 import type { EconomyValues } from "@/src/bsp/domain/types";
 import type { IntelligencePreview, IntelligenceScenario, NewsAnalysis } from "./types";
+import { LEARNER_EVENT_DISCLAIMER } from "@/lib/bsp/learner-event-copy";
 
 const CATEGORY_KEYWORDS: Array<{ keyword: string; category: string }> = [
   { keyword: "환율", category: "환율" },
@@ -71,13 +72,17 @@ function buildOutlook(
     scenario.description,
     "",
     "주요 가정:",
-    ...scenario.assumptions.map((a) => `- ${a}`),
+    ...scenario.assumptions
+      .filter((a) => !/GM|V2\.4|World Engine|승인|추정치/i.test(a))
+      .map((a) => `- ${a}`),
     "",
     "예상 결과:",
     ...scenario.expectedOutcomes.map((o) => `- ${o}`),
     "",
-    `※ 본 내용은 교육용 시뮬레이션 이벤트이며, AI 추정치를 포함합니다. (${analysis.confidenceLabel} 신뢰도)`,
-  ].join("\n");
+    LEARNER_EVENT_DISCLAIMER,
+  ]
+    .filter((line, index, arr) => line !== "" || (index > 0 && arr[index - 1] !== ""))
+    .join("\n");
 
   return {
     label: scenario.label,
@@ -142,12 +147,10 @@ export function buildStudioOutputFromIntelligence(preview: IntelligencePreview):
       ])
     ) as Record<ScenarioKey, ScenarioOutlook>,
     uncertainty: {
-      caveats: [
-        ...analysis.riskFactors.slice(0, 2),
-        "AI 추정치이며 실제 시장과 다를 수 있습니다.",
-      ],
-      educationDisclaimer:
-        "본 이벤트는 실제 뉴스를 기반으로 한 교육용 시나리오입니다. GM 승인 후 적용됩니다.",
+      caveats: analysis.riskFactors
+        .filter((r) => !/GM|V2\.4|World Engine|승인|추정치/i.test(r))
+        .slice(0, 2),
+      educationDisclaimer: LEARNER_EVENT_DISCLAIMER,
     },
     economyVariableChanges: Object.fromEntries(
       keys.map((k) => [k, { effects: impactsToEffects(scenarioMap[k]) }])

@@ -5,6 +5,7 @@
 import type { GmActor } from "@/src/bsp/domain/gm/audit-types";
 import type { ScenarioKey, StudioVariableEffect, StudioVariableKey } from "@/lib/v2/event-studio/types";
 import type { IntelligencePreview, NewsArticle } from "@/lib/v2/intelligence/types";
+import { buildWorldProposalLearnerDescription } from "@/lib/bsp/learner-event-copy";
 import type { WorldEvolutionProposal } from "@/lib/v3/world/types";
 
 const ENGINE_TO_STUDIO: Record<string, string> = {
@@ -51,6 +52,7 @@ export function buildPreviewFromProposal(
   actor: GmActor
 ): IntelligencePreview {
   const now = new Date().toISOString();
+  const learnerDescription = buildWorldProposalLearnerDescription(proposal);
   const article: NewsArticle = {
     id: `world-${proposal.proposalId}`,
     title: proposal.title,
@@ -70,14 +72,14 @@ export function buildPreviewFromProposal(
     articles: [article],
     status: "PREVIEW",
     analysis: {
-      eventSummary: proposal.summary,
+      eventSummary: learnerDescription.split("\n\n")[0] ?? proposal.title,
       keyIssues: [proposal.title],
-      supplyChainImpact: proposal.summary,
-      productionImpact: "World Engine 추정 — GM 검토 필요",
-      salesImpact: "World Engine 추정 — GM 검토 필요",
+      supplyChainImpact: learnerDescription,
+      productionImpact: "생산·조달 계획에 영향을 줄 수 있습니다.",
+      salesImpact: "판매 계획과 가격·물량 결정을 재검토하세요.",
       financialImpact: proposal.economyImpacts.map((e) => `${e.key}: ${e.value}`).join(", "),
-      riskFactors: ["AI 추정치", "GM 승인 전 미적용"],
-      opportunityFactors: ["World Evolution 기회"],
+      riskFactors: ["시장 환경 변화", "의사결정 타이밍"],
+      opportunityFactors: ["환경 변화 대응을 통한 학습"],
       confidenceLabel: "MEDIUM",
       isEstimate: true,
       promptVersion: "v1.1",
@@ -92,9 +94,9 @@ export function buildPreviewFromProposal(
     scenarios: (["pessimistic", "neutral", "optimistic"] as ScenarioKey[]).map((key) => ({
       scenarioKey: key,
       label: key === "pessimistic" ? "비관적" : key === "optimistic" ? "낙관적" : "중립적",
-      description: proposal.narrative,
-      assumptions: ["World Engine 추정", "GM 승인 필요"],
-      expectedOutcomes: [proposal.summary],
+      description: learnerDescription,
+      assumptions: ["교육용 시뮬레이션 시나리오"],
+      expectedOutcomes: [learnerDescription.split("\n\n")[0] ?? proposal.title],
       variableImpacts: effects.map((e) => ({
         key: e.key,
         mode: e.mode,
