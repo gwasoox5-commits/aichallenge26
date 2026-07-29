@@ -12,6 +12,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   ERR_SESSION_FINISHED: "이미 종료된 세션입니다. 강사에게 문의하세요.",
   ERR_TEAM_TAKEN: "이미 사용 중인 팀명입니다. 다른 팀을 선택하세요.",
   ERR_INVALID_JOIN_CODE: "올바르지 않은 참가 코드입니다.",
+  ERR_TEAM_CAPACITY: "참가 정원이 모두 찼습니다. 운영자에게 문의하세요.",
 };
 
 function JoinFormInner() {

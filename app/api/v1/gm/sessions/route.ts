@@ -8,7 +8,7 @@ import { requireAuth, authErrorResponse, withAuthCookie } from "@/src/bsp/infras
 
 import type { SessionWizardMeta } from "@/src/bsp/application/ports/repositories";
 
-import { normalizeMaxPeriodIndex, normalizeStepDurationSec } from "@/lib/bsp/session-create-options";
+import { normalizeMaxPeriodIndex, normalizeMaxTeams, normalizeStepDurationSec } from "@/lib/bsp/session-create-options";
 
 
 
@@ -27,6 +27,8 @@ type CreateSessionBody = {
   economyPreset?: string;
 
   wizardMeta?: SessionWizardMeta;
+
+  maxTeams?: number;
 
   teamNames?: string[];
 
@@ -53,6 +55,8 @@ export async function POST(req: Request) {
       economyPresetId: body.economyPresetId ?? body.economyPreset,
 
       wizardMeta: body.wizardMeta,
+
+      maxTeams: normalizeMaxTeams(body.maxTeams ?? body.wizardMeta?.maxTeams),
 
       teamNames: body.teamNames,
 

@@ -89,6 +89,8 @@ export interface SessionWizardMeta {
   instructorName?: string;
   pilotMemo?: string;
   expectedTeams?: number;
+  /** Hard cap on teams that may join this session. */
+  maxTeams?: number;
   autoAdvance?: boolean;
   newsEnabled?: boolean;
   worldEngine?: boolean;
@@ -137,6 +139,7 @@ export interface CompanyRepository {
   findById(companyId: string): Promise<CompanyAggregate | null>;
   listBySession(sessionId: string): Promise<CompanyAggregate[]>;
   create(teamName: string, session: SessionAggregate): Promise<CompanyAggregate>;
+  delete(companyId: string): Promise<void>;
   updateOperational(companyId: string, operational: CompanyOperationalState): Promise<void>;
   incrementStatusVersion(companyId: string, expectedVersion: number): Promise<number>;
   saveDecision(decision: DecisionRecord): Promise<void>;

@@ -6,8 +6,11 @@ export interface CreateSessionOptions {
   maxPeriodIndex?: number;
   economyPresetId?: string;
   wizardMeta?: SessionWizardMeta;
+  maxTeams?: number;
   teamNames?: string[];
 }
+
+export const MAX_TEAMS_LIMIT = 20;
 
 const WIZARD_PRESET_MAP: Record<string, string | undefined> = {
   default: undefined,
@@ -30,4 +33,16 @@ export function normalizeMaxPeriodIndex(periods?: number): number {
 export function normalizeStepDurationSec(value?: number): number {
   if (!value || value < 60) return 900;
   return Math.min(value, 7200);
+}
+
+export function normalizeMaxTeams(value?: number): number | undefined {
+  if (!value || !Number.isFinite(value) || value < 1) return undefined;
+  return Math.min(Math.floor(value), MAX_TEAMS_LIMIT);
+}
+
+/** Team capacity for a session, or undefined when uncapped (demo/legacy sessions). */
+export function getSessionMaxTeams(session: { wizardMeta?: SessionWizardMeta | null }): number | undefined {
+  const meta = session.wizardMeta;
+  if (!meta) return undefined;
+  return normalizeMaxTeams(meta.maxTeams ?? meta.expectedTeams);
 }

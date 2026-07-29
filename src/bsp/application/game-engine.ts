@@ -2,7 +2,13 @@ import type { BspGameStep, BspStepPhase, GmDeskDto } from "../domain/types";
 import { ALL_GAME_STEPS, NEXT_STEP_PHASE, PHASE_TO_STEP, PREV_STEP_PHASE, STEP_TO_PHASE } from "../domain/types";
 import { getNextPeriod, isSessionFinalPeriod } from "../domain/period/period-calendar";
 import type { CreateSessionOptions } from "@/lib/bsp/session-create-options";
-import { mapWizardPresetId, normalizeMaxPeriodIndex, normalizeStepDurationSec } from "@/lib/bsp/session-create-options";
+import {
+  getSessionMaxTeams,
+  mapWizardPresetId,
+  normalizeMaxPeriodIndex,
+  normalizeMaxTeams,
+  normalizeStepDurationSec,
+} from "@/lib/bsp/session-create-options";
 import { purgeAuxiliarySessionData } from "@/lib/bsp/purge-auxiliary-session-data";
 import { prepareOperationalForNextHalf } from "../domain/period/carry-forward";
 import type {
@@ -98,6 +104,7 @@ export class GameEngine {
   async createSession(name: string, options?: CreateSessionOptions) {
     const stepDurationSec = normalizeStepDurationSec(options?.stepDurationSec);
     const maxPeriodIndex = normalizeMaxPeriodIndex(options?.maxPeriodIndex);
+    const maxTeams = normalizeMaxTeams(options?.maxTeams ?? options?.wizardMeta?.maxTeams);
     for (let attempt = 0; attempt < 30; attempt++) {
       const joinCode = generateJoinCode();
       try {
@@ -111,13 +118,15 @@ export class GameEngine {
           wizardMeta: {
             ...options?.wizardMeta,
             economyPresetId: presetId,
+            ...(maxTeams ? { maxTeams } : {}),
           },
         });
         if (presetId) {
           await this.applyEconomyPreset(session.id, presetId);
         }
         if (options?.teamNames?.length) {
-          for (const teamName of options.teamNames) {
+          const names = maxTeams ? options.teamNames.slice(0, maxTeams) : options.teamNames;
+          for (const teamName of names) {
             const trimmed = teamName.trim();
             if (trimmed) await this.createCompany(trimmed, session.id);
           }
@@ -150,9 +159,19 @@ export class GameEngine {
   async joinGame(joinCode: string, teamName: string) {
     const session = await this.findSessionByJoinCode(joinCode);
     const trimmed = teamName.trim();
-    const existing = (await this.repos.company.listBySession(session.id)).find(
-      (c) => c.teamName === trimmed,
-    );
+    const companies = await this.repos.company.listBySession(session.id);
+    const existing = companies.find((c) => c.teamName.toLowerCase() === trimmed.toLowerCase());
+    if (!existing) {
+      const maxTeams = getSessionMaxTeams(session);
+      if (maxTeams && companies.length >= maxTeams) {
+        throw new BspError(
+          "ERR_TEAM_CAPACITY",
+          `참가 정원(${maxTeams}팀)이 모두 찼습니다. 운영자에게 문의하세요.`,
+          409,
+          { maxTeams, currentTeams: companies.length }
+        );
+      }
+    }
     const result = existing
       ? { company: existing, session }
       : await this.createCompany(trimmed, session.id);
@@ -1244,6 +1263,37 @@ export class GameEngine {
     await this.repos.audit.purgeSession(sessionId);
     await this.repos.session.deleteSession(sessionId);
     return { sessionId, deleted: true, sessionName: session.name };
+  }
+
+  async deleteSessionTeam(
+    sessionId: string,
+    companyId: string,
+    actor: GmActor,
+    options?: { force?: boolean }
+  ) {
+    await this.requireSession(sessionId);
+    const company = await this.repos.company.findById(companyId);
+    if (!company || company.sessionId !== sessionId) {
+      throw new BspError("ERR_NOT_FOUND", "Team not found in this session", 404);
+    }
+    const postedCount = company.decisions.filter((d) => d.status === "POSTED").length;
+    if (postedCount > 0 && !options?.force) {
+      throw new BspError(
+        "ERR_TEAM_HAS_SUBMISSIONS",
+        `${company.teamName} 팀은 제출 기록이 ${postedCount}건 있습니다. 삭제하려면 강제 삭제를 사용하세요.`,
+        409,
+        { companyId, teamName: company.teamName, postedCount }
+      );
+    }
+    await this.audit.log(
+      sessionId,
+      actor,
+      GM_AUDIT_ACTIONS.TEAM_DELETE,
+      { teamName: company.teamName, postedCount, force: options?.force ?? false, reason: actor.reason },
+      { companyId, teamName: company.teamName }
+    );
+    await this.repos.company.delete(companyId);
+    return { sessionId, companyId, teamName: company.teamName, deleted: true };
   }
 
   async endAdminSession(sessionId: string, actor: GmActor) {

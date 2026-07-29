@@ -272,6 +272,10 @@ class MemoryCompanyRepository implements CompanyRepository {
     return company;
   }
 
+  async delete(companyId: string): Promise<void> {
+    state().companies.delete(companyId);
+  }
+
   async updateOperational(companyId: string, operational: CompanyOperationalState): Promise<void> {
     const c = state().companies.get(companyId);
     if (!c) throw new Error("Company not found");

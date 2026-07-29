@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { authFetch } from "@/lib/bsp/auth-client";
 import { GmConfirmDialog } from "@/components/gm/GmConfirmDialog";
 import { GmTeamTable } from "@/components/gm/GmTeamTable";
@@ -23,7 +23,10 @@ type PendingAction = {
   confirmLabel: string;
   confirmTone?: "default" | "danger" | "warning";
   endpoint: string;
+  method?: "POST" | "DELETE";
   body?: Record<string, unknown>;
+  /** Follow-up dialog when the server rejects with this error code. */
+  escalateOn?: { code: string; next: (message: string) => PendingAction };
 };
 
 export function AdminDashboard({ sessionId, desk, onRefresh, onMessage, message }: Props) {
@@ -36,19 +39,27 @@ export function AdminDashboard({ sessionId, desk, onRefresh, onMessage, message 
   const executeAction = async () => {
     if (!pending) return;
     setLoading(true);
+    const method = pending.method ?? "POST";
     const res = await authFetch(pending.endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...pending.body, reason }),
+      method,
+      ...(method === "POST"
+        ? {
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...pending.body, reason }),
+          }
+        : {}),
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (res.ok) {
       onMessage(`${pending.title} 완료`);
       await onRefresh();
+      setPending(null);
+    } else if (pending.escalateOn && data.code === pending.escalateOn.code) {
+      setPending(pending.escalateOn.next(data.error ?? ""));
     } else {
       onMessage(data.error ?? "작업 실패");
+      setPending(null);
     }
-    setPending(null);
     setLoading(false);
   };
 
@@ -190,6 +201,29 @@ export function AdminDashboard({ sessionId, desk, onRefresh, onMessage, message 
                 confirmTone: "warning",
                 endpoint: `/api/v1/gm/sessions/${sessionId}/zero-submit`,
                 body: { companyId },
+              })
+            }
+            onDeleteTeam={(companyId, teamName) =>
+              openAction({
+                key: "delete-team",
+                title: `${teamName} 팀 삭제`,
+                description: "참가 정원에서 이 팀을 제거합니다. 제출 기록이 있으면 다시 확인합니다.",
+                confirmLabel: "팀 삭제",
+                confirmTone: "danger",
+                endpoint: `/api/v1/gm/sessions/${sessionId}/companies/${companyId}`,
+                method: "DELETE",
+                escalateOn: {
+                  code: "ERR_TEAM_HAS_SUBMISSIONS",
+                  next: (msg) => ({
+                    key: "delete-team-force",
+                    title: `${teamName} 팀 강제 삭제`,
+                    description: `${msg} 제출 기록과 분개장까지 모두 삭제됩니다.`,
+                    confirmLabel: "기록까지 삭제",
+                    confirmTone: "danger",
+                    endpoint: `/api/v1/gm/sessions/${sessionId}/companies/${companyId}?force=1`,
+                    method: "DELETE",
+                  }),
+                },
               })
             }
           />

@@ -471,6 +471,22 @@ class PrismaCompanyRepository implements CompanyRepository {
     };
   }
 
+  async delete(companyId: string): Promise<void> {
+    await bspPrisma.$transaction(async (tx) => {
+      const journalIds = (
+        await tx.bspJournalEntry.findMany({ where: { companyId }, select: { id: true } })
+      ).map((j) => j.id);
+      if (journalIds.length > 0) {
+        await tx.bspJournalLine.deleteMany({ where: { journalEntryId: { in: journalIds } } });
+      }
+      await tx.bspJournalEntry.deleteMany({ where: { companyId } });
+      await tx.bspDecision.deleteMany({ where: { companyId } });
+      await tx.bspLedgerBalance.deleteMany({ where: { companyId } });
+      await tx.bspCompanyOperational.deleteMany({ where: { companyId } });
+      await tx.bspCompany.delete({ where: { id: companyId } });
+    });
+  }
+
   async updateOperational(companyId: string, operational: CompanyOperationalState): Promise<void> {
     await bspPrisma.bspCompanyOperational.update({
       where: { companyId },

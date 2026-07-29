@@ -11,7 +11,6 @@ type WizardData = {
   sessionName: string;
   courseName: string;
   instructorName: string;
-  expectedTeams: number;
   pilotMemo: string;
   periods: number;
   stepDurationSec: number;
@@ -21,14 +20,12 @@ type WizardData = {
   aiIntelligence: boolean;
   economyPreset: string;
   teamCount: number;
-  teamNames: string[];
 };
 
 const INITIAL: WizardData = {
   sessionName: "경영 시뮬레이션 세션",
   courseName: "경영 시뮬레이션",
   instructorName: "",
-  expectedTeams: 5,
   pilotMemo: "",
   periods: 2,
   stepDurationSec: 900,
@@ -37,8 +34,7 @@ const INITIAL: WizardData = {
   worldEngine: false,
   aiIntelligence: true,
   economyPreset: "default",
-  teamCount: 5,
-  teamNames: [...PILOT_DEFAULTS.sampleTeams],
+  teamCount: PILOT_DEFAULTS.maxTeams,
 };
 
 export function SessionWizard() {
@@ -69,18 +65,18 @@ export function SessionWizard() {
         periods: data.periods,
         stepDurationSec: data.stepDurationSec,
         economyPreset: data.economyPreset,
-        teamNames: data.teamNames.slice(0, data.teamCount),
+        maxTeams: data.teamCount,
         wizardMeta: {
           courseName: data.courseName,
           instructorName: data.instructorName,
           pilotMemo: data.pilotMemo,
-          expectedTeams: data.expectedTeams,
+          expectedTeams: data.teamCount,
+          maxTeams: data.teamCount,
           autoAdvance: data.autoAdvance,
           newsEnabled: data.newsEnabled,
           worldEngine: data.worldEngine,
           aiIntelligence: data.aiIntelligence,
           economyPresetId: data.economyPreset,
-          teamNames: data.teamNames.slice(0, data.teamCount),
         },
       }),
     });
@@ -114,7 +110,7 @@ export function SessionWizard() {
       `강사: ${data.instructorName || "—"}`,
       `참가 URL: ${result.joinUrl}`,
       `참가 코드: ${result.joinCode}`,
-      `팀 수: ${data.teamCount} (팀명: ${data.teamNames.slice(0, data.teamCount).join(", ")})`,
+      `팀 수: ${data.teamCount}팀 (팀명은 학습자가 참가 시 직접 입력)`,
     ].join("\n");
     navigator.clipboard.writeText(text);
   };
@@ -130,7 +126,6 @@ export function SessionWizard() {
           <Field label="세션명" value={data.sessionName} onChange={(v) => update({ sessionName: v })} />
           <Field label="교육명" value={data.courseName} onChange={(v) => update({ courseName: v })} />
           <Field label="강사명" value={data.instructorName} onChange={(v) => update({ instructorName: v })} />
-          <Field label="예상 팀 수" value={String(data.expectedTeams)} onChange={(v) => update({ expectedTeams: Number(v) || 5 })} type="number" />
           <Field label="운영 메모" value={data.pilotMemo} onChange={(v) => update({ pilotMemo: v })} multiline />
         </section>
       )}
@@ -179,22 +174,15 @@ export function SessionWizard() {
       {step === 4 && (
         <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-6">
           <h3 className="font-medium">Step 4 · 팀 설정</h3>
-          <Field label="팀 수" value={String(data.teamCount)} onChange={(v) => update({ teamCount: Number(v) || 5 })} type="number" />
-          <div>
-            <p className="mb-2 text-sm text-slate-600">팀명 (학습자가 선택)</p>
-            {data.teamNames.slice(0, data.teamCount).map((name, i) => (
-              <input
-                key={i}
-                value={name}
-                onChange={(e) => {
-                  const next = [...data.teamNames];
-                  next[i] = e.target.value;
-                  update({ teamNames: next });
-                }}
-                className="mb-2 w-full rounded border border-slate-300 px-3 py-2 text-sm"
-              />
-            ))}
-          </div>
+          <Field
+            label="참가 정원 (팀 수)"
+            value={String(data.teamCount)}
+            onChange={(v) => update({ teamCount: Math.max(1, Number(v) || 1) })}
+            type="number"
+          />
+          <p className="text-xs text-slate-500">
+            팀명은 학습자가 참가 화면에서 직접 입력합니다. 정원을 초과한 참가는 자동으로 거부됩니다.
+          </p>
         </section>
       )}
 

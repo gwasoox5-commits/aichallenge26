@@ -15,9 +15,10 @@ type Props = {
   desk: GmDeskDto;
   onForceSubmit: (companyId: string) => void;
   onZeroSubmit: (companyId: string) => void;
+  onDeleteTeam?: (companyId: string, teamName: string) => void;
 };
 
-export function GmTeamTable({ desk, onForceSubmit, onZeroSubmit }: Props) {
+export function GmTeamTable({ desk, onForceSubmit, onZeroSubmit, onDeleteTeam }: Props) {
   const currentStepLabel = STEP_LABELS[desk.stepPhase] ?? desk.stepPhase;
 
   return (
@@ -77,24 +78,35 @@ export function GmTeamTable({ desk, onForceSubmit, onZeroSubmit }: Props) {
                       )}
                     </td>
                     <td className="py-2.5">
-                      {isUnsubmitted && (
-                        <div className="flex gap-1">
+                      <div className="flex gap-1">
+                        {isUnsubmitted && (
+                          <>
+                            <button
+                              onClick={() => onForceSubmit(t.companyId)}
+                              aria-label={`${t.teamName} 강제 제출`}
+                              className="rounded bg-sky-100 px-2 py-1 text-xs hover:bg-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
+                            >
+                              강제제출
+                            </button>
+                            <button
+                              onClick={() => onZeroSubmit(t.companyId)}
+                              aria-label={`${t.teamName} Zero Submit`}
+                              className="rounded bg-amber-100 px-2 py-1 text-xs hover:bg-amber-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+                            >
+                              Zero
+                            </button>
+                          </>
+                        )}
+                        {onDeleteTeam && (
                           <button
-                            onClick={() => onForceSubmit(t.companyId)}
-                            aria-label={`${t.teamName} 강제 제출`}
-                            className="rounded bg-sky-100 px-2 py-1 text-xs hover:bg-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
+                            onClick={() => onDeleteTeam(t.companyId, t.teamName)}
+                            aria-label={`${t.teamName} 팀 삭제`}
+                            className="rounded bg-rose-100 px-2 py-1 text-xs text-rose-800 hover:bg-rose-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
                           >
-                            강제제출
+                            삭제
                           </button>
-                          <button
-                            onClick={() => onZeroSubmit(t.companyId)}
-                            aria-label={`${t.teamName} Zero Submit`}
-                            className="rounded bg-amber-100 px-2 py-1 text-xs hover:bg-amber-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
-                          >
-                            Zero
-                          </button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
