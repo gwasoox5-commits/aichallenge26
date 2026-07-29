@@ -30,6 +30,7 @@ import {
   computeSales,
 } from "@/src/bsp/domain/validation/step-validators";
 import { DEFAULT_ECONOMY_VALUES, GAME_CONSTANTS, PHASE_TO_STEP, type BspGameStep, type BspStepPhase } from "@/src/bsp/domain/types";
+import { formatPeriodLabel, formatStepPhaseLabel } from "@/src/bsp/domain/period/display-labels";
 
 type Dashboard = {
   companyId: string;
@@ -408,7 +409,8 @@ export default function PlayPage() {
   const unreadNewsCount = newsItems.filter((n) => n.unread).length;
 
   const isSubmitted = dashboard?.currentStepSubmitted ?? false;
-  const stepLabel = step.replace("STEP", "Step ").replace(/_/g, " ");
+  const stepLabel = formatStepPhaseLabel(step);
+  const periodLabelKo = formatPeriodLabel(dashboard?.periodLabel);
 
   return (
     <div className="min-h-screen bg-white text-slate-900">
@@ -427,7 +429,7 @@ export default function PlayPage() {
       />
       <PlayHeader
         teamName={dashboard?.teamName}
-        periodLabel={dashboard?.periodLabel}
+        periodLabel={periodLabelKo}
         stepLabel={stepLabel}
         remainingTimeSec={dashboard?.remainingTimeSec}
         connectionState={connectionState}
@@ -455,7 +457,7 @@ export default function PlayPage() {
               {isSubmitted && dashboard && (
                 <SubmittedWaitingPanel
                   teamName={dashboard.teamName}
-                  periodLabel={dashboard.periodLabel}
+                  periodLabel={periodLabelKo}
                   stepLabel={stepLabel}
                   newsItems={newsItems}
                   cashManwon={dashboard.cashManwon}

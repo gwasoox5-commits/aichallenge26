@@ -1,16 +1,9 @@
 "use client";
 
 import { ALL_GAME_STEPS, STEP_TO_PHASE, type BspGameStep, type BspStepPhase } from "@/src/bsp/domain/types";
+import { GAME_STEP_LABELS } from "@/src/bsp/domain/period/display-labels";
 
-const STEP_LABELS: Record<BspGameStep, string> = {
-  LOAN: "자금 조달",
-  FACILITY: "설비 투자",
-  HIRING: "인력 채용",
-  MATERIAL: "원재료",
-  PRODUCTION: "생산",
-  SALES: "판매",
-  SETTLEMENT: "결산",
-};
+const STEP_LABELS = GAME_STEP_LABELS;
 
 export function StepProgressStepper({
   stepPhase,

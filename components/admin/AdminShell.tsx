@@ -9,6 +9,7 @@ import { applyGmSessionToken, canConnectRealtime } from "@/lib/bsp/token-client"
 import type { GmDeskDto } from "@/src/bsp/domain/types";
 import { AdminRealtimeIndicator } from "@/components/admin/AdminRealtimeIndicator";
 import { useRealtime } from "@/lib/bsp/use-realtime";
+import { formatPeriodLabel, formatStepPhaseLabel } from "@/src/bsp/domain/period/display-labels";
 
 const NAV = [
   { href: "/admin", label: "운영 개요", exact: true },
@@ -199,7 +200,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               </h1>
               <p className="text-xs text-slate-500">
                 {desk
-                  ? `${desk.periodLabel} · ${desk.stepPhase?.replace("STEP", "Step ").replace("_", " ")} · ${desk.totalTeamCount}팀`
+                  ? `${formatPeriodLabel(desk.periodLabel)} · ${formatStepPhaseLabel(desk.stepPhase)} · ${desk.totalTeamCount}팀`
                   : "세션을 생성하거나 선택하세요"}
                 {desk?.sessionPhase === "PAUSED" && " · ⏸ Pause"}
               </p>

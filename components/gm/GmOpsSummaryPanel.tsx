@@ -1,6 +1,7 @@
 "use client";
 
 import type { GmDeskDto } from "@/src/bsp/domain/types";
+import { formatPeriodLabel } from "@/src/bsp/domain/period/display-labels";
 import { STEP_LABELS } from "./GmTeamTable";
 
 type Props = {
@@ -61,7 +62,7 @@ export function GmOpsSummaryPanel({
         <div>
           <p className="text-xs text-slate-500">현재 Step · 반기</p>
           <p className="text-sm font-semibold text-sky-700">
-            {stepLabel} · P{desk.periodIndex}/6 {desk.periodLabel}
+            {stepLabel} · P{desk.periodIndex}/6 {formatPeriodLabel(desk.periodLabel)}
           </p>
         </div>
         {onRecommendedAction && recommendedLabel && (

@@ -27,6 +27,7 @@ import type { SessionListItem } from "../../application/ports/repositories";
 import { createPrismaAuditRepository } from "./prisma-audit-repository";
 import { createPrismaSimulationEventRepository } from "./prisma-simulation-event-repository";
 import { DEFAULT_STEP_DURATION_SEC } from "../../domain/types";
+import { getPeriodDescriptor } from "../../domain/period/period-calendar";
 
 function toOperationalPrismaData(
   state: CompanyOperationalState,
@@ -67,6 +68,7 @@ class PrismaSessionRepository implements SessionRepository {
     });
 
     if (!session) {
+      const p1 = getPeriodDescriptor(1);
       const created = await bspPrisma.bspGameSession.create({
         data: {
           organizationId: DEFAULT_ORG_ID,
@@ -75,7 +77,13 @@ class PrismaSessionRepository implements SessionRepository {
           sessionPhase: "RUNNING",
           startedAt: new Date(),
           periods: {
-            create: { periodIndex: 1, year: 1, half: "H1", label: "Year 1 H1", status: "OPEN" },
+            create: {
+              periodIndex: p1.periodIndex,
+              year: p1.year,
+              half: p1.half,
+              label: p1.label,
+              status: "OPEN",
+            },
           },
           economy: {
             create: {
@@ -122,6 +130,7 @@ class PrismaSessionRepository implements SessionRepository {
   }): Promise<SessionAggregate> {
     await this.ensureDefaultOrganization();
 
+    const p1 = getPeriodDescriptor(1);
     const session = await bspPrisma.bspGameSession.create({
       data: {
         organizationId: DEFAULT_ORG_ID,
@@ -134,7 +143,13 @@ class PrismaSessionRepository implements SessionRepository {
         economyPresetId: input.economyPresetId ?? null,
         wizardMeta: input.wizardMeta ? (input.wizardMeta as Prisma.InputJsonValue) : Prisma.JsonNull,
         periods: {
-          create: { periodIndex: 1, year: 1, half: "H1", label: "Year 1 H1", status: "OPEN" },
+          create: {
+            periodIndex: p1.periodIndex,
+            year: p1.year,
+            half: p1.half,
+            label: p1.label,
+            status: "OPEN",
+          },
         },
         economy: {
           create: {

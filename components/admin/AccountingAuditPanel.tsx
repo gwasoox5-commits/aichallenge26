@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { authFetch } from "@/lib/bsp/auth-client";
 import { useAdminSession } from "@/lib/bsp/admin-session-context";
 import type { AccountingAuditPayload } from "@/src/bsp/domain/accounting/accounting-audit";
+import { formatPeriodLabel } from "@/src/bsp/domain/period/display-labels";
 
 type Tab = "journals" | "trialBalance" | "balanceSheet" | "incomeStatement" | "diffReport";
 
@@ -134,7 +135,7 @@ export function AccountingAuditPanel() {
             {tab === "journals" && (
               <div className="space-y-4">
                 <p className="text-xs text-slate-500">
-                  {audit.periodLabel} · 의사결정 {audit.decisions.length}건 · Journal {audit.journals.length}건
+                  {formatPeriodLabel(audit.periodLabel)} · 의사결정 {audit.decisions.length}건 · Journal {audit.journals.length}건
                 </p>
                 {audit.journals.map((j) => (
                   <div key={j.id} className="rounded-lg border border-slate-200 p-3">

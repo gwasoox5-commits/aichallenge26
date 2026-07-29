@@ -1,5 +1,7 @@
 "use client";
 
+import { formatPeriodLabel, STEP_PHASE_LABELS } from "@/src/bsp/domain/period/display-labels";
+
 function fmt(n: number) {
   return n.toLocaleString("ko-KR") + " 만원";
 }
@@ -48,15 +50,7 @@ export type DashboardView = {
   settlementComplete?: boolean;
 };
 
-const STEP_LABELS: Record<string, string> = {
-  STEP1_FINANCE: "Step 1 — 자금",
-  STEP2_INVESTMENT: "Step 2 — 설비",
-  STEP3_HR: "Step 3 — 인력",
-  STEP4_PURCHASE: "Step 4 — 구매",
-  STEP5_PRODUCTION: "Step 5 — 생산",
-  STEP6_SALES: "Step 6 — 판매",
-  STEP7_SETTLEMENT: "Step 7 — 결산",
-};
+const STEP_LABELS = STEP_PHASE_LABELS;
 
 export function DashboardPanel({ dashboard }: { dashboard: DashboardView | null }) {
   if (!dashboard) {
@@ -70,7 +64,7 @@ export function DashboardPanel({ dashboard }: { dashboard: DashboardView | null 
 
   const rows: [string, string][] = [
     ["팀", dashboard.teamName],
-    ["반기", dashboard.periodLabel],
+    ["반기", formatPeriodLabel(dashboard.periodLabel)],
     ["현재 Step", STEP_LABELS[dashboard.stepPhase ?? ""] ?? dashboard.stepPhase ?? "-"],
     ["현금", fmt(dashboard.cashManwon)],
     ["재고(원재료)", String(dashboard.inventoryTotalUnits ?? 0) + " 단위"],

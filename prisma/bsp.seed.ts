@@ -1,6 +1,7 @@
 import { Prisma, PrismaClient } from ".prisma/bsp-client";
 import { DEMO_JOIN_CODE } from "../src/bsp/domain/auth/demo-constants";
 import { DEFAULT_ECONOMY_VALUES, DEFAULT_ORG_ID } from "../src/bsp/domain/types";
+import { getPeriodDescriptor } from "../src/bsp/domain/period/period-calendar";
 
 const prisma = new PrismaClient();
 
@@ -11,6 +12,7 @@ async function main() {
     update: {},
   });
 
+  const p1 = getPeriodDescriptor(1);
   const session = await prisma.bspGameSession.upsert({
     where: { joinCode: DEMO_JOIN_CODE },
     create: {
@@ -23,7 +25,13 @@ async function main() {
         create: { values: DEFAULT_ECONOMY_VALUES as unknown as Prisma.InputJsonValue, version: 0 },
       },
       periods: {
-        create: { periodIndex: 1, year: 1, half: "H1", label: "Year 1 H1", status: "OPEN" },
+        create: {
+          periodIndex: p1.periodIndex,
+          year: p1.year,
+          half: p1.half,
+          label: p1.label,
+          status: "OPEN",
+        },
       },
     },
     update: {},

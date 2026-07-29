@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { authFetch } from "@/lib/bsp/auth-client";
+import { formatPeriodLabel, formatStepPhaseLabel } from "@/src/bsp/domain/period/display-labels";
 import type { GmAuditLogEntry } from "@/src/bsp/domain/gm/audit-types";
 import { GmAuditLogPanel } from "./GmAuditLogPanel";
 import { GmConfirmDialog } from "./GmConfirmDialog";
@@ -236,7 +237,7 @@ export function AdminOperationsPanel({
                   <td className="py-2 pr-4">{s.sessionPhase}</td>
                   <td className="py-2 pr-4">{s.teamCount}</td>
                   <td className="py-2 pr-4">
-                    {s.periodLabel} · {s.stepPhase}
+                    {formatPeriodLabel(s.periodLabel)} · {formatStepPhaseLabel(s.stepPhase)}
                   </td>
                   <td className="py-2">
                     <div className="flex flex-wrap gap-2">

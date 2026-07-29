@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { authFetch } from "@/lib/bsp/auth-client";
 import type { BspGameStep, BspStepPhase } from "@/src/bsp/domain/types";
 import { PHASE_TO_STEP } from "@/src/bsp/domain/types";
+import { formatPeriodLabel, STEP_PHASE_LABELS } from "@/src/bsp/domain/period/display-labels";
 
 export type CeoDashboardView = {
   teamName: string;
@@ -36,17 +37,7 @@ type EnvironmentDto = {
   environmentChangedBadge: boolean;
 };
 
-const STEP_LABELS: Record<BspStepPhase, string> = {
-  STEP1_FINANCE: "Step 1 · 자금 조달",
-  STEP2_INVESTMENT: "Step 2 · 설비 투자",
-  STEP3_HR: "Step 3 · 인력 채용",
-  STEP4_PURCHASE: "Step 4 · 원재료 구매",
-  STEP5_PRODUCTION: "Step 5 · 생산",
-  STEP6_SALES: "Step 6 · 판매",
-  STEP7_SETTLEMENT: "Step 7 · 반기 결산",
-  HALF_YEAR_END: "반기 마감",
-  GAME_END: "게임 종료",
-};
+const STEP_LABELS = STEP_PHASE_LABELS;
 
 const STEP_TASKS: Partial<Record<BspStepPhase, string>> = {
   STEP1_FINANCE: "자금 조달(차입·예금) 입력 후 제출",
@@ -139,7 +130,7 @@ export function CeoCommandDashboard({ companyId, dashboard }: Props) {
           label="현재 반기"
           value={
             dashboard.periodIndex
-              ? `P${dashboard.periodIndex}/6 · ${dashboard.periodLabel}`
+              ? `P${dashboard.periodIndex}/6 · ${formatPeriodLabel(dashboard.periodLabel)}`
               : dashboard.periodLabel
           }
           accent="violet"

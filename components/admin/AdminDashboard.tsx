@@ -6,6 +6,7 @@ import { authFetch } from "@/lib/bsp/auth-client";
 import { GmConfirmDialog } from "@/components/gm/GmConfirmDialog";
 import { GmTeamTable } from "@/components/gm/GmTeamTable";
 import type { GmDeskDto } from "@/src/bsp/domain/types";
+import { formatPeriodLabel, formatStepPhaseLabel } from "@/src/bsp/domain/period/display-labels";
 
 type Props = {
   sessionId: string;
@@ -75,8 +76,8 @@ export function AdminDashboard({ sessionId, desk, onRefresh, onMessage, message 
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard label="세션 상태" value={desk.sessionPhase} />
-            <StatCard label="현재 반기" value={desk.periodLabel} />
-            <StatCard label="현재 Step" value={desk.stepPhase.replace("STEP", "Step ").replace("_", " ")} />
+            <StatCard label="현재 반기" value={formatPeriodLabel(desk.periodLabel)} />
+            <StatCard label="현재 Step" value={formatStepPhaseLabel(desk.stepPhase)} />
             <StatCard label="참여 팀" value={`${desk.totalTeamCount}팀`} />
             <StatCard label="제출 완료" value={`${submittedCount}팀`} tone="success" />
             <StatCard label="미제출" value={`${desk.unsubmittedTeamCount}팀`} tone={desk.unsubmittedTeamCount > 0 ? "warning" : "default"} />
@@ -122,7 +123,7 @@ export function AdminDashboard({ sessionId, desk, onRefresh, onMessage, message 
                   openAction({
                     key: "advance",
                     title: "다음 Step",
-                    description: `현재 ${desk.stepPhase} → 다음 Step으로 진행합니다. 미제출 팀 ${desk.unsubmittedTeamCount}개.`,
+                    description: `현재 ${formatStepPhaseLabel(desk.stepPhase)} → 다음 Step으로 진행합니다. 미제출 팀 ${desk.unsubmittedTeamCount}개.`,
                     confirmLabel: "진행",
                     confirmTone: desk.unsubmittedTeamCount > 0 ? "warning" : "default",
                     endpoint: `/api/v1/gm/sessions/${sessionId}/advance-step`,

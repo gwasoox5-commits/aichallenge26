@@ -1,18 +1,9 @@
 "use client";
 
 import type { GmDeskDto } from "@/src/bsp/domain/types";
+import { formatPeriodLabel, STEP_PHASE_LABELS } from "@/src/bsp/domain/period/display-labels";
 
-const STEP_LABELS: Record<string, string> = {
-  STEP1_FINANCE: "Step 1 · 자금",
-  STEP2_INVESTMENT: "Step 2 · 투자",
-  STEP3_HR: "Step 3 · 인력",
-  STEP4_PURCHASE: "Step 4 · 구매",
-  STEP5_PRODUCTION: "Step 5 · 생산",
-  STEP6_SALES: "Step 6 · 영업",
-  STEP7_SETTLEMENT: "Step 7 · 결산",
-  HALF_YEAR_END: "반기 마감",
-  GAME_END: "게임 종료",
-};
+const STEP_LABELS = STEP_PHASE_LABELS;
 
 function formatTime(sec: number) {
   const m = Math.floor(sec / 60);
@@ -139,7 +130,7 @@ export function GmStatusBanner({ desk }: { desk: GmDeskDto }) {
         <div>
           <span className="text-xs text-slate-500">현재 반기</span>
           <p className="font-semibold text-violet-700">
-            P{desk.periodIndex}/6 · {desk.periodLabel}
+            P{desk.periodIndex}/6 · {formatPeriodLabel(desk.periodLabel)}
           </p>
         </div>
         <div>

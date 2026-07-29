@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { setAccessToken } from "@/lib/bsp/auth-client";
+import { formatPeriodLabel, formatStepPhaseLabel } from "@/src/bsp/domain/period/display-labels";
 
 const ERROR_MESSAGES: Record<string, string> = {
   ERR_UNAUTHORIZED: "인증이 필요합니다.",
@@ -120,7 +121,9 @@ function JoinFormInner() {
             {sessionInfo && (
               <div className="mb-4 rounded-lg bg-indigo-50 p-3 text-sm">
                 <p className="font-medium text-indigo-900">{sessionInfo.name}</p>
-                <p className="text-indigo-700">{sessionInfo.periodLabel} · {sessionInfo.stepPhase.replace("STEP", "Step ")}</p>
+                <p className="text-indigo-700">
+                  {formatPeriodLabel(sessionInfo.periodLabel)} · {formatStepPhaseLabel(sessionInfo.stepPhase)}
+                </p>
               </div>
             )}
 

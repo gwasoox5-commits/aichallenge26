@@ -7,6 +7,7 @@ import {
   validateHiring,
 } from "../validation/step-validators";
 import { localizeValidationResult } from "../validation/messages-ko";
+import { parseYearFromPeriodLabel } from "../period/display-labels";
 import type { StepHandler } from "./step-handler";
 
 const accounting = new AccountingEngine();
@@ -18,7 +19,7 @@ export class HRStepHandler implements StepHandler {
 
   validate(context: StepContext): StepValidationOutcome {
     const payload = context.payload as HiringPayload;
-    const periodYear = parseInt(context.session.periodLabel.match(/Year (\d)/)?.[1] ?? "1", 10);
+    const periodYear = context.session.year ?? parseYearFromPeriodLabel(context.session.periodLabel);
     const { validation, computed } = validateHiring(payload, periodYear);
     const localized = { ...validation, rules: localizeValidationResult(validation.rules) };
     return {

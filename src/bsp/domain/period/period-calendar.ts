@@ -10,12 +10,12 @@ export interface PeriodDescriptor {
 }
 
 export const PERIOD_CALENDAR: PeriodDescriptor[] = [
-  { periodIndex: 1, year: 1, half: "H1", label: "Year 1 H1" },
-  { periodIndex: 2, year: 1, half: "H2", label: "Year 1 H2" },
-  { periodIndex: 3, year: 2, half: "H1", label: "Year 2 H1" },
-  { periodIndex: 4, year: 2, half: "H2", label: "Year 2 H2" },
-  { periodIndex: 5, year: 3, half: "H1", label: "Year 3 H1" },
-  { periodIndex: 6, year: 3, half: "H2", label: "Year 3 H2" },
+  { periodIndex: 1, year: 1, half: "H1", label: "1년차 전반기" },
+  { periodIndex: 2, year: 1, half: "H2", label: "1년차 후반기" },
+  { periodIndex: 3, year: 2, half: "H1", label: "2년차 전반기" },
+  { periodIndex: 4, year: 2, half: "H2", label: "2년차 후반기" },
+  { periodIndex: 5, year: 3, half: "H1", label: "3년차 전반기" },
+  { periodIndex: 6, year: 3, half: "H2", label: "3년차 후반기" },
 ];
 
 export function getPeriodDescriptor(periodIndex: number): PeriodDescriptor {
