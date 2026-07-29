@@ -14,6 +14,13 @@ import type {
 } from "@/lib/v2/event-studio/types";
 import type { EventApplyTiming } from "@/src/bsp/domain/events/event-types";
 import { SCENARIO_LABEL_KO, SELECTION_MODE_LABEL_KO, EFFECT_MODE_LABEL_KO, DISPLAY_MODE_LABEL_KO, economyVariableLabelKo, formatEffectValueKo } from "@/lib/v2/event-studio/scenario-labels";
+import {
+  EVENT_DURATION_OPTIONS,
+  EVENT_IMPACT_PERIOD_OPTIONS,
+  formatImpactPeriodValue,
+  normalizeDurationValue,
+  normalizeImpactPeriodValue,
+} from "@/lib/v2/event-studio/event-input-options";
 
 const DEFAULT_INPUT: EventStudioInput = {
   naturalLanguagePrompt:
@@ -62,6 +69,20 @@ export function EventStudioWorkflow() {
       .then((d) => {
         if (d?.role) setAuthRole(d.role);
         if (d?.sessionId && !sessionId) setSessionId(d.sessionId);
+      })
+      .catch(() => undefined);
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (!sessionId) return;
+    authFetch(`/api/v1/gm/sessions/${sessionId}/desk`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((desk) => {
+        if (!desk?.periodIndex) return;
+        setInput((prev) => ({
+          ...prev,
+          targetHalfLabel: formatImpactPeriodValue(desk.periodIndex),
+        }));
       })
       .catch(() => undefined);
   }, [sessionId]);
@@ -227,8 +248,20 @@ export function EventStudioWorkflow() {
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="대상 산업" value={input.targetIndustry} onChange={(v) => setInput({ ...input, targetIndustry: v })} />
             <Field label="시장/지역" value={input.targetMarketOrRegion} onChange={(v) => setInput({ ...input, targetMarketOrRegion: v })} />
-            <Field label="지속 기간" value={input.expectedDuration} onChange={(v) => setInput({ ...input, expectedDuration: v })} />
-            <Field label="영향 반기" value={input.targetHalfLabel} onChange={(v) => setInput({ ...input, targetHalfLabel: v })} />
+            <SelectField
+              label="지속 기간"
+              hint="이벤트 효과가 유지되는 기간"
+              value={normalizeDurationValue(input.expectedDuration)}
+              options={EVENT_DURATION_OPTIONS.map((o) => ({ value: o.value, label: `${o.label} — ${o.hint}` }))}
+              onChange={(v) => setInput({ ...input, expectedDuration: v })}
+            />
+            <SelectField
+              label="영향 시작 반기"
+              hint="이벤트가 처음 적용되는 게임 반기"
+              value={normalizeImpactPeriodValue(input.targetHalfLabel)}
+              options={EVENT_IMPACT_PERIOD_OPTIONS.map((o) => ({ value: o.value, label: `${o.label} (${o.hint})` }))}
+              onChange={(v) => setInput({ ...input, targetHalfLabel: v })}
+            />
           </div>
         </section>
       )}
@@ -387,6 +420,38 @@ export function EventStudioWorkflow() {
         </button>
       )}
     </div>
+  );
+}
+
+function SelectField({
+  label,
+  hint,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  hint?: string;
+  value: string;
+  options: Array<{ value: string; label: string }>;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="text-xs text-slate-600">{label}</span>
+      {hint && <span className="ml-1 text-[11px] text-slate-400">({hint})</span>}
+      <select
+        className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-sm"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 

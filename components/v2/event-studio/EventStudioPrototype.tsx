@@ -5,6 +5,12 @@ import { MOCK_SCENARIO_OUTPUT } from "@/lib/v2/event-studio/mock-scenario-output
 import { mapStudioEffectToEngine } from "@/lib/v2/event-studio/variable-mapper";
 import type { EventScenarioStudioOutput, EventStudioInput, ScenarioKey } from "@/lib/v2/event-studio/types";
 import { SCENARIO_LABEL_KO } from "@/lib/v2/event-studio/scenario-labels";
+import {
+  EVENT_DURATION_OPTIONS,
+  EVENT_IMPACT_PERIOD_OPTIONS,
+  normalizeDurationValue,
+  normalizeImpactPeriodValue,
+} from "@/lib/v2/event-studio/event-input-options";
 
 const DEFAULT_INPUT: EventStudioInput = {
   naturalLanguagePrompt:
@@ -74,14 +80,18 @@ export function EventStudioPrototype() {
             value={input.targetMarketOrRegion}
             onChange={(v) => setInput({ ...input, targetMarketOrRegion: v })}
           />
-          <Field
+          <SelectField
             label="예상 지속 기간"
-            value={input.expectedDuration}
+            hint="이벤트 효과가 유지되는 기간"
+            value={normalizeDurationValue(input.expectedDuration)}
+            options={EVENT_DURATION_OPTIONS.map((o) => ({ value: o.value, label: `${o.label} — ${o.hint}` }))}
             onChange={(v) => setInput({ ...input, expectedDuration: v })}
           />
-          <Field
-            label="영향 반기"
-            value={input.targetHalfLabel}
+          <SelectField
+            label="영향 시작 반기"
+            hint="이벤트가 처음 적용되는 게임 반기"
+            value={normalizeImpactPeriodValue(input.targetHalfLabel)}
+            options={EVENT_IMPACT_PERIOD_OPTIONS.map((o) => ({ value: o.value, label: `${o.label} (${o.hint})` }))}
             onChange={(v) => setInput({ ...input, targetHalfLabel: v })}
           />
           <label className="block">
@@ -220,6 +230,38 @@ export function EventStudioPrototype() {
         </>
       )}
     </div>
+  );
+}
+
+function SelectField({
+  label,
+  hint,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  hint?: string;
+  value: string;
+  options: Array<{ value: string; label: string }>;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="text-xs text-slate-600">{label}</span>
+      {hint && <span className="ml-1 text-[11px] text-slate-400">({hint})</span>}
+      <select
+        className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-sm"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 
