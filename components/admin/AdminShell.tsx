@@ -94,7 +94,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (loading || !authRole) return;
 
-    authFetch("/api/v1/admin/sessions?includeArchived=1")
+    authFetch("/api/v1/admin/sessions?includeArchived=1", { usePlatformToken: true })
       .then((r) => (r.ok ? r.json() : []))
       .then((list: { id: string; name: string }[]) => {
         setSessions(list);
@@ -132,7 +132,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     setGmTokenReady(false);
     setTokenAttachError(null);
 
-    authFetch(`/api/v1/gm/sessions/${sessionId}/gm-token`, { method: "POST" })
+    authFetch(`/api/v1/gm/sessions/${sessionId}/gm-token`, { method: "POST", usePlatformToken: true })
       .then(async (res) => {
         const data = await res.json();
         if (!res.ok) {

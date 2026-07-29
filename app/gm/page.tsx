@@ -64,6 +64,7 @@ export default function GmPage() {
     setMessage("");
     const res = await authFetch("/api/v1/gm/sessions", {
       method: "POST",
+      usePlatformToken: true,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: sessionName }),
     });

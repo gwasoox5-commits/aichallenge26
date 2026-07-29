@@ -47,14 +47,24 @@ export function AdminOperationsPanel({
   const [loading, setLoading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<SessionRow | null>(null);
   const [deleteReason, setDeleteReason] = useState("");
+  const [sessionsLoadError, setSessionsLoadError] = useState<string | null>(null);
 
   const loadSessions = useCallback(async () => {
-    const res = await authFetch("/api/v1/admin/sessions?includeArchived=1");
+    const res = await authFetch("/api/v1/admin/sessions?includeArchived=1", { usePlatformToken: true });
     if (res.ok) {
       const rows = (await res.json()) as SessionRow[];
       setSessions(rows);
+      setSessionsLoadError(null);
       return rows;
     }
+    const data = (await res.json().catch(() => ({}))) as { error?: string };
+    const msg = data.error ?? `세션 목록 조회 실패 (${res.status})`;
+    setSessions([]);
+    setSessionsLoadError(
+      res.status === 403 || msg.includes("Insufficient role")
+        ? "관리자 권한이 필요합니다. /admin/login 에서 다시 로그인하세요."
+        : msg
+    );
     return null;
   }, []);
 
@@ -91,7 +101,7 @@ export function AdminOperationsPanel({
   }, [loadSessions, onSessionsLoaded]);
 
   useEffect(() => {
-    if (!sessionsLoaded || !activeSessionId) return;
+    if (!sessionsLoaded || !activeSessionId || sessionsLoadError) return;
     if (!sessions.some((s) => s.id === activeSessionId)) {
       onStaleActiveSession?.();
       onActiveSessionRemoved?.();
@@ -102,6 +112,7 @@ export function AdminOperationsPanel({
     activeSessionId,
     onStaleActiveSession,
     onActiveSessionRemoved,
+    sessionsLoadError,
   ]);
 
   useEffect(() => {
@@ -117,7 +128,10 @@ export function AdminOperationsPanel({
 
   const archiveSession = async (sessionId: string) => {
     setLoading(true);
-    const res = await authFetch(`/api/v1/admin/sessions/${sessionId}`, { method: "POST" });
+    const res = await authFetch(`/api/v1/admin/sessions/${sessionId}`, {
+      method: "POST",
+      usePlatformToken: true,
+    });
     if (res.ok) {
       onMessage?.("세션 아카이브 완료");
       await loadSessions();
@@ -132,6 +146,7 @@ export function AdminOperationsPanel({
     setLoading(true);
     const res = await authFetch(`/api/v1/admin/sessions/${sessionId}`, {
       method: "DELETE",
+      usePlatformToken: true,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ reason: "Admin 종료" }),
     });
@@ -150,6 +165,7 @@ export function AdminOperationsPanel({
     setLoading(true);
     const res = await authFetch(`/api/v1/admin/sessions/${deleteTarget.id}/delete`, {
       method: "POST",
+      usePlatformToken: true,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         reason: deleteReason,
@@ -174,6 +190,9 @@ export function AdminOperationsPanel({
     <div className="space-y-6" data-testid="admin-operations-panel">
       <div className="rounded-xl border border-slate-200 bg-white p-6">
         <h2 className="mb-4 font-semibold">Admin — 세션 관리</h2>
+        {sessionsLoadError && (
+          <p className="mb-4 rounded-lg bg-amber-50 px-4 py-2 text-sm text-amber-800">{sessionsLoadError}</p>
+        )}
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="text-slate-600">
@@ -186,7 +205,7 @@ export function AdminOperationsPanel({
               </tr>
             </thead>
             <tbody>
-              {sessions.length === 0 && sessionsLoaded && (
+              {sessions.length === 0 && sessionsLoaded && !sessionsLoadError && (
                 <tr>
                   <td colSpan={5} className="py-8 text-center text-sm text-slate-500">
                     등록된 세션이 없습니다.{" "}

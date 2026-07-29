@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import { clearAccessToken, setAccessToken } from "@/lib/bsp/auth-client";
+import { clearAccessToken, setAccessToken, setPlatformToken } from "@/lib/bsp/auth-client";
 
 function AdminLoginForm() {
   const router = useRouter();
@@ -32,6 +32,7 @@ function AdminLoginForm() {
     const data = await res.json();
     if (res.ok) {
       setAccessToken(data.accessToken);
+      setPlatformToken(data.accessToken);
       router.push("/admin");
     } else {
       setMessage(data.error ?? "로그인에 실패했습니다. 비밀번호를 확인하세요.");

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { authFetch } from "@/lib/bsp/auth-client";
+import { authFetch, getPlatformToken } from "@/lib/bsp/auth-client";
 import { applyGmSessionToken } from "@/lib/bsp/token-client";
 import { useAdminSession } from "@/lib/bsp/admin-session-context";
 import { PILOT_DEFAULTS, formatJoinUrl } from "@/lib/bsp/pilot-config";
@@ -55,8 +55,14 @@ export function SessionWizard() {
   const createSession = async () => {
     setLoading(true);
     setError("");
+    if (!getPlatformToken()) {
+      setError("관리자 권한이 필요합니다. 로그아웃 후 /admin/login 에서 다시 로그인하세요.");
+      setLoading(false);
+      return;
+    }
     const res = await authFetch("/api/v1/gm/sessions", {
       method: "POST",
+      usePlatformToken: true,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name: data.sessionName,
@@ -80,7 +86,12 @@ export function SessionWizard() {
     });
     const body = await res.json();
     if (!res.ok) {
-      setError(body.error ?? "세션 생성 실패");
+      const msg = body.error ?? "세션 생성 실패";
+      setError(
+        msg.includes("Insufficient role")
+          ? "관리자 권한이 만료되었습니다. 로그아웃 후 /admin/login 에서 다시 로그인하세요."
+          : msg
+      );
       setLoading(false);
       return;
     }
