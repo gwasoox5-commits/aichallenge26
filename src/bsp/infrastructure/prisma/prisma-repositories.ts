@@ -567,6 +567,10 @@ class PrismaEventStoreRepository implements EventStoreRepository {
       occurredAt: r.occurredAt,
     }));
   }
+
+  async purgeSession(sessionId: string): Promise<void> {
+    await bspPrisma.bspDomainEvent.deleteMany({ where: { sessionId } });
+  }
 }
 
 export function createPrismaRepositories(): BspRepositories {
