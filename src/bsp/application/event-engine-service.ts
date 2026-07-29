@@ -23,13 +23,20 @@ import {
   EconomyEngineError,
 } from "../domain/economy/economy-engine";
 import { ECONOMY_VARIABLE_LABELS } from "../domain/economy/economy-variable-meta";
-import { buildDashboardCards, patchToEffects } from "../domain/economy/economy-dashboard-meta";
+import {
+  buildLearnerGameplayMetrics,
+  buildLearnerIndexChanges,
+  buildLearnerPeriodImpact,
+  hasVisibleLearnerImpact,
+  type LearnerEventImpact,
+} from "../domain/economy/learner-economy-impact";
 import {
   describeEconomyDelta,
   describeRecentChanges,
   describeScheduledChange,
 } from "../domain/economy/economy-descriptions";
 import { computePreviewImpact } from "../domain/economy/economy-preview-impact";
+import { buildDashboardCards, patchToEffects } from "../domain/economy/economy-dashboard-meta";
 import type { EconomyValues } from "../domain/types";
 import type { GmActor } from "../domain/gm/audit-types";
 import { GM_AUDIT_ACTIONS } from "../domain/gm/audit-types";
@@ -423,6 +430,25 @@ export class EventEngineService {
       describeScheduledChange(describeImpact(p.effects), p.applyTiming)
     );
 
+    const patches = await this.simulationEvents.listPatches(sessionId);
+    const periodImpact = buildLearnerPeriodImpact(periodOpen, session.economy);
+    const eventImpacts: LearnerEventImpact[] = active.flatMap((e) => {
+      const patch = patches.find((p) => p.simulationEventId === e.id && p.source === "EVENT_FIRE");
+      if (!patch) return [];
+      const indexChanges = buildLearnerIndexChanges(patch.valuesBefore, patch.valuesAfter);
+      const gameplay = buildLearnerGameplayMetrics(patch.valuesBefore, patch.valuesAfter);
+      if (!hasVisibleLearnerImpact(indexChanges, gameplay)) return [];
+      return [
+        {
+          eventId: e.id,
+          title: e.title,
+          applyTiming: e.applyTiming,
+          indexChanges,
+          gameplay,
+        },
+      ];
+    });
+
     return {
       activeEvents: active.map((e) => ({
         id: e.id,
@@ -439,6 +465,8 @@ export class EventEngineService {
       environmentChangedBadge: badge,
       economy: session.economy,
       periodOpenEconomy: periodOpen,
+      periodImpact,
+      eventImpacts,
     };
   }
 

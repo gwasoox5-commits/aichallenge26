@@ -116,6 +116,10 @@ describe("P4 Event Engine — E2E Scenarios", () => {
     expect(before).toBe(0);
     const env = await engine.getCeoEnvironment(session.id);
     expect(env.environmentChangedBadge).toBe(true);
+    expect(env.eventImpacts.length).toBeGreaterThan(0);
+    expect(env.eventImpacts[0]?.gameplay.materialUnitPriceManwon.after).toBeGreaterThan(
+      env.eventImpacts[0]?.gameplay.materialUnitPriceManwon.before ?? 0
+    );
   });
 
   it("Scenario 7: Duplicate active event rejected", async () => {

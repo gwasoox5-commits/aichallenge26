@@ -6,6 +6,11 @@ import {
   LEARNER_APPLY_TIMING_HINTS,
   sanitizeLearnerEventDescription,
 } from "@/lib/bsp/learner-event-copy";
+import { CeoEconomyImpactPanel } from "@/components/bsp/CeoEconomyImpactPanel";
+import type {
+  LearnerEventImpact,
+  LearnerPeriodImpact,
+} from "@/src/bsp/domain/economy/learner-economy-impact";
 
 type EnvironmentDto = {
   activeEvents: Array<{
@@ -26,6 +31,8 @@ type EnvironmentDto = {
   recentChanges?: string[];
   scheduledChanges?: string[];
   environmentChangedBadge: boolean;
+  periodImpact?: LearnerPeriodImpact;
+  eventImpacts?: LearnerEventImpact[];
 };
 
 type Props = {
@@ -68,6 +75,10 @@ export function CeoEventFeed({ companyId, syncToken = 0 }: Props) {
             확인
           </button>
         </div>
+      )}
+
+      {env.periodImpact && env.eventImpacts && (
+        <CeoEconomyImpactPanel periodImpact={env.periodImpact} eventImpacts={env.eventImpacts} />
       )}
 
       {(env.recentChanges?.length ?? 0) > 0 && (

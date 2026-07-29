@@ -1,4 +1,5 @@
 import type { BspGameStep, BspHalf, BspStepPhase, EconomyValues } from "../types";
+import type { LearnerEventImpact, LearnerPeriodImpact } from "../economy/learner-economy-impact";
 
 export type EventCategory =
   | "환율"
@@ -233,4 +234,7 @@ export interface CeoEnvironmentDto {
   environmentChangedBadge: boolean;
   economy: EconomyValues;
   periodOpenEconomy: EconomyValues;
+  periodImpact: LearnerPeriodImpact;
+  /** 활성 이벤트별 발화 시점 before→after (CEO 현황판) */
+  eventImpacts: LearnerEventImpact[];
 }
