@@ -24,6 +24,16 @@ interface Props {
 
 type ApplyTiming = "IMMEDIATE" | "NEXT_STEP" | "NEXT_HALF";
 
+async function readApiError(res: Response, fallback: string): Promise<string> {
+  try {
+    const data = (await res.json()) as { error?: string; message?: string; code?: string };
+    const detail = data.error ?? data.message ?? fallback;
+    return data.code ? `${detail} (${data.code})` : detail;
+  } catch {
+    return `${fallback} (HTTP ${res.status})`;
+  }
+}
+
 export function PublishWorkflowPanel({
   sessionId,
   previewId,
@@ -88,7 +98,7 @@ export function PublishWorkflowPanel({
           workflow: "initiate",
         }),
       });
-      if (!initRes.ok) throw new Error("Initiate failed");
+      if (!initRes.ok) throw new Error(await readApiError(initRes, "발행 준비(initiate) 실패"));
       const { record: initRecord } = (await initRes.json()) as { record: IntelligencePublishRecord };
       setRecord(initRecord);
       await checkConflicts(initRecord.publishId);
@@ -117,8 +127,7 @@ export function PublishWorkflowPanel({
         }),
       });
       if (!res.ok) {
-        const err = (await res.json()) as { error?: string };
-        throw new Error(err.error ?? "Publish failed");
+        throw new Error(await readApiError(res, "발행 실패"));
       }
       const data = (await res.json()) as { result: PublishResult; record: IntelligencePublishRecord };
       setRecord(data.record);
