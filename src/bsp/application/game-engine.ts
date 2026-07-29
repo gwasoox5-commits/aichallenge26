@@ -3,6 +3,7 @@ import { ALL_GAME_STEPS, NEXT_STEP_PHASE, PHASE_TO_STEP, PREV_STEP_PHASE, STEP_T
 import { getNextPeriod, isSessionFinalPeriod } from "../domain/period/period-calendar";
 import type { CreateSessionOptions } from "@/lib/bsp/session-create-options";
 import { mapWizardPresetId, normalizeMaxPeriodIndex, normalizeStepDurationSec } from "@/lib/bsp/session-create-options";
+import { purgeAuxiliarySessionData } from "@/lib/bsp/purge-auxiliary-session-data";
 import { prepareOperationalForNextHalf } from "../domain/period/carry-forward";
 import type {
   BspRepositories,
@@ -1229,6 +1230,22 @@ export class GameEngine {
     return { sessionId, archived: true };
   }
 
+  async deleteAdminSession(sessionId: string, actor: GmActor) {
+    const session = await this.requireSession(sessionId);
+    await this.logPlatformAudit(actor, GM_AUDIT_ACTIONS.SESSION_DELETE, {
+      deletedSessionId: sessionId,
+      sessionName: session.name,
+      joinCode: session.joinCode,
+      reason: actor.reason,
+    });
+    await this.repos.simulationEvents.purgeSession(sessionId);
+    await this.repos.events.purgeSession(sessionId);
+    purgeAuxiliarySessionData(sessionId);
+    await this.repos.audit.purgeSession(sessionId);
+    await this.repos.session.deleteSession(sessionId);
+    return { sessionId, deleted: true, sessionName: session.name };
+  }
+
   async endAdminSession(sessionId: string, actor: GmActor) {
     const session = await this.requireSession(sessionId);
     if (session.sessionPhase === "FINISHED") {
@@ -1279,7 +1296,7 @@ export class GameEngine {
 
   async logPlatformAudit(
     actor: GmActor,
-    action: typeof GM_AUDIT_ACTIONS.LOGIN,
+    action: (typeof GM_AUDIT_ACTIONS)[keyof typeof GM_AUDIT_ACTIONS],
     payload: Record<string, unknown> = {}
   ) {
     return this.audit.log(undefined, actor, action, payload);

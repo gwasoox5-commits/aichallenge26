@@ -45,7 +45,7 @@ export function assertDemoBootstrapAllowed(): { ok: true } | { ok: false; messag
   return { ok: true };
 }
 
-const DEV_ADMIN_PASSWORD = "bsp-admin-dev";
+const DEV_ADMIN_PASSWORD = "admin10193";
 
 export function getAdminPasswordOrThrow(): string {
   const password = process.env.BSP_ADMIN_PASSWORD;

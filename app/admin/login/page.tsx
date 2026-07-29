@@ -65,7 +65,7 @@ function AdminLoginForm() {
         </label>
 
         {process.env.NODE_ENV === "development" && (
-          <p className="mt-2 text-xs text-slate-500">개발 기본 비밀번호: bsp-admin-dev</p>
+          <p className="mt-2 text-xs text-slate-500">개발 기본 비밀번호: admin10193 (또는 .env.local의 BSP_ADMIN_PASSWORD)</p>
         )}
 
         <button

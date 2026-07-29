@@ -1,6 +1,6 @@
 import { test, expect, type Page, type BrowserContext } from "@playwright/test";
 
-const ADMIN_PASSWORD = process.env.BSP_ADMIN_PASSWORD ?? "bsp-admin-dev";
+const ADMIN_PASSWORD = process.env.BSP_ADMIN_PASSWORD ?? "admin10193";
 
 async function adminLogin(page: Page) {
   await page.goto("/admin/login");

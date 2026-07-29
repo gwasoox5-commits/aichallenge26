@@ -29,7 +29,7 @@ export default defineConfig({
       NODE_ENV: "development",
       BSP_USE_MEMORY: "1",
       BSP_AUTH_SECRET: process.env.BSP_AUTH_SECRET ?? "dev-bsp-auth-secret-min-32-chars!!",
-      BSP_ADMIN_PASSWORD: process.env.BSP_ADMIN_PASSWORD ?? "bsp-admin-dev",
+      BSP_ADMIN_PASSWORD: process.env.BSP_ADMIN_PASSWORD ?? "admin10193",
       BSP_DEMO_MODE: "false",
       BSP_ALLOW_FIXTURE: "true",
       PORT,

@@ -83,6 +83,15 @@ export class RealtimeHub {
     this.wss = null;
   }
 
+  disconnectSession(sessionId: string) {
+    const clients = this.bySession.get(sessionId);
+    if (!clients) return;
+    for (const conn of [...clients]) {
+      conn.ws.close(4003, "Session deleted");
+      this.removeClient(conn);
+    }
+  }
+
   broadcast(sessionId: string, event: Omit<RealtimeEventEnvelope, "eventId">) {
     const envelope: RealtimeEventEnvelope = {
       ...event,

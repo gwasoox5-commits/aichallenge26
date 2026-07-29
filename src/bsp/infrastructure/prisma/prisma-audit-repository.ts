@@ -82,6 +82,10 @@ export class PrismaAuditLogRepository implements AuditLogRepository {
 
     return { entries: rows.map(toEntry), total };
   }
+
+  async purgeSession(_sessionId: string): Promise<void> {
+    // Session delete cascades BspAuditLog rows in PostgreSQL.
+  }
 }
 
 export function createPrismaAuditRepository(): AuditLogRepository {

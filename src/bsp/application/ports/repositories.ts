@@ -170,6 +170,7 @@ export interface SessionRepository {
   findByJoinCode(joinCode: string): Promise<SessionAggregate | null>;
   listAll(options?: { includeArchived?: boolean }): Promise<SessionListItem[]>;
   archiveSession(sessionId: string): Promise<void>;
+  deleteSession(sessionId: string): Promise<void>;
   advanceStepPhase(sessionId: string, stepPhase: BspStepPhase): Promise<void>;
   advancePeriod(
     sessionId: string,
@@ -203,11 +204,13 @@ export interface AuditLogRepository {
   append(entry: Omit<GmAuditLogEntry, "id">): Promise<GmAuditLogEntry>;
   listBySession(sessionId: string, limit?: number): Promise<GmAuditLogEntry[]>;
   search(query: AuditSearchQuery): Promise<{ entries: GmAuditLogEntry[]; total: number }>;
+  purgeSession(sessionId: string): Promise<void>;
 }
 
 export interface EventStoreRepository {
   append(event: Omit<DomainEventRecord, "id" | "sequence">): Promise<DomainEventRecord>;
   listBySession(sessionId: string): Promise<DomainEventRecord[]>;
+  purgeSession(sessionId: string): Promise<void>;
 }
 
 export interface SimulationEventRepository {
@@ -228,6 +231,7 @@ export interface SimulationEventRepository {
   listPendingPatches(sessionId: string): Promise<import("../../domain/events/event-types").PendingManualPatch[]>;
   removePendingPatch(sessionId: string, patchId: string): Promise<void>;
   clearPendingPatches(sessionId: string): Promise<void>;
+  purgeSession(sessionId: string): Promise<void>;
 }
 
 export interface BspRepositories {

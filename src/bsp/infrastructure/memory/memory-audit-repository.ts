@@ -41,6 +41,10 @@ export class MemoryAuditLogRepository implements AuditLogRepository {
     const limit = query.limit ?? 50;
     return { entries: filtered.slice(offset, offset + limit), total };
   }
+
+  async purgeSession(sessionId: string): Promise<void> {
+    auditState().logs = auditState().logs.filter((l) => l.sessionId !== sessionId);
+  }
 }
 
 export function resetAuditState() {

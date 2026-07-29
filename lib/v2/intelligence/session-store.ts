@@ -78,6 +78,12 @@ export class IntelligenceSessionStore {
   getCachedArticle(sessionId: string, articleId: string): NewsArticle | undefined {
     return this.snapshot.articleCache?.[sessionId]?.[articleId];
   }
+
+  purgeSession(sessionId: string) {
+    this.snapshot.previews = this.snapshot.previews.filter((p) => p.sessionId !== sessionId);
+    if (this.snapshot.articleCache) delete this.snapshot.articleCache[sessionId];
+    if (this.persist) persistSessions(this.snapshot);
+  }
 }
 
 const globalRef = globalThis as unknown as { v2IntelligenceSessionStore?: IntelligenceSessionStore };

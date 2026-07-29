@@ -118,6 +118,10 @@ export class PrismaSimulationEventRepository implements SimulationEventRepositor
   async clearPendingPatches(sessionId: string): Promise<void> {
     return this.memory.clearPendingPatches(sessionId);
   }
+
+  async purgeSession(sessionId: string): Promise<void> {
+    return this.memory.purgeSession(sessionId);
+  }
 }
 
 export function createPrismaSimulationEventRepository(): SimulationEventRepository {

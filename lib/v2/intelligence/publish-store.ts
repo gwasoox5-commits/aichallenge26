@@ -127,6 +127,17 @@ export class IntelligencePublishStore {
     this.snapshot = snapshot;
     this.save();
   }
+
+  purgeSession(sessionId: string) {
+    const publishIds = new Set(
+      this.snapshot.records.filter((r) => r.sessionId === sessionId).map((r) => r.publishId)
+    );
+    this.snapshot.records = this.snapshot.records.filter((r) => r.sessionId !== sessionId);
+    this.snapshot.audits = this.snapshot.audits.filter((a) => !publishIds.has(a.publishId));
+    this.snapshot.timelines = this.snapshot.timelines.filter((t) => !publishIds.has(t.publishId));
+    this.snapshot.eventChains = this.snapshot.eventChains.filter((c) => c.sessionId !== sessionId);
+    this.save();
+  }
 }
 
 const globalRef = globalThis as unknown as { v2IntelligencePublishStore?: IntelligencePublishStore };

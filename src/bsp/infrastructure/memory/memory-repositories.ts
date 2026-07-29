@@ -160,6 +160,20 @@ class MemorySessionRepository implements SessionRepository {
     s.sessionMeta.set(sessionId, meta);
   }
 
+  async deleteSession(sessionId: string): Promise<void> {
+    const s = state();
+    const session = s.sessions.get(sessionId);
+    if (!session) throw new Error("Session not found");
+    s.sessions.delete(sessionId);
+    s.joinCodes.delete(session.joinCode);
+    if (s.demoSessionId === sessionId) s.demoSessionId = null;
+    for (const [companyId, company] of s.companies) {
+      if (company.sessionId === sessionId) s.companies.delete(companyId);
+    }
+    s.events = s.events.filter((e) => e.sessionId !== sessionId);
+    s.sessionMeta.delete(sessionId);
+  }
+
   async findById(sessionId: string): Promise<SessionAggregate | null> {
     return state().sessions.get(sessionId) ?? null;
   }
@@ -341,6 +355,11 @@ class MemoryEventStoreRepository implements EventStoreRepository {
 
   async listBySession(sessionId: string): Promise<DomainEventRecord[]> {
     return state().events.filter((e) => e.sessionId === sessionId);
+  }
+
+  async purgeSession(sessionId: string): Promise<void> {
+    const s = state();
+    s.events = s.events.filter((e) => e.sessionId !== sessionId);
   }
 }
 

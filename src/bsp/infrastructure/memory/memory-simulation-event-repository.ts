@@ -126,6 +126,17 @@ export class MemorySimulationEventRepository implements SimulationEventRepositor
     const s = state();
     s.pendingPatches = s.pendingPatches.filter((p) => p.sessionId !== sessionId);
   }
+
+  async purgeSession(sessionId: string): Promise<void> {
+    const s = state();
+    s.events = s.events.filter((e) => e.sessionId !== sessionId);
+    s.patches = s.patches.filter((p) => p.sessionId !== sessionId);
+    s.pendingPatches = s.pendingPatches.filter((p) => p.sessionId !== sessionId);
+    s.history = s.history.filter((h) => h.sessionId !== sessionId);
+    s.periodOpenEconomy.delete(sessionId);
+    s.ceoBadge.delete(sessionId);
+    s.patchSequence.delete(sessionId);
+  }
 }
 
 export function ensureSessionPeriodOpen(sessionId: string, values?: EconomyValues) {

@@ -48,6 +48,16 @@ export class WorldStore {
     return this.snapshot.sessions.find((s) => s.sessionId === sessionId);
   }
 
+  deleteSession(sessionId: string): boolean {
+    const before = this.snapshot.sessions.length;
+    this.snapshot.sessions = this.snapshot.sessions.filter((s) => s.sessionId !== sessionId);
+    if (this.snapshot.sessions.length < before) {
+      this.save();
+      return true;
+    }
+    return false;
+  }
+
   saveSession(record: WorldSessionRecord) {
     const idx = this.snapshot.sessions.findIndex((s) => s.sessionId === record.sessionId);
     if (idx >= 0) this.snapshot.sessions[idx] = record;

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { authFetch } from "@/lib/bsp/auth-client";
 import type { GmAuditLogEntry } from "@/src/bsp/domain/gm/audit-types";
 import { GmAuditLogPanel } from "./GmAuditLogPanel";
+import { GmConfirmDialog } from "./GmConfirmDialog";
 
 type SessionRow = {
   id: string;
@@ -31,6 +32,8 @@ export function AdminOperationsPanel({ onSelectSession, onMessage }: Props) {
   const [economyHistory, setEconomyHistory] = useState<unknown[]>([]);
   const [errors, setErrors] = useState<GmAuditLogEntry[]>([]);
   const [loading, setLoading] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<SessionRow | null>(null);
+  const [deleteReason, setDeleteReason] = useState("");
 
   const loadSessions = useCallback(async () => {
     const res = await authFetch("/api/v1/admin/sessions?includeArchived=1");
@@ -106,6 +109,30 @@ export function AdminOperationsPanel({ onSelectSession, onMessage }: Props) {
     setLoading(false);
   };
 
+  const deleteSession = async () => {
+    if (!deleteTarget) return;
+    setLoading(true);
+    const res = await authFetch(`/api/v1/admin/sessions/${deleteTarget.id}/delete`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        reason: deleteReason,
+        confirmSessionId: deleteTarget.id,
+      }),
+    });
+    if (res.ok) {
+      onMessage?.(`세션 "${deleteTarget.name}" 삭제 완료`);
+      if (selectedSession === deleteTarget.id) setSelectedSession("");
+      setDeleteTarget(null);
+      setDeleteReason("");
+      await loadSessions();
+    } else {
+      const data = await res.json();
+      onMessage?.(data.error ?? "삭제 실패");
+    }
+    setLoading(false);
+  };
+
   return (
     <div className="space-y-6" data-testid="admin-operations-panel">
       <div className="rounded-xl border border-slate-200 bg-white p-6">
@@ -161,6 +188,14 @@ export function AdminOperationsPanel({ onSelectSession, onMessage }: Props) {
                         className="rounded bg-rose-900/60 px-2 py-1 text-xs hover:bg-rose-800 disabled:opacity-50"
                       >
                         종료
+                      </button>
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => setDeleteTarget(s)}
+                        className="rounded bg-rose-600 px-2 py-1 text-xs text-white hover:bg-rose-500 disabled:opacity-50"
+                      >
+                        삭제
                       </button>
                     </div>
                   </td>
@@ -238,6 +273,22 @@ export function AdminOperationsPanel({ onSelectSession, onMessage }: Props) {
           </div>
         </>
       )}
+
+      <GmConfirmDialog
+        open={!!deleteTarget}
+        title={`세션 영구 삭제: ${deleteTarget?.name ?? ""}`}
+        description="팀 데이터, 경제 패치, World/Intelligence 기록이 모두 삭제됩니다. 복구할 수 없습니다."
+        confirmLabel="영구 삭제"
+        confirmTone="danger"
+        reason={deleteReason}
+        onReasonChange={setDeleteReason}
+        onConfirm={deleteSession}
+        onCancel={() => {
+          setDeleteTarget(null);
+          setDeleteReason("");
+        }}
+        loading={loading}
+      />
     </div>
   );
 }

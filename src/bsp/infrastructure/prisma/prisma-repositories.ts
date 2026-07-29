@@ -199,6 +199,11 @@ class PrismaSessionRepository implements SessionRepository {
     });
   }
 
+  async deleteSession(sessionId: string): Promise<void> {
+    await bspPrisma.bspDomainEvent.deleteMany({ where: { sessionId } });
+    await bspPrisma.bspGameSession.delete({ where: { id: sessionId } });
+  }
+
   async advanceStepPhase(sessionId: string, stepPhase: BspStepPhase): Promise<void> {
     await bspPrisma.bspGameProgress.update({
       where: { sessionId },

@@ -139,6 +139,22 @@ export class DraftStore {
     this.snapshot = structuredClone(snapshot);
     this.save();
   }
+
+  purgeSession(sessionId: string) {
+    const eventIds = new Set(
+      this.snapshot.drafts
+        .filter((d) => d.sessionId === sessionId)
+        .map((d) => d.simulationEventId)
+        .filter((id): id is string => Boolean(id))
+    );
+    this.snapshot.drafts = this.snapshot.drafts.filter((d) => d.sessionId !== sessionId);
+    this.snapshot.news = this.snapshot.news.filter((n) => n.sessionId !== sessionId);
+    this.snapshot.acknowledgements = this.snapshot.acknowledgements.filter((a) => a.sessionId !== sessionId);
+    for (const eventId of Object.keys(this.snapshot.pendingNewsByEventId)) {
+      if (eventIds.has(eventId)) delete this.snapshot.pendingNewsByEventId[eventId];
+    }
+    this.save();
+  }
 }
 
 const globalStore = globalThis as unknown as { v2DraftStore?: DraftStore };
