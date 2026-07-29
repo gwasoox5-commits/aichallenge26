@@ -61,7 +61,7 @@ export function StepMaterialForm({
           >
             {REGION_CATALOG.map((r) => (
               <option key={r.code} value={r.code}>
-                {r.displayName} (단가 {r.materialUnitPriceManwon}만)
+                {r.displayName}
               </option>
             ))}
           </select>
