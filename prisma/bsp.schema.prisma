@@ -96,7 +96,7 @@ model BspGameProgress {
   stepStartedAt DateTime     @default(now())
 
   session BspGameSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  period  BspFiscalPeriod @relation(fields: [periodId], references: [id])
+  period  BspFiscalPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
 }
 
 model BspFiscalPeriod {
@@ -188,7 +188,7 @@ model BspDecision {
   journalEntryIds      String[]          @default([])
 
   company BspCompany    @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  period  BspFiscalPeriod @relation(fields: [periodId], references: [id])
+  period  BspFiscalPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
 
   @@unique([companyId, periodId, step])
   @@index([companyId])

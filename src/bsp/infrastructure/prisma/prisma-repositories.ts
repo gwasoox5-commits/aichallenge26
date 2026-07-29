@@ -200,8 +200,37 @@ class PrismaSessionRepository implements SessionRepository {
   }
 
   async deleteSession(sessionId: string): Promise<void> {
-    await bspPrisma.bspDomainEvent.deleteMany({ where: { sessionId } });
-    await bspPrisma.bspGameSession.delete({ where: { id: sessionId } });
+    await bspPrisma.$transaction(async (tx) => {
+      const companyIds = (
+        await tx.bspCompany.findMany({ where: { sessionId }, select: { id: true } })
+      ).map((c) => c.id);
+
+      if (companyIds.length > 0) {
+        const journalIds = (
+          await tx.bspJournalEntry.findMany({
+            where: { companyId: { in: companyIds } },
+            select: { id: true },
+          })
+        ).map((j) => j.id);
+        if (journalIds.length > 0) {
+          await tx.bspJournalLine.deleteMany({ where: { journalEntryId: { in: journalIds } } });
+        }
+        await tx.bspJournalEntry.deleteMany({ where: { companyId: { in: companyIds } } });
+        await tx.bspDecision.deleteMany({ where: { companyId: { in: companyIds } } });
+        await tx.bspLedgerBalance.deleteMany({ where: { companyId: { in: companyIds } } });
+        await tx.bspCompanyOperational.deleteMany({ where: { companyId: { in: companyIds } } });
+        await tx.bspCompany.deleteMany({ where: { sessionId } });
+      }
+
+      await tx.bspGameProgress.deleteMany({ where: { sessionId } });
+      await tx.bspFiscalPeriod.deleteMany({ where: { sessionId } });
+      await tx.bspDomainEvent.deleteMany({ where: { sessionId } });
+      await tx.bspEconomicLiveState.deleteMany({ where: { sessionId } });
+      await tx.bspEconomicPatch.deleteMany({ where: { sessionId } });
+      await tx.bspEconomyPresetApply.deleteMany({ where: { sessionId } });
+      await tx.bspAuditLog.deleteMany({ where: { sessionId } });
+      await tx.bspGameSession.delete({ where: { id: sessionId } });
+    });
   }
 
   async advanceStepPhase(sessionId: string, stepPhase: BspStepPhase): Promise<void> {
