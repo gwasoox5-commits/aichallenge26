@@ -20,7 +20,7 @@ import {
   demoSearch,
   DEMO_ARTICLES,
 } from "@/lib/v2/intelligence/client-fixtures";
-import { buildClientPreviewSnapshot } from "@/lib/v2/intelligence/preview-sync";
+import { buildClientPreviewSnapshot } from "@/lib/v2/intelligence/preview-snapshot";
 import { NewsDiscoveryPanel } from "./NewsDiscoveryPanel";
 import { AnalysisPanel } from "./AnalysisPanel";
 import { ScenarioComparePanel } from "./ScenarioComparePanel";
