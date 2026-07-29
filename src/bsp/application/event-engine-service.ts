@@ -24,9 +24,9 @@ import {
 } from "../domain/economy/economy-engine";
 import { ECONOMY_VARIABLE_LABELS } from "../domain/economy/economy-variable-meta";
 import {
-  buildLearnerGameplayMetrics,
   buildLearnerIndexChanges,
   buildLearnerPeriodImpact,
+  buildLearnerGameplayMetricsAllRegions,
   hasVisibleLearnerImpact,
   type LearnerEventImpact,
 } from "../domain/economy/learner-economy-impact";
@@ -436,15 +436,15 @@ export class EventEngineService {
       const patch = patches.find((p) => p.simulationEventId === e.id && p.source === "EVENT_FIRE");
       if (!patch) return [];
       const indexChanges = buildLearnerIndexChanges(patch.valuesBefore, patch.valuesAfter);
-      const gameplay = buildLearnerGameplayMetrics(patch.valuesBefore, patch.valuesAfter);
-      if (!hasVisibleLearnerImpact(indexChanges, gameplay)) return [];
+      const regions = buildLearnerGameplayMetricsAllRegions(patch.valuesBefore, patch.valuesAfter);
+      if (!hasVisibleLearnerImpact(indexChanges, regions)) return [];
       return [
         {
           eventId: e.id,
           title: e.title,
           applyTiming: e.applyTiming,
           indexChanges,
-          gameplay,
+          regions,
         },
       ];
     });

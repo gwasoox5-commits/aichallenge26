@@ -1,6 +1,6 @@
 import type { EconomyValues } from "../types";
 import type { RegionCode } from "../regions/region-catalog";
-import { getRegion } from "../regions/region-catalog";
+import { getRegion, REGION_CATALOG } from "../regions/region-catalog";
 import { computeChanges } from "./economy-engine";
 import { effectiveMaterialUnitPriceManwon } from "./material-pricing";
 import { effectiveSaleLimit } from "./sales-pricing";
@@ -33,7 +33,7 @@ export interface LearnerGameplayMetrics {
 
 export interface LearnerPeriodImpact {
   indexChanges: LearnerEconomyKeyChange[];
-  gameplay: LearnerGameplayMetrics;
+  regions: LearnerGameplayMetrics[];
 }
 
 export interface LearnerEventImpact {
@@ -41,7 +41,7 @@ export interface LearnerEventImpact {
   title: string;
   applyTiming: string;
   indexChanges: LearnerEconomyKeyChange[];
-  gameplay: LearnerGameplayMetrics;
+  regions: LearnerGameplayMetrics[];
 }
 
 export function buildLearnerIndexChanges(
@@ -73,23 +73,33 @@ export function buildLearnerGameplayMetrics(
   };
 }
 
+export function buildLearnerGameplayMetricsAllRegions(
+  valuesBefore: EconomyValues,
+  valuesAfter: EconomyValues
+): LearnerGameplayMetrics[] {
+  return REGION_CATALOG.map((region) =>
+    buildLearnerGameplayMetrics(valuesBefore, valuesAfter, region.code)
+  );
+}
+
 export function buildLearnerPeriodImpact(
   periodOpen: EconomyValues,
   live: EconomyValues
 ): LearnerPeriodImpact {
   return {
     indexChanges: buildLearnerIndexChanges(periodOpen, live),
-    gameplay: buildLearnerGameplayMetrics(periodOpen, live),
+    regions: buildLearnerGameplayMetricsAllRegions(periodOpen, live),
   };
 }
 
 export function hasVisibleLearnerImpact(
   indexChanges: LearnerEconomyKeyChange[],
-  gameplay: LearnerGameplayMetrics
+  regions: LearnerGameplayMetrics[]
 ): boolean {
   if (indexChanges.length > 0) return true;
-  return (
-    gameplay.materialUnitPriceManwon.before !== gameplay.materialUnitPriceManwon.after ||
-    gameplay.saleLimit.before !== gameplay.saleLimit.after
+  return regions.some(
+    (r) =>
+      r.materialUnitPriceManwon.before !== r.materialUnitPriceManwon.after ||
+      r.saleLimit.before !== r.saleLimit.after
   );
 }

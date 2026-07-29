@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildLearnerPeriodImpact,
   buildLearnerGameplayMetrics,
+  buildLearnerGameplayMetricsAllRegions,
   buildLearnerIndexChanges,
 } from "@/src/bsp/domain/economy/learner-economy-impact";
 import { applyEffects } from "@/src/bsp/domain/economy/economy-engine";
@@ -38,8 +39,16 @@ describe("learner-economy-impact", () => {
     ]);
     const impact = buildLearnerPeriodImpact(periodOpen, live);
     expect(impact.indexChanges[0]?.key).toBe("rawMaterialIndex");
-    expect(impact.gameplay.materialUnitPriceManwon.after).toBeGreaterThan(
-      impact.gameplay.materialUnitPriceManwon.before
+    expect(impact.regions.find((r) => r.regionCode === "ASIA")?.materialUnitPriceManwon.after).toBeGreaterThan(
+      impact.regions.find((r) => r.regionCode === "ASIA")?.materialUnitPriceManwon.before ?? 0
     );
+  });
+
+  it("buildLearnerGameplayMetricsAllRegions returns all seven regions", () => {
+    const before = { ...DEFAULT_ECONOMY_VALUES };
+    const after = applyEffects(before, [{ key: "tariffRate", mode: "DELTA", value: 5 }]);
+    const regions = buildLearnerGameplayMetricsAllRegions(before, after);
+    expect(regions).toHaveLength(7);
+    expect(regions.every((r) => r.materialUnitPriceManwon.after >= r.materialUnitPriceManwon.before)).toBe(true);
   });
 });

@@ -117,8 +117,8 @@ describe("P4 Event Engine — E2E Scenarios", () => {
     const env = await engine.getCeoEnvironment(session.id);
     expect(env.environmentChangedBadge).toBe(true);
     expect(env.eventImpacts.length).toBeGreaterThan(0);
-    expect(env.eventImpacts[0]?.gameplay.materialUnitPriceManwon.after).toBeGreaterThan(
-      env.eventImpacts[0]?.gameplay.materialUnitPriceManwon.before ?? 0
+    expect(env.eventImpacts[0]?.regions[0]?.materialUnitPriceManwon.after).toBeGreaterThan(
+      env.eventImpacts[0]?.regions[0]?.materialUnitPriceManwon.before ?? 0
     );
   });
 
