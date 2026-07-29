@@ -12,7 +12,7 @@ import { CeoCommandDashboard } from "@/components/bsp/CeoCommandDashboard";
 import { CeoEventFeed } from "@/components/bsp/CeoEventFeed";
 import { DashboardPanel } from "@/components/bsp/DashboardPanel";
 import { StepEducationPanel, getStepEducation } from "@/components/bsp/StepEducationPanel";
-import { FinancialStatementsPanel } from "@/components/bsp/FinancialStatementsPanel";
+import { BalanceSheetPanel, ProfitLossPanel } from "@/components/bsp/FinancialStatementsPanel";
 import { JournalSummaryPanel, type JournalView } from "@/components/bsp/JournalSummaryPanel";
 import { StepFacilityForm } from "@/components/bsp/StepFacilityForm";
 import { StepFinanceForm } from "@/components/bsp/StepFinanceForm";
@@ -81,7 +81,7 @@ export default function PlayPage() {
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
-  const [financials, setFinancials] = useState<Parameters<typeof FinancialStatementsPanel>[0]["financials"]>(null);
+  const [financials, setFinancials] = useState<Parameters<typeof ProfitLossPanel>[0]["financials"]>(null);
   const [journals, setJournals] = useState<JournalView[]>([]);
   const [message, setMessage] = useState("");
   const [validation, setValidation] = useState<ValidationResult | null>(null);
@@ -446,7 +446,8 @@ export default function PlayPage() {
         sessionPhase={dashboard?.sessionPhase}
       />
 
-      <main className="mx-auto grid max-w-6xl gap-6 px-6 py-8 lg:grid-cols-[1fr_340px]">
+      <main className="mx-auto max-w-6xl px-6 py-8">
+        <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
         <section className="space-y-6">
           {!companyId ? (
             <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
@@ -641,9 +642,19 @@ export default function PlayPage() {
             />
           )}
           {companyId && <CeoEventFeed companyId={companyId} syncToken={envSyncToken} />}
-          <DashboardPanel dashboard={dashboard} />
-          <FinancialStatementsPanel financials={financials} />
         </aside>
+        </div>
+
+        {companyId && (
+          <div
+            className="mt-6 grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3"
+            data-testid="ceo-metrics-row"
+          >
+            <DashboardPanel dashboard={dashboard} />
+            <ProfitLossPanel financials={financials} />
+            <BalanceSheetPanel financials={financials} />
+          </div>
+        )}
       </main>
     </div>
   );

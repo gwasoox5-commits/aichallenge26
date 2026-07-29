@@ -96,9 +96,9 @@ export function DashboardPanel({ dashboard }: { dashboard: DashboardView | null 
   }
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4">
-      <h3 className="mb-3 font-semibold">Dashboard</h3>
-      <dl className="space-y-2 text-sm">
+    <div className="flex h-full flex-col rounded-xl border border-slate-200 bg-white p-4">
+      <h3 className="mb-3 shrink-0 font-semibold">Dashboard</h3>
+      <dl className="min-h-0 flex-1 space-y-2 overflow-y-auto text-sm">
         {rows.map(([label, value]) => (
           <div key={label} className="flex justify-between gap-4">
             <dt className="text-slate-600">{label}</dt>
