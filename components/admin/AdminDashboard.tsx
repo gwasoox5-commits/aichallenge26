@@ -7,6 +7,8 @@ import { GmConfirmDialog } from "@/components/gm/GmConfirmDialog";
 import { GmTeamTable } from "@/components/gm/GmTeamTable";
 import type { GmDeskDto } from "@/src/bsp/domain/types";
 import { formatPeriodLabel, formatStepPhaseLabel } from "@/src/bsp/domain/period/display-labels";
+import { formatStepTime } from "@/lib/bsp/step-timer";
+import { useStepCountdown } from "@/lib/bsp/use-step-countdown";
 
 type Props = {
   sessionId: string;
@@ -33,6 +35,12 @@ export function AdminDashboard({ sessionId, desk, onRefresh, onMessage, message 
   const [loading, setLoading] = useState(false);
   const [pending, setPending] = useState<PendingAction | null>(null);
   const [reason, setReason] = useState("");
+  const remainingTimeSec = useStepCountdown({
+    stepStartedAt: desk?.stepStartedAt,
+    stepDurationSec: desk?.stepDurationSec,
+    remainingTimeSec: desk?.remainingTimeSec,
+    enabled: !!desk,
+  });
 
   const openAction = (action: PendingAction) => setPending(action);
 
@@ -93,7 +101,7 @@ export function AdminDashboard({ sessionId, desk, onRefresh, onMessage, message 
             <StatCard label="제출 완료" value={`${submittedCount}팀`} tone="success" />
             <StatCard label="미제출" value={`${desk.unsubmittedTeamCount}팀`} tone={desk.unsubmittedTeamCount > 0 ? "warning" : "default"} />
             <StatCard label="제출률" value={`${desk.submitRatePercent}%`} />
-            <StatCard label="남은 시간" value={formatTime(desk.remainingTimeSec)} />
+            <StatCard label="남은 시간" value={formatStepTime(remainingTimeSec)} />
           </div>
 
           <section className="rounded-xl border border-slate-200 bg-white p-5">
@@ -301,10 +309,4 @@ function QuickBtn({
       {label}
     </button>
   );
-}
-
-function formatTime(sec: number) {
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return `${m}:${s.toString().padStart(2, "0")}`;
 }

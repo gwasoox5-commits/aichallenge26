@@ -61,6 +61,7 @@ type Dashboard = {
   year?: number;
   half?: string;
   remainingTimeSec?: number;
+  stepStartedAt?: string;
   stepLocked?: boolean;
   currentStepSubmitted?: boolean;
   stepDurationSec?: number;
@@ -431,6 +432,8 @@ export default function PlayPage() {
         teamName={dashboard?.teamName}
         periodLabel={periodLabelKo}
         stepLabel={stepLabel}
+        stepStartedAt={dashboard?.stepStartedAt}
+        stepDurationSec={dashboard?.stepDurationSec}
         remainingTimeSec={dashboard?.remainingTimeSec}
         connectionState={connectionState}
         flash={flash ?? null}

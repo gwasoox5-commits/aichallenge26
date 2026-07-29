@@ -73,6 +73,7 @@ export class DashboardService {
       settlementComplete: op.settlementComplete,
       statusVersion: company.statusVersion,
       completedSteps,
+      stepStartedAt: session.stepStartedAt.toISOString(),
       remainingTimeSec,
       stepLocked: session.stepLocked,
       currentStepSubmitted,

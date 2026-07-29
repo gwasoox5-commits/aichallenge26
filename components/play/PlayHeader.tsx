@@ -3,12 +3,16 @@
 import Link from "next/link";
 import { RealtimeIndicator } from "@/components/bsp/RealtimeIndicator";
 import { NewsUnreadBadge } from "@/components/v2/news/CeoNewsPanel";
+import { formatStepTime } from "@/lib/bsp/step-timer";
+import { useStepCountdown } from "@/lib/bsp/use-step-countdown";
 import type { RealtimeConnectionState, RealtimeFlashKind } from "@/lib/bsp/use-realtime";
 
 type Props = {
   teamName?: string;
   periodLabel?: string;
   stepLabel?: string;
+  stepStartedAt?: string;
+  stepDurationSec?: number;
   remainingTimeSec?: number;
   connectionState: RealtimeConnectionState;
   flash?: RealtimeFlashKind | null;
@@ -22,6 +26,8 @@ export function PlayHeader({
   teamName,
   periodLabel,
   stepLabel,
+  stepStartedAt,
+  stepDurationSec,
   remainingTimeSec,
   connectionState,
   flash,
@@ -30,6 +36,13 @@ export function PlayHeader({
   onNewsClick,
   sessionPhase,
 }: Props) {
+  const liveRemainingSec = useStepCountdown({
+    stepStartedAt,
+    stepDurationSec,
+    remainingTimeSec,
+    enabled: remainingTimeSec != null || Boolean(stepStartedAt),
+  });
+
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:px-6">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
@@ -37,7 +50,7 @@ export function PlayHeader({
           <h1 className="text-lg font-semibold text-slate-900">{teamName ?? "CEO Desk"}</h1>
           <p className="text-sm text-slate-600">
             {periodLabel ?? "—"} · {stepLabel ?? "—"}
-            {remainingTimeSec != null && ` · ${formatTime(remainingTimeSec)}`}
+            {(remainingTimeSec != null || stepStartedAt) && ` · ${formatStepTime(liveRemainingSec)}`}
             {sessionPhase === "PAUSED" && " · ⏸ 일시정지"}
           </p>
         </div>
@@ -57,10 +70,4 @@ export function PlayHeader({
       </div>
     </header>
   );
-}
-
-function formatTime(sec: number) {
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return `${m}:${s.toString().padStart(2, "0")}`;
 }

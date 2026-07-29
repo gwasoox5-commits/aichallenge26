@@ -2,14 +2,10 @@
 
 import type { GmDeskDto } from "@/src/bsp/domain/types";
 import { formatPeriodLabel, STEP_PHASE_LABELS } from "@/src/bsp/domain/period/display-labels";
+import { formatStepTime } from "@/lib/bsp/step-timer";
+import { useStepCountdown } from "@/lib/bsp/use-step-countdown";
 
 const STEP_LABELS = STEP_PHASE_LABELS;
-
-function formatTime(sec: number) {
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
 
 type Props = {
   desk: GmDeskDto;
@@ -122,6 +118,11 @@ export function GmTeamTable({ desk, onForceSubmit, onZeroSubmit, onDeleteTeam }:
 export function GmStatusBanner({ desk }: { desk: GmDeskDto }) {
   const stepLabel = STEP_LABELS[desk.stepPhase] ?? desk.stepPhase;
   const hasUnsubmitted = desk.unsubmittedTeamCount > 0;
+  const remainingTimeSec = useStepCountdown({
+    stepStartedAt: desk.stepStartedAt,
+    stepDurationSec: desk.stepDurationSec,
+    remainingTimeSec: desk.remainingTimeSec,
+  });
 
   let guidance = "모든 팀 제출 완료 → 「다음 Step」 진행 가능";
   if (desk.sessionPhase === "PAUSED") {
@@ -151,7 +152,7 @@ export function GmStatusBanner({ desk }: { desk: GmDeskDto }) {
         </div>
         <div>
           <span className="text-xs text-slate-500">남은 시간</span>
-          <p className="font-mono text-lg">{formatTime(desk.remainingTimeSec)}</p>
+          <p className="font-mono text-lg">{formatStepTime(remainingTimeSec)}</p>
         </div>
         <div>
           <span className="text-xs text-slate-500">제출률</span>

@@ -447,6 +447,7 @@ export interface DashboardDto {
   statusVersion: number;
   completedSteps: BspGameStep[];
   /** P8 CEO command dashboard */
+  stepStartedAt: string;
   remainingTimeSec: number;
   stepLocked: boolean;
   currentStepSubmitted: boolean;

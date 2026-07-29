@@ -5,6 +5,8 @@ import { authFetch } from "@/lib/bsp/auth-client";
 import type { BspGameStep, BspStepPhase } from "@/src/bsp/domain/types";
 import { PHASE_TO_STEP } from "@/src/bsp/domain/types";
 import { formatPeriodLabel, STEP_PHASE_LABELS } from "@/src/bsp/domain/period/display-labels";
+import { formatStepTime } from "@/lib/bsp/step-timer";
+import { useStepCountdown } from "@/lib/bsp/use-step-countdown";
 
 export type CeoDashboardView = {
   teamName: string;
@@ -20,6 +22,8 @@ export type CeoDashboardView = {
   debtRatioPercent?: number;
   completedSteps?: BspGameStep[];
   remainingTimeSec?: number;
+  stepStartedAt?: string;
+  stepDurationSec?: number;
   stepLocked?: boolean;
   currentStepSubmitted?: boolean;
   economyLabel?: string;
@@ -51,12 +55,6 @@ const STEP_TASKS: Partial<Record<BspStepPhase, string>> = {
   GAME_END: "최종 결과 확인 및 토론",
 };
 
-function formatTime(sec: number) {
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
-
 type Props = {
   companyId: string;
   dashboard: CeoDashboardView | null;
@@ -64,6 +62,12 @@ type Props = {
 
 export function CeoCommandDashboard({ companyId, dashboard }: Props) {
   const [env, setEnv] = useState<EnvironmentDto | null>(null);
+  const remainingTimeSec = useStepCountdown({
+    stepStartedAt: dashboard?.stepStartedAt,
+    stepDurationSec: dashboard?.stepDurationSec,
+    remainingTimeSec: dashboard?.remainingTimeSec,
+    enabled: !!dashboard,
+  });
 
   const loadEnv = useCallback(async () => {
     const res = await authFetch(`/api/v1/play/companies/${companyId}/environment`);
@@ -143,7 +147,7 @@ export function CeoCommandDashboard({ companyId, dashboard }: Props) {
         />
         <StatCard
           label="남은 시간"
-          value={formatTime(dashboard.remainingTimeSec ?? 0)}
+          value={formatStepTime(remainingTimeSec)}
           sub="Step 제한 시간"
           accent="orange"
           mono
