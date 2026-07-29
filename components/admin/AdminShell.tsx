@@ -53,6 +53,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const { sessionId, setSessionId } = useAdminSession();
   const [authRole, setAuthRole] = useState<string | null>(null);
   const [desk, setDesk] = useState<GmDeskDto | null>(null);
+  const [sessions, setSessions] = useState<{ id: string; name: string }[]>([]);
+  const [sessionsFetched, setSessionsFetched] = useState(false);
   const [loading, setLoading] = useState(true);
   const [gmTokenReady, setGmTokenReady] = useState(false);
   const [tokenAttachError, setTokenAttachError] = useState<string | null>(null);
@@ -88,6 +90,25 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       })
       .finally(() => setLoading(false));
   }, [router, sessionId, setSessionId]);
+
+  useEffect(() => {
+    if (loading || !authRole) return;
+
+    authFetch("/api/v1/admin/sessions?includeArchived=1")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((list: { id: string; name: string }[]) => {
+        setSessions(list);
+        setSessionsFetched(true);
+      });
+  }, [loading, authRole]);
+
+  useEffect(() => {
+    if (!sessionsFetched || !sessionId) return;
+    if (!sessions.some((s) => s.id === sessionId)) {
+      setSessionId(null);
+      setDesk(null);
+    }
+  }, [sessionsFetched, sessions, sessionId, setSessionId]);
 
   useEffect(() => {
     if (sessionId) refreshDesk(sessionId);
@@ -188,14 +209,19 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 connectionState={connectionState}
                 flash={flash}
               />
-              {sessionId && (
+              {sessions.length > 0 && (
                 <select
                   className="rounded border border-slate-300 px-2 py-1 text-xs"
-                  value={sessionId}
+                  value={sessionId ?? ""}
                   onChange={(e) => setSessionId(e.target.value || null)}
                   aria-label="활성 세션"
                 >
-                  <option value={sessionId}>{desk?.name ?? sessionId.slice(0, 8)}</option>
+                  <option value="">세션 선택</option>
+                  {sessions.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} ({s.id.slice(0, 8)})
+                    </option>
+                  ))}
                 </select>
               )}
               <button

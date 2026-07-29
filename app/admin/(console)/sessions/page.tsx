@@ -8,6 +8,7 @@ import { useAdminSession } from "@/lib/bsp/admin-session-context";
 export default function AdminSessionsPage() {
   const { sessionId, setSessionId } = useAdminSession();
   const [message, setMessage] = useState("");
+  const [staleWarning, setStaleWarning] = useState(false);
 
   return (
     <div className="space-y-4">
@@ -29,6 +30,16 @@ export default function AdminSessionsPage() {
         )}
       </div>
 
+      {staleWarning && (
+        <p className="rounded-lg bg-amber-50 px-4 py-2 text-sm text-amber-800">
+          저장된 세션이 서버에 없습니다.{" "}
+          <Link href="/admin/sessions/new" className="font-medium underline hover:text-amber-900">
+            새 세션을 생성
+          </Link>
+          하세요.
+        </p>
+      )}
+
       {message && (
         <p className="rounded-lg bg-indigo-50 px-4 py-2 text-sm text-indigo-800">{message}</p>
       )}
@@ -37,6 +48,7 @@ export default function AdminSessionsPage() {
         activeSessionId={sessionId}
         onSelectSession={setSessionId}
         onActiveSessionRemoved={() => setSessionId(null)}
+        onStaleActiveSession={() => setStaleWarning(true)}
         onMessage={setMessage}
       />
     </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { authFetch } from "@/lib/bsp/auth-client";
 import type { GmAuditLogEntry } from "@/src/bsp/domain/gm/audit-types";
@@ -23,6 +24,8 @@ type Props = {
   onMessage?: (msg: string) => void;
   activeSessionId?: string | null;
   onActiveSessionRemoved?: () => void;
+  onStaleActiveSession?: () => void;
+  onSessionsLoaded?: (sessions: SessionRow[]) => void;
 };
 
 export function AdminOperationsPanel({
@@ -30,8 +33,11 @@ export function AdminOperationsPanel({
   onMessage,
   activeSessionId,
   onActiveSessionRemoved,
+  onStaleActiveSession,
+  onSessionsLoaded,
 }: Props) {
   const [sessions, setSessions] = useState<SessionRow[]>([]);
+  const [sessionsLoaded, setSessionsLoaded] = useState(false);
   const [auditEntries, setAuditEntries] = useState<GmAuditLogEntry[]>([]);
   const [auditTotal, setAuditTotal] = useState(0);
   const [selectedSession, setSelectedSession] = useState<string>("");
@@ -44,7 +50,12 @@ export function AdminOperationsPanel({
 
   const loadSessions = useCallback(async () => {
     const res = await authFetch("/api/v1/admin/sessions?includeArchived=1");
-    if (res.ok) setSessions(await res.json());
+    if (res.ok) {
+      const rows = (await res.json()) as SessionRow[];
+      setSessions(rows);
+      return rows;
+    }
+    return null;
   }, []);
 
   const loadAudit = useCallback(async () => {
@@ -72,8 +83,26 @@ export function AdminOperationsPanel({
   }, []);
 
   useEffect(() => {
-    loadSessions();
-  }, [loadSessions]);
+    loadSessions()
+      .then((rows) => {
+        if (rows) onSessionsLoaded?.(rows);
+      })
+      .finally(() => setSessionsLoaded(true));
+  }, [loadSessions, onSessionsLoaded]);
+
+  useEffect(() => {
+    if (!sessionsLoaded || !activeSessionId) return;
+    if (!sessions.some((s) => s.id === activeSessionId)) {
+      onStaleActiveSession?.();
+      onActiveSessionRemoved?.();
+    }
+  }, [
+    sessionsLoaded,
+    sessions,
+    activeSessionId,
+    onStaleActiveSession,
+    onActiveSessionRemoved,
+  ]);
 
   useEffect(() => {
     loadAudit();
@@ -157,6 +186,17 @@ export function AdminOperationsPanel({
               </tr>
             </thead>
             <tbody>
+              {sessions.length === 0 && sessionsLoaded && (
+                <tr>
+                  <td colSpan={5} className="py-8 text-center text-sm text-slate-500">
+                    등록된 세션이 없습니다.{" "}
+                    <Link href="/admin/sessions/new" className="text-violet-700 hover:underline">
+                      새 세션 생성
+                    </Link>
+                    으로 시작하세요.
+                  </td>
+                </tr>
+              )}
               {sessions.map((s) => (
                 <tr key={s.id} className="border-t border-slate-200">
                   <td className="py-2 pr-4">
