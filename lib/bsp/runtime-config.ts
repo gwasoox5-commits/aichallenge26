@@ -47,14 +47,22 @@ export function assertDemoBootstrapAllowed(): { ok: true } | { ok: false; messag
 
 const DEV_ADMIN_PASSWORD = "admin10193";
 
+/** Public dev defaults blocked in production even if set via env. */
+const BLOCKED_PRODUCTION_ADMIN_PASSWORDS = new Set([
+  "bsp-admin-dev",
+  "admin",
+  "password",
+  "admin123",
+]);
+
 export function getAdminPasswordOrThrow(): string {
   const password = process.env.BSP_ADMIN_PASSWORD;
   if (isProductionRuntime()) {
     if (!password || password.length < 8) {
       throw new Error("BSP_ADMIN_PASSWORD must be set in production (≥8 chars).");
     }
-    if (password === DEV_ADMIN_PASSWORD) {
-      throw new Error("BSP_ADMIN_PASSWORD must not use the development default in production.");
+    if (BLOCKED_PRODUCTION_ADMIN_PASSWORDS.has(password)) {
+      throw new Error("BSP_ADMIN_PASSWORD must not use a known default password in production.");
     }
     return password;
   }
