@@ -119,18 +119,18 @@ export default function PlayPage() {
 
   const step = dashboard?.stepPhase ?? "STEP1_FINANCE";
   const currentGameStep = PHASE_TO_STEP[step];
+  const requiresManualChecklist = Boolean(currentGameStep && getStepEducation(currentGameStep));
   const completed = dashboard?.completedSteps ?? [];
   const economy = dashboard?.economy ?? DEFAULT_ECONOMY_VALUES;
 
   useEffect(() => {
-    if (step === "STEP7_SETTLEMENT") {
+    if (!requiresManualChecklist) {
       setChecklistReady(true);
-      setValidation(null);
+      if (step === "STEP7_SETTLEMENT") setValidation(null);
       return;
     }
-    const edu = currentGameStep ? getStepEducation(currentGameStep) : null;
-    setChecklistReady(edu === null);
-  }, [step, currentGameStep]);
+    setChecklistReady(false);
+  }, [step, requiresManualChecklist]);
 
   const facilityPreview = useMemo(() => {
     const landCost = landPlots * 3000;
@@ -471,8 +471,13 @@ export default function PlayPage() {
 
               <StepProgressStepper stepPhase={step} completedSteps={completed} />
 
-              {!isSubmitted && step !== "STEP7_SETTLEMENT" && (
-                <SubmitChecklistGate validation={validation} checklistReady={checklistReady} alreadySubmitted={isSubmitted} />
+              {!isSubmitted && requiresManualChecklist && (
+                <SubmitChecklistGate
+                  validation={validation}
+                  checklistReady={checklistReady}
+                  requireManualChecklist={requiresManualChecklist}
+                  alreadySubmitted={isSubmitted}
+                />
               )}
 
               {currentGameStep && step.startsWith("STEP") && !completed.includes(currentGameStep) && !isSubmitted && (

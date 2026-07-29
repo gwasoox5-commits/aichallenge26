@@ -77,6 +77,11 @@ describe("SubmitChecklistGate", () => {
   it("allows when validation ok and checklist ready", () => {
     expect(canSubmitFromGate({ ok: true, rules: [{ ruleId: "X", passed: true, message: "ok" }] }, true)).toBe(true);
   });
+
+  it("does not require manual checklist on settlement-like steps", () => {
+    expect(canSubmitFromGate({ ok: true, rules: [] }, false)).toBe(false);
+    expect(canSubmitFromGate({ ok: true, rules: [] }, true)).toBe(true);
+  });
 });
 
 describe("pilot E2E: session lifecycle", () => {

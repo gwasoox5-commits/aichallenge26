@@ -14,17 +14,25 @@ type Props = {
   validation: { ok: boolean; rules: ValidationRule[] } | null;
   checklistReady: boolean;
   alreadySubmitted?: boolean;
+  /** When false, skip the manual education checklist blocker (e.g. GM-only settlement step). */
+  requireManualChecklist?: boolean;
   onScrollTo?: (anchor: string) => void;
 };
 
-export function SubmitChecklistGate({ validation, checklistReady, alreadySubmitted, onScrollTo }: Props) {
+export function SubmitChecklistGate({
+  validation,
+  checklistReady,
+  alreadySubmitted,
+  requireManualChecklist = true,
+  onScrollTo,
+}: Props) {
   const items: ChecklistItem[] = [];
 
   if (alreadySubmitted) {
     items.push({ id: "submitted", label: "이미 제출됨", status: "block", message: "중복 제출할 수 없습니다." });
   }
 
-  if (!checklistReady) {
+  if (!checklistReady && requireManualChecklist) {
     items.push({ id: "manual", label: "체크리스트 확인", status: "block", message: "제출 전 체크리스트를 모두 확인하세요." });
   }
 

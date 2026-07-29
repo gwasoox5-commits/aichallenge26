@@ -122,6 +122,11 @@ function checkApplication(): ComponentHealth {
       details: {
         nodeEnv: process.env.NODE_ENV ?? "development",
         storageMode: storage.mode,
+        gitCommit:
+          process.env.RAILWAY_GIT_COMMIT_SHA ??
+          process.env.GITHUB_SHA ??
+          process.env.VERCEL_GIT_COMMIT_SHA ??
+          "local",
       },
     };
   } catch (e) {
