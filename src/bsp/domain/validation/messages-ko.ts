@@ -83,6 +83,10 @@ export const VALIDATION_MESSAGES_KO: Record<string, { pass: string; fail: string
     pass: "브랜치 개설비가 반영되었습니다.",
     fail: "브랜치 개설 조건을 확인하세요. (M05)",
   },
+  M06: {
+    pass: "입찰 단가가 유효합니다.",
+    fail: "입찰 단가는 적용 단가(최저가) 이상이어야 합니다. (M06)",
+  },
   G01: { pass: "세션이 진행 중입니다.", fail: "세션이 RUNNING 상태가 아닙니다. (G01)" },
   G02: { pass: "현재 Step과 일치합니다.", fail: "현재 Step이 아닙니다. (G02)" },
   G05: { pass: "중복 제출 없음.", fail: "이미 제출된 Step입니다. (G05)" },
@@ -122,6 +126,10 @@ export const VALIDATION_MESSAGES_KO: Record<string, { pass: string; fail: string
   S05: {
     pass: "판매 후 현금이 0 이상입니다.",
     fail: "판매 후 현금이 부족합니다. (S05)",
+  },
+  S06: {
+    pass: "판매 입찰이 등록되었습니다.",
+    fail: "판매 입찰을 확인하세요. (S06)",
   },
 };
 

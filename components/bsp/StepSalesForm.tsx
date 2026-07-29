@@ -51,9 +51,9 @@ export function StepSalesForm({
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-6">
-      <h2 className="mb-1 text-lg font-semibold">Step 6 — 판매</h2>
+      <h2 className="mb-1 text-lg font-semibold">Step 6 — 판매 (경쟁입찰)</h2>
       <p className="mb-4 text-sm text-slate-600">
-        7개 지역 · 지역별 수요/최대가 · 물류비 10만/단위 · 완제품 {finishedGoodsQty} · Capacity {salesCapacity}
+        7개 지역 · 입찰가 ↓ 우선 판매 · GM Step 종료 시 지역별 수요 배분 · 완제품 {finishedGoodsQty} · Capacity {salesCapacity}
       </p>
 
       <div className="space-y-4">
@@ -64,7 +64,7 @@ export function StepSalesForm({
               <p className="mb-2 font-medium">{region?.displayName ?? line.regionCode}</p>
               <div className="grid gap-3 sm:grid-cols-3">
                 <label className="text-sm">
-                  <span className="text-slate-600">판매가 (최대 {region?.maxSalePriceManwon})</span>
+                  <span className="text-slate-600">입찰 판매가 (최대 {region?.maxSalePriceManwon})</span>
                   <input
                     type="number"
                     min={0}
@@ -75,7 +75,7 @@ export function StepSalesForm({
                   />
                 </label>
                 <label className="text-sm">
-                  <span className="text-slate-600">판매량 (수요 {region?.saleLimit})</span>
+                  <span className="text-slate-600">입찰 판매량 (지역 수요 {region?.saleLimit})</span>
                   <input
                     type="number"
                     min={0}

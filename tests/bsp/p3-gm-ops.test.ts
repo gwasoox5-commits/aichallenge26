@@ -11,6 +11,7 @@ import { stepHandlerRegistry } from "@/src/bsp/domain/steps/step-handler-registr
 import { GM_AUDIT_ACTIONS, type GmActor } from "@/src/bsp/domain/gm/audit-types";
 import type { ExcelScenarioInput } from "./excel-regression-20.test";
 import { EXCEL_SCENARIOS } from "./excel-regression-20.test";
+import { materialBidPayload } from "./bid-payloads";
 
 const GM: GmActor = {
   userId: "gm-test",
@@ -53,19 +54,7 @@ async function submitStep(
     LOAN: scenario.loan,
     FACILITY: scenario.facility,
     HIRING: scenario.hiring,
-    MATERIAL: {
-      lines: [
-        {
-          regionCode: scenario.material.regionCode,
-          materials: {
-            A: scenario.material.perType,
-            B: scenario.material.perType,
-            C: scenario.material.perType,
-            D: scenario.material.perType,
-          },
-        },
-      ],
-    },
+    MATERIAL: materialBidPayload(scenario.material.regionCode, scenario.material.perType),
     PRODUCTION: scenario.production,
     SALES: {
       lines: [{ regionCode: scenario.sales.regionCode, unitPriceManwon: scenario.sales.unitPriceManwon, qty: scenario.sales.qty }],

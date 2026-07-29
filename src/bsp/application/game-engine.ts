@@ -69,6 +69,8 @@ import { capturePeriodFinancialSnapshot } from "../domain/accounting/period-fina
 import { validateBalanceSheet, validateTrialBalance } from "../domain/accounting/balance-sheet-validation";
 import { buildOperationalParityReport } from "../domain/accounting/operational-parity-report";
 import { computePeriodChanges } from "../domain/accounting/period-financial-snapshot";
+import { MarketClearingService } from "./market-clearing-service";
+import { isBidWorkflowStep } from "../domain/market/market-clearing";
 
 function isJoinCodeCollision(e: unknown): boolean {
   if (e instanceof Error && e.message === "Join code already exists") return true;
@@ -79,6 +81,7 @@ function isJoinCodeCollision(e: unknown): boolean {
 export class GameEngine {
   private readonly audit: GmAuditService;
   private readonly eventEngine: EventEngineService;
+  private readonly marketClearing: MarketClearingService;
 
   constructor(
     private readonly repos: BspRepositories,
@@ -88,6 +91,7 @@ export class GameEngine {
     private readonly events: EventStoreService
   ) {
     this.audit = new GmAuditService(repos.audit);
+    this.marketClearing = new MarketClearingService(repos, registry, accounting);
     this.eventEngine = new EventEngineService(
       repos.simulationEvents,
       this.audit,
@@ -205,7 +209,9 @@ export class GameEngine {
     let submittedTeamCount = 0;
     for (const company of companies) {
       const periodDecisions = company.decisions.filter(
-        (d) => d.periodId === session.periodId && d.status === "POSTED"
+        (d) =>
+          d.periodId === session.periodId &&
+          (d.status === "POSTED" || d.status === "SUBMITTED")
       );
       const submittedSteps = periodDecisions.map((d) => d.step);
       const currentStepSubmitted = currentStep ? submittedSteps.includes(currentStep) : true;
@@ -308,7 +314,9 @@ export class GameEngine {
 
     const teams = companies.map((c) => {
       const periodDecisions = c.decisions.filter(
-        (d) => d.periodId === session.periodId && d.status === "POSTED"
+        (d) =>
+          d.periodId === session.periodId &&
+          (d.status === "POSTED" || d.status === "SUBMITTED")
       );
       const submitted = periodDecisions.map((d) => d.step);
       const currentStepSubmitted = currentStep ? submitted.includes(currentStep) : true;
@@ -448,11 +456,15 @@ export class GameEngine {
         received: companyStatusVersion,
       });
     }
-    if (await this.repos.company.hasPostedDecision(company.id, company.periodId, step)) {
-      throw new BspError("ERR_DECISION_DUPLICATE", "Decision already posted", 409, { ruleId: "G05" });
+    if (await this.repos.company.hasStepDecision(company.id, company.periodId, step)) {
+      throw new BspError("ERR_DECISION_DUPLICATE", "Decision already submitted", 409, { ruleId: "G05" });
     }
 
     this.assertStepGate(session, step);
+
+    if (isBidWorkflowStep(step)) {
+      return this.submitBidDecision(company, session, step, payload, companyStatusVersion, "CEO");
+    }
 
     const handler = this.registry.get(step);
     let outcome;
@@ -570,6 +582,108 @@ export class GameEngine {
     };
   }
 
+  private async submitBidDecision(
+    company: CompanyAggregate,
+    session: SessionAggregate,
+    step: "MATERIAL" | "SALES",
+    payload: unknown,
+    companyStatusVersion: number,
+    source: "CEO" | "GM_FORCE" | "GM_ZERO"
+  ): Promise<SubmitDecisionResult> {
+    const handler = this.registry.get(step);
+    let outcome;
+    try {
+      outcome = handler.validate({ company, session, payload });
+    } catch (e) {
+      if (e instanceof StepNotImplementedError) {
+        throw new BspError("ERR_STEP_NOT_IMPLEMENTED", e.message, 501);
+      }
+      throw e;
+    }
+
+    if (!outcome.validation.ok) {
+      const firstFail = outcome.validation.rules.find((r) => !r.passed);
+      if (source === "CEO") {
+        await this.audit.log(
+          session.id,
+          { userId: company.id, role: "CEO" },
+          GM_AUDIT_ACTIONS.VALIDATION_ERROR,
+          {
+            step,
+            errorCode: firstFail?.errorCode,
+            message: firstFail?.message,
+          },
+          { companyId: company.id, teamName: company.teamName }
+        );
+      }
+      throw new BspError(firstFail?.errorCode ?? "ERR_VALIDATION", firstFail?.message ?? "Validation failed", 422, {
+        validation: outcome.validation,
+      });
+    }
+
+    const { decision, statusVersion } = await this.marketClearing.saveBidDecision(
+      company,
+      session,
+      step,
+      payload,
+      companyStatusVersion,
+      source
+    );
+
+    if (source === "CEO") {
+      await this.events.recordDecisionPosted({
+        sessionId: session.id,
+        companyId: company.id,
+        step,
+        periodId: company.periodId,
+        decisionId: decision.id,
+      });
+      await this.audit.log(
+        session.id,
+        { userId: company.id, role: "CEO" },
+        GM_AUDIT_ACTIONS.DECISION_SUBMIT,
+        { step, decisionId: decision.id, source: "CEO", bidPhase: true },
+        { companyId: company.id, teamName: company.teamName }
+      );
+      notifyTeamSubmitted(session.id, company.id, step, company.teamName);
+      const companies = await this.repos.company.listBySession(session.id);
+      const submitStats = this.computeSessionSubmitStats(session, companies);
+      notifySubmitStats(session.id, submitStats);
+      return {
+        decision,
+        journal: {
+          id: "",
+          companyId: company.id,
+          periodId: company.periodId,
+          transactionType: step,
+          description: "Bid submitted — journal posted after step advance",
+          lines: [],
+          postedAt: new Date(),
+        },
+        statusVersion,
+        dashboard: {
+          ...this.dashboard.build(company, session),
+          ...submitStats,
+        },
+      };
+    }
+
+    return {
+      decision,
+      journal: {
+        id: "",
+        companyId: company.id,
+        periodId: company.periodId,
+        transactionType: step,
+        description: "Bid submitted",
+        lines: [],
+        postedAt: new Date(),
+      },
+      statusVersion,
+      dashboard: this.dashboard.build(company, session),
+    };
+  }
+
   async gmAdvanceStep(sessionId: string, actor?: GmActor) {
     const session = await this.requireSession(sessionId);
     this.assertSessionRunning(session);
@@ -579,9 +693,14 @@ export class GameEngine {
     if (session.stepPhase === "STEP7_SETTLEMENT") {
       throw new BspError("ERR_USE_CLOSE_PERIOD", "Use closePeriod at settlement step", 422);
     }
+    const fromPhase = session.stepPhase;
+    if (fromPhase === "STEP4_PURCHASE") {
+      await this.marketClearing.clearMaterialStep(session);
+    } else if (fromPhase === "STEP6_SALES") {
+      await this.marketClearing.clearSalesStep(session);
+    }
     const next = NEXT_STEP_PHASE[session.stepPhase];
     if (!next) throw new BspError("ERR_NO_NEXT_STEP", "No next step", 422);
-    const fromPhase = session.stepPhase;
     await this.repos.session.advanceStepPhase(sessionId, next);
     session.stepPhase = next;
     await this.events.recordStepAdvanced({ sessionId, fromPhase, toPhase: next });
@@ -707,7 +826,10 @@ export class GameEngine {
       : companies.filter(
           (c) =>
             !c.decisions.some(
-              (d) => d.periodId === session.periodId && d.step === currentStep && d.status === "POSTED"
+              (d) =>
+                d.periodId === session.periodId &&
+                d.step === currentStep &&
+                (d.status === "POSTED" || d.status === "SUBMITTED")
             )
         );
 
@@ -720,23 +842,27 @@ export class GameEngine {
 
     const results = [];
     for (const company of targets) {
-      const alreadyPosted = await this.repos.company.hasPostedDecision(
+      const alreadySubmitted = await this.repos.company.hasStepDecision(
         company.id,
         session.periodId,
         currentStep
       );
-      if (alreadyPosted) continue;
+      if (alreadySubmitted) continue;
 
       const payload = getZeroPayload(currentStep, company.operational);
       const dash = await this.getDashboard(company.id);
-      await this.submitDecisionInternal(
-        company,
-        session,
-        currentStep,
-        payload,
-        dash.statusVersion,
-        source
-      );
+      if (isBidWorkflowStep(currentStep)) {
+        await this.submitBidDecision(company, session, currentStep, payload, dash.statusVersion, source);
+      } else {
+        await this.submitDecisionInternal(
+          company,
+          session,
+          currentStep,
+          payload,
+          dash.statusVersion,
+          source
+        );
+      }
       await this.audit.log(
         sessionId,
         actor,

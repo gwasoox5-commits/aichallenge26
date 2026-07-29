@@ -114,6 +114,7 @@ export default function PlayPage() {
   const [materialForm, setMaterialForm] = useState<MaterialFormState>({
     regionCode: "ASIA",
     materials: { A: 15, B: 15, C: 15, D: 15 },
+    unitPriceBidManwon: 12,
     openBranch: false,
   });
 
@@ -183,7 +184,8 @@ export default function PlayPage() {
       materialForm.materials.B +
       materialForm.materials.C +
       materialForm.materials.D;
-    const materialCost = totalUnits * unitPrice;
+    const bidPrice = materialForm.unitPriceBidManwon;
+    const materialCost = totalUnits * bidPrice;
     const logistics = logisticsCostManwon(totalUnits, economy);
     const branchFee =
       materialForm.openBranch && !(dashboard?.openBranches ?? []).includes(materialForm.regionCode)
@@ -191,7 +193,7 @@ export default function PlayPage() {
         : 0;
     const totalCost = materialCost + logistics + branchFee;
     const cashAfter = (dashboard?.cashManwon ?? GAME_CONSTANTS.initialCashManwon) - totalCost;
-    return { unitPrice, totalUnits, materialCost, logisticsCost: logistics, branchFee, totalCost, cashAfter };
+    return { unitPrice, bidPrice, totalUnits, materialCost, logisticsCost: logistics, branchFee, totalCost, cashAfter };
   }, [materialForm, dashboard, economy]);
 
   const productionPreview = useMemo(() => {
@@ -396,7 +398,13 @@ export default function PlayPage() {
     } else if (targetStep === "MATERIAL") {
       payload = {
         branches: materialForm.openBranch ? [{ regionCode: materialForm.regionCode }] : [],
-        lines: [{ regionCode: materialForm.regionCode, materials: materialForm.materials }],
+        lines: [
+          {
+            regionCode: materialForm.regionCode,
+            materials: materialForm.materials,
+            unitPriceBidManwon: materialForm.unitPriceBidManwon,
+          },
+        ],
       };
     } else if (targetStep === "PRODUCTION") {
       payload = { productionQty, machineBigRun, machineSmallRun };

@@ -10,6 +10,7 @@ function fmt(n: number) {
 export type MaterialFormState = {
   regionCode: string;
   materials: { A: number; B: number; C: number; D: number };
+  unitPriceBidManwon: number;
   openBranch: boolean;
 };
 
@@ -46,12 +47,12 @@ export function StepMaterialForm({
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-6">
-      <h2 className="mb-1 text-lg font-semibold">Step 4 — 원재료 구매</h2>
+      <h2 className="mb-1 text-lg font-semibold">Step 4 — 원재료 구매 (경쟁입찰)</h2>
       <p className="mb-4 text-sm text-slate-600">
-        7개 지역 · V1 즉시 구매 · Economy(원자재指数·환율·물류) 반영
+        7개 지역 · 입찰 단가 ↑ 우선 낙찰 · GM Step 종료 시 지역별 수량 배분
       </p>
 
-      <div className="mb-4 grid gap-3 sm:grid-cols-2">
+      <div className="mb-4 grid gap-3 sm:grid-cols-3">
         <label className="block text-sm">
           <span className="text-slate-600">구매 지역</span>
           <select
@@ -65,6 +66,16 @@ export function StepMaterialForm({
               </option>
             ))}
           </select>
+        </label>
+        <label className="block text-sm">
+          <span className="text-slate-600">입찰 단가 (적용 단가 {preview.unitPrice}만 이상)</span>
+          <input
+            type="number"
+            min={preview.unitPrice}
+            value={form.unitPriceBidManwon}
+            onChange={(e) => onChange({ ...form, unitPriceBidManwon: Number(e.target.value) })}
+            className="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2"
+          />
         </label>
         <label className="flex items-end gap-2 text-sm">
           <input
@@ -99,7 +110,7 @@ export function StepMaterialForm({
 
       <div className="mt-4 space-y-1 rounded-lg bg-slate-100 p-3 text-sm text-slate-700">
         <p>
-          적용 단가: {preview.unitPrice}만/단위 · 총 {preview.totalUnits}단위 / 처리량 한도 {purchaseCapacity}
+          입찰 단가 {form.unitPriceBidManwon}만 · 총 {preview.totalUnits}단위 / 처리량 한도 {purchaseCapacity}
         </p>
         <p>
           재료비 {fmt(preview.materialCost)} · 물류 {fmt(preview.logisticsCost)} · 브랜치 {fmt(preview.branchFee)}

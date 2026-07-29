@@ -19,6 +19,7 @@ import {
 } from "@/src/bsp/domain/validation/step-validators";
 import { DEFAULT_ECONOMY_VALUES, GAME_CONSTANTS } from "@/src/bsp/domain/types";
 import { BspError } from "@/src/bsp/application/game-engine";
+import { materialBidPayload, asiaMaterialBidPayload } from "./bid-payloads";
 
 function makeEngine() {
   const repos = createMemoryRepositories();
@@ -67,7 +68,7 @@ async function setupThroughMaterial(engine: GameEngine) {
   const s4 = await engine.submitDecision(
     company.id,
     "MATERIAL",
-    { lines: [{ regionCode: "ASIA", materials: { A: 15, B: 15, C: 15, D: 15 } }] },
+    asiaMaterialBidPayload(15),
     v
   );
   v = s4.statusVersion;
@@ -248,17 +249,20 @@ describe("Sprint 2B — Step 6 Sales integration", () => {
       { lines: [{ regionCode: "ASIA", unitPriceManwon: 100, qty: 3 }] },
       s5.statusVersion
     );
-    expect(s6.dashboard.cashManwon).toBe(6570);
-    expect(s6.dashboard.halfYearSalesQty).toBe(3);
-    expect(s6.dashboard.halfYearRevenueManwon).toBe(300);
-    expect(s6.dashboard.finishedGoodsQty).toBe(0);
+    expect(s6.dashboard.cashManwon).toBe(6300);
+    expect(s6.dashboard.halfYearSalesQty).toBe(0);
+    await engine.gmAdvanceStep(session.id);
+
+    const afterSales = await engine.getDashboard(company.id);
+    expect(afterSales.cashManwon).toBe(6570);
+    expect(afterSales.halfYearSalesQty).toBe(3);
+    expect(afterSales.halfYearRevenueManwon).toBe(300);
+    expect(afterSales.finishedGoodsQty).toBe(0);
 
     const journals = await engine.getJournals(company.id);
     const sales = journals.find((j) => j.transactionType === "SALES");
     expect(sales?.lines.some((l) => l.accountCode === "4100" && l.creditManwon === 300)).toBe(true);
     expect(sales?.lines.some((l) => l.accountCode === "5100" && l.debitManwon === 576)).toBe(true);
-
-    await engine.gmAdvanceStep(session.id);
   });
 });
 
@@ -383,8 +387,8 @@ describe("Sprint 2B — Excel regression (zero tolerance)", () => {
       { lines: [{ regionCode: "ASIA", unitPriceManwon: 100, qty: 3 }] },
       v
     );
-    expect(s6.dashboard.cashManwon).toBe(6570);
-    expect(s6.dashboard.halfYearRevenueManwon).toBe(300);
+    expect(s6.dashboard.cashManwon).toBe(6300);
+    expect(s6.dashboard.halfYearRevenueManwon).toBe(0);
     await engine.gmAdvanceStep(session.id);
 
     await engine.closePeriod(session.id);

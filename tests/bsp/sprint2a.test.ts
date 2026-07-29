@@ -16,6 +16,7 @@ import {
   createInitialOperationalState,
 } from "@/src/bsp/domain/validation/step-validators";
 import { DEFAULT_ECONOMY_VALUES } from "@/src/bsp/domain/types";
+import { materialBidPayload, asiaMaterialBidPayload } from "./bid-payloads";
 
 describe("Sprint 2A — full demo flow", () => {
   let engine: GameEngine;
@@ -67,13 +68,16 @@ describe("Sprint 2A — full demo flow", () => {
     const s4 = await engine.submitDecision(
       company.id,
       "MATERIAL",
-      {
-        lines: [{ regionCode: "ASIA", materials: { A: 15, B: 15, C: 15, D: 15 } }],
-      },
+      materialBidPayload("ASIA", 15, 12),
       s3.statusVersion
     );
-    expect(s4.dashboard.cashManwon).toBe(6380);
-    expect(s4.dashboard.inventoryTotalUnits).toBe(60);
+    expect(s4.dashboard.cashManwon).toBe(7400);
+    expect(s4.dashboard.inventoryTotalUnits).toBe(0);
+    await engine.gmAdvanceStep(session.id);
+
+    const afterMaterial = await engine.getDashboard(company.id);
+    expect(afterMaterial.cashManwon).toBe(6380);
+    expect(afterMaterial.inventoryTotalUnits).toBe(60);
 
     const journals = await engine.getJournals(company.id);
     expect(journals).toHaveLength(4);
@@ -125,7 +129,15 @@ describe("Material domain", () => {
     state.purchaseCapacity = 60;
 
     const ok = validateMaterial(
-      { lines: [{ regionCode: "ASIA", materials: { A: 15, B: 15, C: 15, D: 15 } }] },
+      {
+        lines: [
+          {
+            regionCode: "ASIA",
+            materials: { A: 15, B: 15, C: 15, D: 15 },
+            unitPriceBidManwon: 12,
+          },
+        ],
+      },
       state,
       DEFAULT_ECONOMY_VALUES
     );

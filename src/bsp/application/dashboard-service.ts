@@ -27,7 +27,14 @@ export class DashboardService {
     const debtRatioPercent = equity > 0 ? Math.round((debt / equity) * 1000) / 10 : 0;
 
     const currentStep = PHASE_TO_STEP[session.stepPhase];
-    const currentStepSubmitted = currentStep ? completedSteps.includes(currentStep) : true;
+    const bidOrPosted = company.decisions.filter(
+      (d) =>
+        d.periodId === company.periodId &&
+        (d.status === "POSTED" || d.status === "SUBMITTED")
+    );
+    const currentStepSubmitted = currentStep
+      ? bidOrPosted.some((d) => d.step === currentStep)
+      : true;
     const elapsedSec = Math.floor((Date.now() - session.stepStartedAt.getTime()) / 1000);
     const remainingTimeSec = Math.max(0, session.stepDurationSec - elapsedSec);
     const economyLabel = `수요 ${session.economy.marketDemandIndex} · 공급 ${session.economy.marketSupplyIndex} · 금리 ${session.economy.interestRateLoan}%`;

@@ -544,7 +544,8 @@ export function computeMaterial(
   for (const line of payload.lines ?? []) {
     if (!isRegionCode(line.regionCode)) continue;
     const region = getRegion(line.regionCode);
-    const unitPrice = effectiveMaterialUnitPriceManwon(region, economy);
+    const effectivePrice = effectiveMaterialUnitPriceManwon(region, economy);
+    const unitPrice = line.unitPriceBidManwon ?? effectivePrice;
     const totalUnits = sumMaterials(line.materials);
     const lineMaterialCost = totalUnits * unitPrice;
     const lineLogistics = logisticsCostManwon(totalUnits, economy);
@@ -556,7 +557,8 @@ export function computeMaterial(
     inventoryAfter.D += line.materials.D;
     lines.push({
       regionCode: line.regionCode,
-      effectiveUnitPriceManwon: unitPrice,
+      effectiveUnitPriceManwon: effectivePrice,
+      unitPriceBidManwon: line.unitPriceBidManwon ?? effectivePrice,
       totalUnits,
       materialCostManwon: lineMaterialCost,
       logisticsCostManwon: lineLogistics,
@@ -594,12 +596,12 @@ export function validateMaterial(
       continue;
     }
     const region = getRegion(line.regionCode);
-    const unitPrice = effectiveMaterialUnitPriceManwon(region, economy);
+    const effectivePrice = effectiveMaterialUnitPriceManwon(region, economy);
     const totalUnits = sumMaterials(line.materials);
     totalUnitsAll += totalUnits;
     const limit = effectiveMaterialLimit(region, economy);
 
-    rules.push(pass("M01", `Unit price ${unitPrice} for ${line.regionCode}`));
+    rules.push(pass("M01", `Effective floor price ${effectivePrice} for ${line.regionCode}`));
 
     if (totalUnits > limit) {
       rules.push(
@@ -611,6 +613,22 @@ export function validateMaterial(
       );
     } else {
       rules.push(pass("M02", "Region quantity within limit"));
+    }
+
+    if (totalUnits > 0) {
+      const bidPrice = line.unitPriceBidManwon ?? effectivePrice;
+      if (!Number.isInteger(bidPrice) || bidPrice < effectivePrice) {
+        rules.push(
+          fail("M06", "ERR_MAT_BID_FLOOR", "unitPriceBidManwon", "Bid price must be at least effective unit price", {
+            effectivePrice,
+            bidPrice,
+          })
+        );
+      } else {
+        rules.push(pass("M06", "Material bid price valid"));
+      }
+    } else {
+      rules.push(pass("M06", "No material bid"));
     }
 
     for (const [mat, qty] of Object.entries(line.materials)) {
@@ -885,6 +903,12 @@ export function validateSales(payload: SalesPayload, state: CompanyOperationalSt
       rules.push(fail("S02", "ERR_SALE_REGION_QTY", "qty", "Qty exceeds region sale limit", { limit }));
     } else {
       rules.push(pass("S02", "Region sale qty valid"));
+    }
+
+    if (line.qty > 0) {
+      rules.push(pass("S06", "Sales bid registered for clearing"));
+    } else {
+      rules.push(pass("S06", "No sales bid"));
     }
   }
 

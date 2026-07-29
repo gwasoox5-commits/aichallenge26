@@ -13,12 +13,14 @@ import type {
 } from "../../domain/types";
 import type { GmAuditAction, GmAuditLogEntry } from "../../domain/gm/audit-types";
 
+export type DecisionStatus = "SUBMITTED" | "POSTED";
+
 export interface DecisionRecord {
   id: string;
   companyId: string;
   periodId: string;
   step: BspGameStep;
-  status: "POSTED";
+  status: DecisionStatus;
   source?: "CEO" | "GM_FORCE" | "GM_ZERO";
   payload: unknown;
   validation: ValidationResult;
@@ -146,6 +148,7 @@ export interface CompanyRepository {
   saveJournal(journal: JournalRecord): Promise<void>;
   saveLedger(companyId: string, ledger: Map<string, number>): Promise<void>;
   hasPostedDecision(companyId: string, periodId: string, step: BspGameStep): Promise<boolean>;
+  hasStepDecision(companyId: string, periodId: string, step: BspGameStep): Promise<boolean>;
   removeDecision(companyId: string, periodId: string, step: BspGameStep): Promise<void>;
   beginNewPeriod(
     companyId: string,

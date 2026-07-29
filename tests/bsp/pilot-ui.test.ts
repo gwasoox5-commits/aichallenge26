@@ -14,6 +14,7 @@ import { GM_AUDIT_ACTIONS, type GmActor } from "@/src/bsp/domain/gm/audit-types"
 import { PILOT_DEFAULTS } from "@/lib/bsp/pilot-config";
 import { canSubmitFromGate } from "@/components/bsp/SubmitChecklistGate";
 import type { BspGameStep } from "@/src/bsp/domain/types";
+import { materialBidPayload, asiaMaterialBidPayload } from "./bid-payloads";
 
 const GM: GmActor = { userId: "gm-pilot", role: "GM", reason: "pilot ui test" };
 
@@ -521,7 +522,7 @@ describe("pilot close period flow", () => {
       { step: "LOAN", payload: { loanEarly: 2, loanMid: 0, deposit: 1, loanRepayment: 0, step1UiPhase: "COMPLETE" } },
       { step: "FACILITY", payload: { landPlotsPurchased: 1, machineBigPurchased: 1, machineSmallPurchased: 0 } },
       { step: "HIRING", payload: { headPurchase: 2, headProduction: 3, headSales: 2 } },
-      { step: "MATERIAL", payload: { lines: [{ regionCode: "ASIA", materials: { A: 15, B: 15, C: 15, D: 15 } }] } },
+      { step: "MATERIAL", payload: asiaMaterialBidPayload(15) },
       { step: "PRODUCTION", payload: { productionQty: 3, machineBigRun: 1, machineSmallRun: 0 } },
       { step: "SALES", payload: { lines: [{ regionCode: "ASIA", unitPriceManwon: 100, qty: 3 }] } },
     ];
@@ -624,7 +625,7 @@ describe("pilot next half after close", () => {
       { loanEarly: 2, loanMid: 0, deposit: 1, loanRepayment: 0, step1UiPhase: "COMPLETE" },
       { landPlotsPurchased: 1, machineBigPurchased: 1, machineSmallPurchased: 0 },
       { headPurchase: 2, headProduction: 3, headSales: 2 },
-      { lines: [{ regionCode: "ASIA", materials: { A: 15, B: 15, C: 15, D: 15 } }] },
+      asiaMaterialBidPayload(15),
       { productionQty: 3, machineBigRun: 1, machineSmallRun: 0 },
       { lines: [{ regionCode: "ASIA", unitPriceManwon: 100, qty: 3 }] },
     ];

@@ -11,6 +11,7 @@ import { stepHandlerRegistry } from "@/src/bsp/domain/steps/step-handler-registr
 import { TOTAL_PERIODS } from "@/src/bsp/domain/period/period-calendar";
 import type { ExcelScenarioInput } from "./excel-regression-20.test";
 import { EXCEL_SCENARIOS } from "./excel-regression-20.test";
+import { materialBidPayload } from "./bid-payloads";
 
 const MINIMAL_HALF: ExcelScenarioInput = {
   id: "MIN",
@@ -46,19 +47,10 @@ async function runHalfYearSteps(
     { step: "HIRING" as const, payload: scenario.hiring },
     {
       step: "MATERIAL" as const,
-      payload: {
-        lines: [
-          {
-            regionCode: scenario.material.regionCode,
-            materials: {
-              A: scenario.material.perType,
-              B: scenario.material.perType,
-              C: scenario.material.perType,
-              D: scenario.material.perType,
-            },
-          },
-        ],
-      },
+      payload: materialBidPayload(
+        scenario.material.regionCode as Parameters<typeof materialBidPayload>[0],
+        scenario.material.perType
+      ),
     },
     { step: "PRODUCTION" as const, payload: scenario.production },
     {

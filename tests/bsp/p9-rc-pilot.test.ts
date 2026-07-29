@@ -17,6 +17,7 @@ import {
   runExcelScenario,
   type ExcelScenarioInput,
 } from "./excel-regression-20.test";
+import { materialBidPayload } from "./bid-payloads";
 
 const GM: GmActor = { userId: "gm-p9", role: "GM", reason: "P9 RC pilot" };
 
@@ -56,19 +57,10 @@ async function submitHalfYearSteps(
     { step: "HIRING" as const, payload: scenario.hiring },
     {
       step: "MATERIAL" as const,
-      payload: {
-        lines: [
-          {
-            regionCode: scenario.material.regionCode,
-            materials: {
-              A: scenario.material.perType,
-              B: scenario.material.perType,
-              C: scenario.material.perType,
-              D: scenario.material.perType,
-            },
-          },
-        ],
-      },
+      payload: materialBidPayload(
+        scenario.material.regionCode as Parameters<typeof materialBidPayload>[0],
+        scenario.material.perType
+      ),
     },
     { step: "PRODUCTION" as const, payload: scenario.production },
     {

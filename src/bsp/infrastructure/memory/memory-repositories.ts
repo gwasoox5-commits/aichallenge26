@@ -293,7 +293,10 @@ class MemoryCompanyRepository implements CompanyRepository {
   async saveDecision(decision: DecisionRecord): Promise<void> {
     const c = state().companies.get(decision.companyId);
     if (!c) throw new Error("Company not found");
-    if (!c.decisions.some((d) => d.id === decision.id)) {
+    const idx = c.decisions.findIndex((d) => d.id === decision.id);
+    if (idx >= 0) {
+      c.decisions[idx] = decision;
+    } else {
       c.decisions.push(decision);
     }
   }
@@ -316,6 +319,17 @@ class MemoryCompanyRepository implements CompanyRepository {
     const c = state().companies.get(companyId);
     if (!c) return false;
     return c.decisions.some((d) => d.periodId === periodId && d.step === step && d.status === "POSTED");
+  }
+
+  async hasStepDecision(companyId: string, periodId: string, step: BspGameStep): Promise<boolean> {
+    const c = state().companies.get(companyId);
+    if (!c) return false;
+    return c.decisions.some(
+      (d) =>
+        d.periodId === periodId &&
+        d.step === step &&
+        (d.status === "POSTED" || d.status === "SUBMITTED")
+    );
   }
 
   async removeDecision(companyId: string, periodId: string, step: BspGameStep): Promise<void> {

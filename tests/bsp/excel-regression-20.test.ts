@@ -23,6 +23,9 @@ import {
   applySalesToState,
 } from "@/src/bsp/domain/validation/step-validators";
 import { DEFAULT_ECONOMY_VALUES, type EconomyValues } from "@/src/bsp/domain/types";
+import { materialBidPayload } from "./bid-payloads";
+import { effectiveMaterialUnitPriceManwon } from "@/src/bsp/domain/economy/material-pricing";
+import { getRegion } from "@/src/bsp/domain/regions/region-catalog";
 
 export interface ExcelScenarioInput {
   id: string;
@@ -83,19 +86,10 @@ export async function runExcelScenario(input: ExcelScenarioInput): Promise<Excel
     { step: "HIRING", payload: input.hiring },
     {
       step: "MATERIAL",
-      payload: {
-        lines: [
-          {
-            regionCode: input.material.regionCode,
-            materials: {
-              A: input.material.perType,
-              B: input.material.perType,
-              C: input.material.perType,
-              D: input.material.perType,
-            },
-          },
-        ],
-      },
+      payload: materialBidPayload(
+        input.material.regionCode as Parameters<typeof materialBidPayload>[0],
+        input.material.perType
+      ),
     },
     {
       step: "PRODUCTION",
@@ -137,12 +131,15 @@ export async function runExcelScenario(input: ExcelScenarioInput): Promise<Excel
     productionCapacity: hireC.productionCapacity,
     salesCapacity: hireC.salesCapacity,
   };
+  const matRegion = getRegion(input.material.regionCode as Parameters<typeof getRegion>[0]);
+  const matBidPrice = effectiveMaterialUnitPriceManwon(matRegion, economy);
   const matV = validateMaterial(
     {
       lines: [
         {
           regionCode: input.material.regionCode,
           materials: { A: input.material.perType, B: input.material.perType, C: input.material.perType, D: input.material.perType },
+          unitPriceBidManwon: matBidPrice,
         },
       ],
     },
@@ -454,9 +451,7 @@ describe("Lecture simulation — 10 teams", () => {
       { step: "HIRING" as const, payload: base.hiring },
       {
         step: "MATERIAL" as const,
-        payload: {
-          lines: [{ regionCode: base.material.regionCode, materials: { A: 15, B: 15, C: 15, D: 15 } }],
-        },
+        payload: materialBidPayload(base.material.regionCode as Parameters<typeof materialBidPayload>[0], 15),
       },
       { step: "PRODUCTION" as const, payload: base.production },
       {

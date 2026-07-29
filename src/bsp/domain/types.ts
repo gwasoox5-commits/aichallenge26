@@ -262,6 +262,8 @@ export interface MaterialBranchInput {
 export interface MaterialLineInput {
   regionCode: string;
   materials: MaterialInventory;
+  /** Competitive bid unit price (만원). Higher price wins regional allocation. */
+  unitPriceBidManwon?: number;
 }
 
 export interface MaterialPayload {
@@ -337,6 +339,7 @@ export interface HiringComputed {
 export interface MaterialLineComputed {
   regionCode: string;
   effectiveUnitPriceManwon: number;
+  unitPriceBidManwon: number;
   totalUnits: number;
   materialCostManwon: number;
   logisticsCostManwon: number;

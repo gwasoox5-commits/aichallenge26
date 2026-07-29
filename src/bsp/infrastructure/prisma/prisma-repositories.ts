@@ -504,19 +504,29 @@ class PrismaCompanyRepository implements CompanyRepository {
   }
 
   async saveDecision(decision: DecisionRecord): Promise<void> {
-    await bspPrisma.bspDecision.create({
-      data: {
+    await bspPrisma.bspDecision.upsert({
+      where: { id: decision.id },
+      create: {
         id: decision.id,
         companyId: decision.companyId,
         periodId: decision.periodId,
         step: decision.step,
-        status: "POSTED",
+        status: decision.status,
+        source: decision.source ?? "CEO",
         payload: decision.payload as object,
         validation: decision.validation as object,
         computed: decision.computed as object,
         companyStatusVersion: decision.companyStatusVersion,
         journalEntryIds: decision.journalEntryIds,
         submittedAt: decision.submittedAt,
+      },
+      update: {
+        status: decision.status,
+        source: decision.source ?? "CEO",
+        payload: decision.payload as object,
+        validation: decision.validation as object,
+        computed: decision.computed as object,
+        journalEntryIds: decision.journalEntryIds,
       },
     });
   }
@@ -556,6 +566,18 @@ class PrismaCompanyRepository implements CompanyRepository {
   async hasPostedDecision(companyId: string, periodId: string, step: BspGameStep): Promise<boolean> {
     const count = await bspPrisma.bspDecision.count({
       where: { companyId, periodId, step, status: "POSTED" },
+    });
+    return count > 0;
+  }
+
+  async hasStepDecision(companyId: string, periodId: string, step: BspGameStep): Promise<boolean> {
+    const count = await bspPrisma.bspDecision.count({
+      where: {
+        companyId,
+        periodId,
+        step,
+        status: { in: ["POSTED", "SUBMITTED"] },
+      },
     });
     return count > 0;
   }
