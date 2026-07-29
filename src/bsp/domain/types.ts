@@ -232,12 +232,26 @@ export interface FacilityPayload {
   machineSmallPurchased: number;
 }
 
+export type HiringDepartment = "PURCHASE" | "PRODUCTION" | "SALES";
+
+export interface HiringTransfer {
+  from: HiringDepartment;
+  to: HiringDepartment;
+  headcount: number;
+}
+
+export interface HiringResignations {
+  purchase?: number;
+  production?: number;
+  sales?: number;
+}
+
 export interface HiringPayload {
   headPurchase: number;
   headProduction: number;
   headSales: number;
-  transfers?: unknown[];
-  resignations?: { purchase?: number; production?: number; sales?: number };
+  transfers?: HiringTransfer[];
+  resignations?: HiringResignations;
 }
 
 export interface MaterialBranchInput {

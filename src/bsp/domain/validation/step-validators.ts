@@ -1,4 +1,20 @@
-import { GAME_CONSTANTS, type CompanyOperationalState, type EconomyValues, type FacilityPayload, type HiringPayload, type LoanPayload, type MaterialInventory, type MaterialPayload, type ProductionPayload, type SalesPayload, type ValidationResult, type ValidationRuleResult } from "../types";
+import {
+  GAME_CONSTANTS,
+  type CompanyOperationalState,
+  type EconomyValues,
+  type FacilityPayload,
+  type HiringDepartment,
+  type HiringPayload,
+  type HiringResignations,
+  type HiringTransfer,
+  type LoanPayload,
+  type MaterialInventory,
+  type MaterialPayload,
+  type ProductionPayload,
+  type SalesPayload,
+  type ValidationResult,
+  type ValidationRuleResult,
+} from "../types";
 import { getRegion, isRegionCode } from "../regions/region-catalog";
 import {
   effectiveMaterialLimit,
@@ -343,9 +359,49 @@ export function computeHiring(payload: HiringPayload, payrollMultiplier = 1) {
   };
 }
 
+export interface HiringCurrentHeads {
+  headPurchase: number;
+  headProduction: number;
+  headSales: number;
+}
+
+const HIRING_DEPT_HEAD_KEY: Record<HiringDepartment, keyof HiringCurrentHeads> = {
+  PURCHASE: "headPurchase",
+  PRODUCTION: "headProduction",
+  SALES: "headSales",
+};
+
+function normalizeHiringResignations(resignations?: HiringResignations) {
+  return {
+    purchase: resignations?.purchase ?? 0,
+    production: resignations?.production ?? 0,
+    sales: resignations?.sales ?? 0,
+  };
+}
+
+function headsAfterResignations(current: HiringCurrentHeads, resignations?: HiringResignations): HiringCurrentHeads {
+  const resign = normalizeHiringResignations(resignations);
+  return {
+    headPurchase: current.headPurchase - resign.purchase,
+    headProduction: current.headProduction - resign.production,
+    headSales: current.headSales - resign.sales,
+  };
+}
+
+function isValidHiringTransfer(transfer: unknown): transfer is HiringTransfer {
+  if (!transfer || typeof transfer !== "object") return false;
+  const t = transfer as HiringTransfer;
+  return (
+    (t.from === "PURCHASE" || t.from === "PRODUCTION" || t.from === "SALES") &&
+    (t.to === "PURCHASE" || t.to === "PRODUCTION" || t.to === "SALES") &&
+    Number.isInteger(t.headcount)
+  );
+}
+
 export function validateHiring(
   payload: HiringPayload,
-  periodYear = 1
+  periodYear = 1,
+  currentHeads?: HiringCurrentHeads
 ): { validation: ValidationResult; computed: ReturnType<typeof computeHiring> } {
   const computed = computeHiring(payload);
   const rules: ValidationRuleResult[] = [];
@@ -362,12 +418,10 @@ export function validateHiring(
     }
   }
 
+  const resign = normalizeHiringResignations(payload.resignations);
+  const transfers = payload.transfers ?? [];
   const hasRestructuring =
-    (payload.transfers && payload.transfers.length > 0) ||
-    (payload.resignations &&
-      ((payload.resignations.purchase ?? 0) > 0 ||
-        (payload.resignations.production ?? 0) > 0 ||
-        (payload.resignations.sales ?? 0) > 0));
+    transfers.length > 0 || resign.purchase > 0 || resign.production > 0 || resign.sales > 0;
 
   if (periodYear < 2 && hasRestructuring) {
     rules.push(
@@ -377,8 +431,73 @@ export function validateHiring(
     rules.push(pass("H04", "Restructuring fields valid for period"));
   }
 
-  rules.push(pass("H02", "Transfer rules deferred to year 2+"));
-  rules.push(pass("H03", "Resignation rules deferred to year 2+"));
+  if (periodYear >= 2 && currentHeads) {
+    let resignOk = true;
+    for (const [field, value] of Object.entries(resign)) {
+      const currentKey = field === "purchase" ? "headPurchase" : field === "production" ? "headProduction" : "headSales";
+      if (!Number.isInteger(value) || value < 0) {
+        rules.push(
+          fail("H01", "ERR_HIRE_NEGATIVE", `resignations.${field}`, `resignations.${field} must be a non-negative integer`)
+        );
+        resignOk = false;
+      } else if (value > currentHeads[currentKey as keyof HiringCurrentHeads]) {
+        rules.push(
+          fail("H03", "ERR_RESIGN_EXCEEDS", `resignations.${field}`, "Resignation exceeds current headcount", {
+            field,
+            requested: value,
+            current: currentHeads[currentKey as keyof HiringCurrentHeads],
+          })
+        );
+        resignOk = false;
+      }
+    }
+    if (resignOk) {
+      rules.push(pass("H03", "Resignations within current headcount"));
+    }
+
+    const afterResign = headsAfterResignations(currentHeads, payload.resignations);
+    let transferOk = true;
+    for (const [index, transfer] of transfers.entries()) {
+      const field = `transfers[${index}]`;
+      if (!isValidHiringTransfer(transfer)) {
+        rules.push(fail("H02", "ERR_TRANSFER_INVALID", field, "Transfer entry is invalid"));
+        transferOk = false;
+        continue;
+      }
+      if (transfer.from === transfer.to) {
+        rules.push(fail("H02", "ERR_TRANSFER_INVALID", field, "Transfer source and destination must differ"));
+        transferOk = false;
+        continue;
+      }
+      if (transfer.headcount < 30 || transfer.headcount % 30 !== 0) {
+        rules.push(
+          fail("H02", "ERR_TRANSFER_INVALID", field, "Transfer headcount must be a positive multiple of 30", {
+            headcount: transfer.headcount,
+          })
+        );
+        transferOk = false;
+        continue;
+      }
+      const headsMoved = transfer.headcount / 30;
+      const sourceKey = HIRING_DEPT_HEAD_KEY[transfer.from];
+      if (afterResign[sourceKey] < headsMoved) {
+        rules.push(
+          fail("H02", "ERR_TRANSFER_INVALID", field, "Insufficient headcount in source department for transfer", {
+            from: transfer.from,
+            requestedHeads: headsMoved,
+            availableHeads: afterResign[sourceKey],
+          })
+        );
+        transferOk = false;
+      }
+    }
+    if (transferOk) {
+      rules.push(pass("H02", "Transfer rules satisfied"));
+    }
+  } else {
+    rules.push(pass("H02", "Transfer rules deferred to year 2+"));
+    rules.push(pass("H03", "Resignation rules deferred to year 2+"));
+  }
 
   return { validation: result(rules), computed };
 }

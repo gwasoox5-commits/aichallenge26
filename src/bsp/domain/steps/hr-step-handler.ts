@@ -20,7 +20,12 @@ export class HRStepHandler implements StepHandler {
   validate(context: StepContext): StepValidationOutcome {
     const payload = context.payload as HiringPayload;
     const periodYear = context.session.year ?? parseYearFromPeriodLabel(context.session.periodLabel);
-    const { validation, computed } = validateHiring(payload, periodYear);
+    const currentHeads = {
+      headPurchase: context.company.operational.headPurchase,
+      headProduction: context.company.operational.headProduction,
+      headSales: context.company.operational.headSales,
+    };
+    const { validation, computed } = validateHiring(payload, periodYear, currentHeads);
     const localized = { ...validation, rules: localizeValidationResult(validation.rules) };
     return {
       validation: localized,

@@ -29,8 +29,8 @@ import {
   computeProduction,
   computeSales,
 } from "@/src/bsp/domain/validation/step-validators";
-import { DEFAULT_ECONOMY_VALUES, GAME_CONSTANTS, PHASE_TO_STEP, type BspGameStep, type BspStepPhase } from "@/src/bsp/domain/types";
-import { formatPeriodLabel, formatStepPhaseLabel } from "@/src/bsp/domain/period/display-labels";
+import { DEFAULT_ECONOMY_VALUES, GAME_CONSTANTS, PHASE_TO_STEP, type BspGameStep, type BspStepPhase, type HiringDepartment } from "@/src/bsp/domain/types";
+import { formatPeriodLabel, formatStepPhaseLabel, parseYearFromPeriodLabel } from "@/src/bsp/domain/period/display-labels";
 
 type Dashboard = {
   companyId: string;
@@ -104,6 +104,12 @@ export default function PlayPage() {
   const [headPurchase, setHeadPurchase] = useState(2);
   const [headProduction, setHeadProduction] = useState(3);
   const [headSales, setHeadSales] = useState(2);
+  const [resignPurchase, setResignPurchase] = useState(0);
+  const [resignProduction, setResignProduction] = useState(0);
+  const [resignSales, setResignSales] = useState(0);
+  const [transferFrom, setTransferFrom] = useState<HiringDepartment>("PURCHASE");
+  const [transferTo, setTransferTo] = useState<HiringDepartment>("PRODUCTION");
+  const [transferHeadcount, setTransferHeadcount] = useState(0);
 
   const [materialForm, setMaterialForm] = useState<MaterialFormState>({
     regionCode: "ASIA",
@@ -124,6 +130,21 @@ export default function PlayPage() {
   const requiresManualChecklist = Boolean(currentGameStep && getStepEducation(currentGameStep));
   const completed = dashboard?.completedSteps ?? [];
   const economy = dashboard?.economy ?? DEFAULT_ECONOMY_VALUES;
+
+  useEffect(() => {
+    if (!dashboard) return;
+    setHeadPurchase(dashboard.headPurchase);
+    setHeadProduction(dashboard.headProduction);
+    setHeadSales(dashboard.headSales);
+    setResignPurchase(0);
+    setResignProduction(0);
+    setResignSales(0);
+    setTransferFrom("PURCHASE");
+    setTransferTo("PRODUCTION");
+    setTransferHeadcount(0);
+  }, [dashboard?.companyId, dashboard?.periodLabel, dashboard?.statusVersion]);
+
+  const periodYear = dashboard?.year ?? parseYearFromPeriodLabel(dashboard?.periodLabel);
 
   useEffect(() => {
     if (!requiresManualChecklist) {
@@ -357,7 +378,21 @@ export default function PlayPage() {
     } else if (targetStep === "FACILITY") {
       payload = { landPlotsPurchased: landPlots, machineBigPurchased: machineBig, machineSmallPurchased: machineSmall };
     } else if (targetStep === "HIRING") {
-      payload = { headPurchase, headProduction, headSales };
+      const transfers =
+        periodYear >= 2 && transferHeadcount > 0 && transferFrom !== transferTo
+          ? [{ from: transferFrom, to: transferTo, headcount: transferHeadcount }]
+          : [];
+      payload = {
+        headPurchase,
+        headProduction,
+        headSales,
+        transfers,
+        resignations: {
+          purchase: resignPurchase,
+          production: resignProduction,
+          sales: resignSales,
+        },
+      };
     } else if (targetStep === "MATERIAL") {
       payload = {
         branches: materialForm.openBranch ? [{ regionCode: materialForm.regionCode }] : [],
@@ -532,15 +567,39 @@ export default function PlayPage() {
 
               {step === "STEP3_HR" && !completed.includes("HIRING") && !isSubmitted && (
                 <StepHRForm
+                  periodYear={periodYear}
+                  currentHeads={{
+                    headPurchase: dashboard?.headPurchase ?? headPurchase,
+                    headProduction: dashboard?.headProduction ?? headProduction,
+                    headSales: dashboard?.headSales ?? headSales,
+                  }}
                   headPurchase={headPurchase}
                   headProduction={headProduction}
                   headSales={headSales}
+                  resignations={{
+                    purchase: resignPurchase,
+                    production: resignProduction,
+                    sales: resignSales,
+                  }}
+                  transferFrom={transferFrom}
+                  transferTo={transferTo}
+                  transferHeadcount={transferHeadcount}
                   preview={hrPreview}
                   loading={loading}
                   onChange={(field, value) => {
                     if (field === "headPurchase") setHeadPurchase(value);
                     if (field === "headProduction") setHeadProduction(value);
                     if (field === "headSales") setHeadSales(value);
+                  }}
+                  onResignChange={(field, value) => {
+                    if (field === "purchase") setResignPurchase(value);
+                    if (field === "production") setResignProduction(value);
+                    if (field === "sales") setResignSales(value);
+                  }}
+                  onTransferChange={(field, value) => {
+                    if (field === "transferFrom") setTransferFrom(value as HiringDepartment);
+                    if (field === "transferTo") setTransferTo(value as HiringDepartment);
+                    if (field === "transferHeadcount") setTransferHeadcount(value as number);
                   }}
                   onValidate={() => postDecision("HIRING", true)}
                   onSubmit={() => postDecision("HIRING", false)}
