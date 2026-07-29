@@ -21,13 +21,6 @@ type EnvironmentDto = {
     applyTiming: string;
     firedAt?: string;
   }>;
-  topDeltas: Array<{
-    key: string;
-    label: string;
-    value: number;
-    deltaVsPeriodOpen: number;
-    description?: string;
-  }>;
   recentChanges?: string[];
   scheduledChanges?: string[];
   environmentChangedBadge: boolean;
@@ -103,20 +96,6 @@ export function CeoEventFeed({ companyId, syncToken = 0 }: Props) {
               <li key={line}>{line}</li>
             ))}
           </ul>
-        </div>
-      )}
-
-      {env.topDeltas.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {env.topDeltas.map((d) => (
-            <span
-              key={d.key}
-              className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs"
-              title={d.description}
-            >
-              {d.description ?? d.label}
-            </span>
-          ))}
         </div>
       )}
 
