@@ -88,7 +88,8 @@ export function BranchMapPanel({
       </div>
 
       <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
-        브랜치가 개설된 지역에서만 원재료 구매·제품 판매가 가능합니다. 개설비는 지역당 최초 1회만 부과됩니다.
+        구매·판매 브랜치 cap은 Step별로 따로 적용됩니다. 구매 브랜치가 있는 지역은 별도 판매 브랜치 없이 판매할 수
+        있습니다. 거래 가능 지역은 운영 지역(selectedRegions) {cap}개로 제한됩니다.
       </p>
     </div>
   );

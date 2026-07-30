@@ -43,6 +43,7 @@ export function isRegionInOperatingPool(state: CompanyOperationalState, regionCo
   return state.selectedRegions.includes(regionCode);
 }
 
+/** Regions with any branch (purchase or sales-only) — for dashboard display. */
 export function operatingRegions(state: CompanyOperationalState): Set<RegionCode> {
   const codes = new Set<RegionCode>();
   for (const code of [...state.openBranches, ...state.openSalesBranches]) {
@@ -51,6 +52,45 @@ export function operatingRegions(state: CompanyOperationalState): Set<RegionCode
   return codes;
 }
 
+export function purchaseBranchRegions(state: CompanyOperationalState): Set<RegionCode> {
+  const codes = new Set<RegionCode>();
+  for (const code of state.openBranches) {
+    if (isRegionCode(code)) codes.add(code);
+  }
+  return codes;
+}
+
+export function salesBranchRegions(state: CompanyOperationalState): Set<RegionCode> {
+  const codes = new Set<RegionCode>();
+  for (const code of state.openSalesBranches) {
+    if (isRegionCode(code)) codes.add(code);
+  }
+  return codes;
+}
+
+export function projectedPurchaseBranchRegions(
+  state: CompanyOperationalState,
+  purchaseBranches: MaterialBranchInput[] = []
+): Set<RegionCode> {
+  const codes = purchaseBranchRegions(state);
+  for (const branch of purchaseBranches) {
+    if (isRegionCode(branch.regionCode)) codes.add(branch.regionCode);
+  }
+  return codes;
+}
+
+export function projectedSalesBranchRegions(
+  state: CompanyOperationalState,
+  salesBranches: MaterialBranchInput[] = []
+): Set<RegionCode> {
+  const codes = salesBranchRegions(state);
+  for (const branch of salesBranches) {
+    if (isRegionCode(branch.regionCode)) codes.add(branch.regionCode);
+  }
+  return codes;
+}
+
+/** @deprecated Use projectedPurchaseBranchRegions / projectedSalesBranchRegions. */
 export function projectedOperatingRegions(
   state: CompanyOperationalState,
   purchaseBranches: MaterialBranchInput[] = [],
@@ -82,22 +122,49 @@ export function openingSalesRegions(payload: SalesPayload): Set<RegionCode> {
   return codes;
 }
 
+export function hasPurchaseBranch(
+  state: CompanyOperationalState,
+  regionCode: RegionCode,
+  openingPurchase: Set<RegionCode> = new Set()
+): boolean {
+  return state.openBranches.includes(regionCode) || openingPurchase.has(regionCode);
+}
+
+/** Purchase branch in a region satisfies sales; otherwise a sales branch is required. */
+export function hasSalesBranch(
+  state: CompanyOperationalState,
+  regionCode: RegionCode,
+  openingSales: Set<RegionCode> = new Set()
+): boolean {
+  return (
+    state.openBranches.includes(regionCode) ||
+    state.openSalesBranches.includes(regionCode) ||
+    openingSales.has(regionCode)
+  );
+}
+
+/** @deprecated Use hasPurchaseBranch / hasSalesBranch. */
 export function hasOperationalBranch(
   state: CompanyOperationalState,
   regionCode: RegionCode,
   openingPurchase: Set<RegionCode> = new Set(),
   openingSales: Set<RegionCode> = new Set()
 ): boolean {
-  return (
-    state.openBranches.includes(regionCode) ||
-    state.openSalesBranches.includes(regionCode) ||
-    openingPurchase.has(regionCode) ||
-    openingSales.has(regionCode)
-  );
+  return hasPurchaseBranch(state, regionCode, openingPurchase) || hasSalesBranch(state, regionCode, openingSales);
 }
 
+export function isPurchaseBranchOpened(state: CompanyOperationalState, regionCode: RegionCode): boolean {
+  return state.openBranches.includes(regionCode);
+}
+
+/** Purchase branch counts as sales-ready (no separate sales setup fee). */
+export function isSalesBranchOpened(state: CompanyOperationalState, regionCode: RegionCode): boolean {
+  return state.openSalesBranches.includes(regionCode) || state.openBranches.includes(regionCode);
+}
+
+/** @deprecated Use isPurchaseBranchOpened / isSalesBranchOpened. */
 export function isRegionAlreadyOpened(state: CompanyOperationalState, regionCode: RegionCode): boolean {
-  return state.openBranches.includes(regionCode) || state.openSalesBranches.includes(regionCode);
+  return isSalesBranchOpened(state, regionCode);
 }
 
 export function validateRegionSelection(

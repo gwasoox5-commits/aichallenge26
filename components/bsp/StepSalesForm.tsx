@@ -50,7 +50,7 @@ export function StepSalesForm({
   onValidate,
   onSubmit,
 }: Props) {
-  const operatingCount = new Set([...openBranches, ...openSalesBranches]).size;
+  const salesBranchCount = openSalesBranches.length;
 
   const updateLine = (index: number, patch: Partial<SalesLineForm>) => {
     onChange(lines.map((line, i) => (i === index ? { ...line, ...patch } : line)));
@@ -61,15 +61,16 @@ export function StepSalesForm({
       <h2 className="mb-1 text-lg font-semibold">Step 6 — 판매 (경쟁입찰)</h2>
       <p className="mb-4 text-sm text-slate-600">
         입찰가 ↓ 우선 판매 · GM Step 종료 시 지역별 수요 배분 · 완제품 {finishedGoodsQty} · Capacity {salesCapacity} ·
-        브랜치 개설 지역에서만 판매 ({operatingCount}/{regionExpansionCap} 개설)
+        운영 지역 {regionExpansionCap}개 내 판매 · 판매 브랜치 {regionExpansionCap}개까지 ({salesBranchCount}/
+        {regionExpansionCap} 판매 전용 개설)
       </p>
 
       <div className="space-y-4">
         {lines.map((line, index) => {
           const region = REGION_CATALOG.find((r) => r.code === line.regionCode);
-          const hasBranch =
+          const canSell =
             openBranches.includes(line.regionCode) || openSalesBranches.includes(line.regionCode);
-          const atCap = !hasBranch && line.openBranch && operatingCount >= regionExpansionCap;
+          const atCap = !canSell && line.openBranch && salesBranchCount >= regionExpansionCap;
 
           return (
             <div key={line.regionCode} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
@@ -95,7 +96,7 @@ export function StepSalesForm({
                     onChange={(e) => {
                       const qty = Number(e.target.value);
                       const patch: Partial<SalesLineForm> = { qty };
-                      if (qty > 0 && !hasBranch && !atCap) {
+                      if (qty > 0 && !canSell && !atCap) {
                         patch.openBranch = true;
                       }
                       updateLine(index, patch);
@@ -107,22 +108,24 @@ export function StepSalesForm({
                   <input
                     type="checkbox"
                     checked={line.openBranch}
-                    disabled={hasBranch || atCap}
+                    disabled={canSell || atCap}
                     onChange={(e) => updateLine(index, { openBranch: e.target.checked })}
                     className="rounded"
                   />
                   <span>
-                    {hasBranch
-                      ? "이미 브랜치 개설됨"
+                    {canSell
+                      ? openBranches.includes(line.regionCode)
+                        ? "구매 브랜치로 판매 가능"
+                        : "이미 판매 브랜치 개설됨"
                       : atCap
-                        ? "연도 지역 한도 초과"
+                        ? "판매 브랜치 연도 한도 초과"
                         : `신규 판매 브랜치 (+${region?.salesSetupFeeManwon ?? 0}만, 1회)`}
                   </span>
                 </label>
               </div>
-              {!hasBranch && line.qty > 0 && !line.openBranch && (
+              {!canSell && line.qty > 0 && !line.openBranch && (
                 <p className="mt-2 text-xs text-amber-800">
-                  이 지역에 브랜치가 없습니다. 판매하려면 「신규 판매 브랜치」를 선택하세요.
+                  이 지역에서 판매하려면 구매 브랜치가 없을 경우 「신규 판매 브랜치」를 선택하세요.
                 </p>
               )}
             </div>

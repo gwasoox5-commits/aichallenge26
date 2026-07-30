@@ -40,7 +40,6 @@ export function StepMaterialForm({
   selectedRegions,
   purchaseCapacity,
   openBranches = [],
-  openSalesBranches = [],
   regionExpansionCap = 3,
   preview,
   loading,
@@ -49,7 +48,7 @@ export function StepMaterialForm({
   onValidate,
   onSubmit,
 }: Props) {
-  const operatingCount = new Set([...openBranches, ...openSalesBranches]).size;
+  const purchaseBranchCount = openBranches.length;
 
   const updateLine = (index: number, patch: Partial<MaterialLineForm>) => {
     onChange(lines.map((line, i) => (i === index ? { ...line, ...patch } : line)));
@@ -68,16 +67,15 @@ export function StepMaterialForm({
     <div className="rounded-xl border border-slate-200 bg-white p-6">
       <h2 className="mb-1 text-lg font-semibold">Step 4 — 원재료 구매 (경쟁입찰)</h2>
       <p className="mb-4 text-sm text-slate-600">
-        선택한 {selectedRegions.length}개 운영 지역 · 브랜치 개설 지역에서만 구매 · {regionExpansionCap}개 지역까지 (
-        {operatingCount}/{regionExpansionCap} 개설) · 4단위 = 완제품 1개
+        선택한 {selectedRegions.length}개 운영 지역 · 구매 브랜치 개설 지역에서만 구매 · 구매 브랜치{" "}
+        {regionExpansionCap}개까지 ({purchaseBranchCount}/{regionExpansionCap} 개설) · 4단위 = 완제품 1개
       </p>
 
       <div className="space-y-4">
         {lines.map((line, index) => {
           const region = REGION_CATALOG.find((r) => r.code === line.regionCode);
-          const hasBranch =
-            openBranches.includes(line.regionCode) || openSalesBranches.includes(line.regionCode);
-          const atCap = !hasBranch && line.openBranch && operatingCount >= regionExpansionCap;
+          const hasBranch = openBranches.includes(line.regionCode);
+          const atCap = !hasBranch && line.openBranch && purchaseBranchCount >= regionExpansionCap;
 
           return (
             <div key={line.regionCode} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
@@ -123,13 +121,13 @@ export function StepMaterialForm({
                       ? "이미 브랜치 개설됨"
                       : atCap
                         ? "연도 지역 한도 초과"
-                        : `신규 브랜치 (+${region?.branchSetupFeeManwon ?? 0}만, 1회)`}
+                        : `신규 구매 브랜치 (+${region?.branchSetupFeeManwon ?? 0}만, 1회)`}
                   </span>
                 </label>
               </div>
               {!hasBranch && line.qty > 0 && !line.openBranch && (
                 <p className="mt-2 text-xs text-amber-800">
-                  이 지역에 브랜치가 없습니다. 구매하려면 「신규 브랜치 개설」을 선택하세요.
+                  이 지역에 구매 브랜치가 없습니다. 구매하려면 「신규 구매 브랜치」를 선택하세요.
                 </p>
               )}
             </div>

@@ -16,12 +16,15 @@ import {
 } from "../types";
 import { getRegion, isRegionCode } from "../regions/region-catalog";
 import {
-  isRegionAlreadyOpened,
-  projectedOperatingRegions,
+  isPurchaseBranchOpened,
+  isSalesBranchOpened,
+  projectedPurchaseBranchRegions,
+  projectedSalesBranchRegions,
   regionExpansionCap,
   openingPurchaseRegions,
   openingSalesRegions,
-  hasOperationalBranch,
+  hasPurchaseBranch,
+  hasSalesBranch,
   isRegionInOperatingPool,
 } from "../regions/region-expansion";
 import {
@@ -542,7 +545,7 @@ export function computeMaterial(
 
   for (const branch of branches) {
     if (!isRegionCode(branch.regionCode)) continue;
-    if (isRegionAlreadyOpened(state, branch.regionCode)) continue;
+    if (isPurchaseBranchOpened(state, branch.regionCode)) continue;
     if (seenNew.has(branch.regionCode)) continue;
     seenNew.add(branch.regionCode);
     newBranches.push(branch.regionCode);
@@ -623,7 +626,7 @@ export function validateMaterial(
       );
     }
 
-    if (totalUnits > 0 && !hasOperationalBranch(state, line.regionCode, openingPurchase)) {
+    if (totalUnits > 0 && !hasPurchaseBranch(state, line.regionCode, openingPurchase)) {
       rules.push(
         fail("M07", "ERR_MAT_NO_BRANCH", "regionCode", "Material purchase requires a branch in this region", {
           regionCode: line.regionCode,
@@ -694,11 +697,11 @@ export function validateMaterial(
     rules.push(pass("M04", "Sufficient cash"));
   }
 
-  const projectedRegions = projectedOperatingRegions(state, payload.branches ?? [], []);
+  const projectedRegions = projectedPurchaseBranchRegions(state, payload.branches ?? []);
   const cap = regionExpansionCap(year);
   if (projectedRegions.size > cap) {
     rules.push(
-      fail("M05", "ERR_BRANCH_YEAR_CAP", "branches", "Regional branch count exceeds year limit", {
+      fail("M05", "ERR_BRANCH_YEAR_CAP", "branches", "Purchase branch count exceeds year limit", {
         year,
         cap,
         projected: projectedRegions.size,
@@ -851,7 +854,7 @@ export function computeSales(payload: SalesPayload, state: CompanyOperationalSta
 
   for (const branch of branches) {
     if (!isRegionCode(branch.regionCode)) continue;
-    if (isRegionAlreadyOpened(state, branch.regionCode)) continue;
+    if (isSalesBranchOpened(state, branch.regionCode)) continue;
     if (seenNew.has(branch.regionCode)) continue;
     seenNew.add(branch.regionCode);
     newSalesBranches.push(branch.regionCode);
@@ -920,7 +923,7 @@ export function validateSales(payload: SalesPayload, state: CompanyOperationalSt
       );
     }
 
-    if (line.qty > 0 && !hasOperationalBranch(state, line.regionCode, new Set(), openingSales)) {
+    if (line.qty > 0 && !hasSalesBranch(state, line.regionCode, openingSales)) {
       rules.push(
         fail("S07", "ERR_SALE_NO_BRANCH", "regionCode", "Sales require a branch in this region", {
           regionCode: line.regionCode,
@@ -979,11 +982,11 @@ export function validateSales(payload: SalesPayload, state: CompanyOperationalSt
     rules.push(pass("S05", "Cash sufficient after sales"));
   }
 
-  const projectedRegions = projectedOperatingRegions(state, [], payload.branchesNew ?? []);
+  const projectedRegions = projectedSalesBranchRegions(state, payload.branchesNew ?? []);
   const cap = regionExpansionCap(year);
   if (projectedRegions.size > cap) {
     rules.push(
-      fail("S08", "ERR_BRANCH_YEAR_CAP", "branchesNew", "Regional branch count exceeds year limit", {
+      fail("S08", "ERR_BRANCH_YEAR_CAP", "branchesNew", "Sales branch count exceeds year limit", {
         year,
         cap,
         projected: projectedRegions.size,
