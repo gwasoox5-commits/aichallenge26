@@ -159,6 +159,12 @@ function JoinFormInner() {
 
         {error && <p className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700" role="alert">{error}</p>}
         {message && !joined && !error && <p className="text-sm text-indigo-700">{message}</p>}
+
+        <p className="mt-6 text-center text-sm text-slate-500">
+          <Link href="/manuals" className="text-indigo-600 hover:text-indigo-500">
+            참가자 운영 설명서 PDF 다운로드
+          </Link>
+        </p>
       </main>
     </div>
   );

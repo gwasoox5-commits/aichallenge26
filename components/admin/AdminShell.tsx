@@ -29,6 +29,7 @@ const NAV = [
   { href: "/admin/audit", label: "운영 로그" },
   { href: "/admin/pilot-check", label: "시스템 점검" },
   { href: "/admin/integrations", label: "API 연동" },
+  { href: "/manuals", label: "운영 설명서" },
 ];
 
 function AdminNavLinks({ pathname }: { pathname: string }) {

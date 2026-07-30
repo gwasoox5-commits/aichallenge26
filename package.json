@@ -20,7 +20,8 @@
     "bsp:seed": "tsx prisma/bsp.seed.ts",
     "bsp:studio": "prisma studio --schema=prisma/bsp.schema.prisma",
     "bsp:backup": "node scripts/bsp-backup.mjs",
-    "bsp:restore": "node scripts/bsp-restore.mjs"
+    "bsp:restore": "node scripts/bsp-restore.mjs",
+    "docs:manuals": "node scripts/generate-operation-manual-pdfs.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.1.0",
@@ -47,6 +48,7 @@
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.16",
     "typescript": "^5.7.2",
-    "vitest": "^2.1.8"
+    "vitest": "^2.1.8",
+    "marked": "^15.0.6"
   }
 }

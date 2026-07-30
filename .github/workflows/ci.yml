@@ -27,6 +27,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium
+
+      - name: Generate operation manual PDFs
+        run: npm run docs:manuals
+
       - name: Generate Prisma client
         run: npm run bsp:generate
 
