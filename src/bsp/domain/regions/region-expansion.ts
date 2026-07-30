@@ -43,6 +43,17 @@ export function isRegionInOperatingPool(state: CompanyOperationalState, regionCo
   return state.selectedRegions.includes(regionCode);
 }
 
+/** Distinct regions with sales qty > 0 in a sales payload. */
+export function sellingRegionsFromSalesPayload(payload: SalesPayload): Set<RegionCode> {
+  const codes = new Set<RegionCode>();
+  for (const line of payload.lines ?? []) {
+    if (line.qty > 0 && isRegionCode(line.regionCode)) {
+      codes.add(line.regionCode);
+    }
+  }
+  return codes;
+}
+
 /** Regions with any branch (purchase or sales-only) — for dashboard display. */
 export function operatingRegions(state: CompanyOperationalState): Set<RegionCode> {
   const codes = new Set<RegionCode>();

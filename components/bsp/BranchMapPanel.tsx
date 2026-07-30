@@ -89,7 +89,7 @@ export function BranchMapPanel({
 
       <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
         구매·판매 브랜치 cap은 Step별로 따로 적용됩니다. 구매 브랜치가 있는 지역은 별도 판매 브랜치 없이 판매할 수
-        있습니다. 거래 가능 지역은 운영 지역(selectedRegions) {cap}개로 제한됩니다.
+        있습니다. 판매 지역은 1년차 {cap}곳까지(판매량 &gt; 0 기준)이며, 구매 지역과 다를 수 있습니다.
       </p>
     </div>
   );

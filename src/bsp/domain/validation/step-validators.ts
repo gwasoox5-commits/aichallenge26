@@ -26,6 +26,7 @@ import {
   hasPurchaseBranch,
   hasSalesBranch,
   isRegionInOperatingPool,
+  sellingRegionsFromSalesPayload,
 } from "../regions/region-expansion";
 import {
   effectiveMaterialLimit,
@@ -915,14 +916,6 @@ export function validateSales(payload: SalesPayload, state: CompanyOperationalSt
     const region = getRegion(line.regionCode);
     totalSoldQty += line.qty;
 
-    if (line.qty > 0 && !isRegionInOperatingPool(state, line.regionCode)) {
-      rules.push(
-        fail("S01", "ERR_SALE_REGION_NOT_SELECTED", "regionCode", "Region is not in your operating pool", {
-          regionCode: line.regionCode,
-        })
-      );
-    }
-
     if (line.qty > 0 && !hasSalesBranch(state, line.regionCode, openingSales)) {
       rules.push(
         fail("S07", "ERR_SALE_NO_BRANCH", "regionCode", "Sales require a branch in this region", {
@@ -968,6 +961,22 @@ export function validateSales(payload: SalesPayload, state: CompanyOperationalSt
     rules.push(fail("S03", "ERR_SALE_CAPACITY", "lines", "Total sales exceed sales headcount capacity"));
   } else {
     rules.push(pass("S03", "Sales capacity sufficient"));
+  }
+
+  const sellingRegions = sellingRegionsFromSalesPayload(payload);
+  const salesRegionCap = regionExpansionCap(year);
+  if (sellingRegions.size > salesRegionCap) {
+    rules.push(
+      fail("S09", "ERR_SALE_REGION_CAP", "lines", "Sales region count exceeds year limit", {
+        year,
+        cap: salesRegionCap,
+        count: sellingRegions.size,
+      })
+    );
+  } else {
+    rules.push(
+      pass("S09", `Sales regions within ${year}년차 limit (${sellingRegions.size}/${salesRegionCap})`)
+    );
   }
 
   if (totalSoldQty > state.finishedGoodsQty) {

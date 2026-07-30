@@ -51,6 +51,7 @@ export function StepSalesForm({
   onSubmit,
 }: Props) {
   const salesBranchCount = openSalesBranches.length;
+  const sellingRegionCount = new Set(lines.filter((line) => line.qty > 0).map((line) => line.regionCode)).size;
 
   const updateLine = (index: number, patch: Partial<SalesLineForm>) => {
     onChange(lines.map((line, i) => (i === index ? { ...line, ...patch } : line)));
@@ -61,8 +62,8 @@ export function StepSalesForm({
       <h2 className="mb-1 text-lg font-semibold">Step 6 — 판매 (경쟁입찰)</h2>
       <p className="mb-4 text-sm text-slate-600">
         입찰가 ↓ 우선 판매 · GM Step 종료 시 지역별 수요 배분 · 완제품 {finishedGoodsQty} · Capacity {salesCapacity} ·
-        운영 지역 {regionExpansionCap}개 내 판매 · 판매 브랜치 {regionExpansionCap}개까지 ({salesBranchCount}/
-        {regionExpansionCap} 판매 전용 개설)
+        판매 지역 {regionExpansionCap}개까지 ({sellingRegionCount}/{regionExpansionCap} · 판매량 &gt; 0 기준) · 판매
+        전용 브랜치 {salesBranchCount}/{regionExpansionCap}개 개설
       </p>
 
       <div className="space-y-4">

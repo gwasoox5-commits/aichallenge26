@@ -137,21 +137,49 @@ describe("Region branch rules", () => {
     expect(validation.rules.some((r) => r.errorCode === "ERR_SALE_NO_BRANCH")).toBe(true);
   });
 
-  it("blocks sales outside selected operating regions", () => {
+  it("allows sales in a new region via sales branch without purchase branch", () => {
     const state = {
       ...createInitialOperationalState(),
-      openBranches: ["ASIA", "EUROPE", "MIDDLE_EAST"],
-      selectedRegions: ["ASIA", "EUROPE", "MIDDLE_EAST"],
-      finishedGoodsQty: 10,
-      salesCapacity: 10,
+      openBranches: ["ASIA", "NORTH_AMERICA", "SOUTH_AMERICA"],
+      openSalesBranches: [],
+      selectedRegions: ["ASIA", "NORTH_AMERICA", "SOUTH_AMERICA"],
+      finishedGoodsQty: 20,
+      salesCapacity: 20,
       unitFinishedGoodsCostManwon: 40,
     };
     const payload = {
-      branchesNew: [{ regionCode: "AFRICA" }],
-      lines: [{ regionCode: "AFRICA", unitPriceManwon: 100, qty: 3 }],
+      branchesNew: [{ regionCode: "MIDDLE_EAST" }],
+      lines: [
+        { regionCode: "ASIA", unitPriceManwon: 100, qty: 3 },
+        { regionCode: "MIDDLE_EAST", unitPriceManwon: 80, qty: 5 },
+      ],
+    };
+    const { validation, computed } = validateSales(payload, state, DEFAULT_ECONOMY_VALUES, 1);
+    expect(validation.ok).toBe(true);
+    expect(validation.rules.some((r) => r.errorCode === "ERR_SALE_REGION_NOT_SELECTED")).toBe(false);
+    expect(computed.newSalesBranches).toEqual(["MIDDLE_EAST"]);
+  });
+
+  it("blocks sales in more than 3 regions in year 1", () => {
+    const state = {
+      ...createInitialOperationalState(),
+      openBranches: ["ASIA", "NORTH_AMERICA", "SOUTH_AMERICA"],
+      openSalesBranches: ["MIDDLE_EAST"],
+      selectedRegions: ["ASIA", "NORTH_AMERICA", "SOUTH_AMERICA"],
+      finishedGoodsQty: 40,
+      salesCapacity: 40,
+      unitFinishedGoodsCostManwon: 40,
+    };
+    const payload = {
+      lines: [
+        { regionCode: "ASIA", unitPriceManwon: 100, qty: 2 },
+        { regionCode: "NORTH_AMERICA", unitPriceManwon: 100, qty: 2 },
+        { regionCode: "SOUTH_AMERICA", unitPriceManwon: 100, qty: 2 },
+        { regionCode: "MIDDLE_EAST", unitPriceManwon: 80, qty: 2 },
+      ],
     };
     const { validation } = validateSales(payload, state, DEFAULT_ECONOMY_VALUES, 1);
     expect(validation.ok).toBe(false);
-    expect(validation.rules.some((r) => r.errorCode === "ERR_SALE_REGION_NOT_SELECTED")).toBe(true);
+    expect(validation.rules.some((r) => r.errorCode === "ERR_SALE_REGION_CAP")).toBe(true);
   });
 });
