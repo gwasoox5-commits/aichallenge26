@@ -38,23 +38,44 @@ describe("Region branch rules", () => {
     expect(computed.branchFeesManwon).toBe(0);
   });
 
-  it("enforces year 1 purchase branch cap independently of sales branches", () => {
+  it("allows opening purchase branches beyond selectedRegions when fees are paid", () => {
     const state = {
       ...createInitialOperationalState(),
-      openBranches: ["ASIA", "EUROPE"],
-      openSalesBranches: ["MIDDLE_EAST"],
-      selectedRegions: ["ASIA", "EUROPE", "MIDDLE_EAST"],
+      openBranches: ["ASIA", "EUROPE", "NORTH_AMERICA"],
+      selectedRegions: ["ASIA", "EUROPE", "NORTH_AMERICA"],
+      headPurchase: 2,
+      purchaseCapacity: 60,
     };
     const payload = {
-      branches: [{ regionCode: "MIDDLE_EAST" }, { regionCode: "AFRICA" }],
+      branches: [{ regionCode: "MIDDLE_EAST" }],
+      lines: [{ regionCode: "MIDDLE_EAST", qty: 4, unitPriceBidManwon: 15 }],
+    };
+    const { validation, computed } = validateMaterial(payload, state, DEFAULT_ECONOMY_VALUES, 2);
+    expect(validation.ok).toBe(true);
+    expect(validation.rules.some((r) => r.errorCode === "ERR_MAT_REGION_NOT_SELECTED")).toBe(false);
+    expect(computed.newBranches).toEqual(["MIDDLE_EAST"]);
+  });
+
+  it("blocks material purchase in more than 4 regions in year 2", () => {
+    const state = {
+      ...createInitialOperationalState(),
+      openBranches: ["ASIA", "EUROPE", "NORTH_AMERICA", "SOUTH_AMERICA", "MIDDLE_EAST"],
+      selectedRegions: ["ASIA", "EUROPE", "NORTH_AMERICA"],
+      purchaseCapacity: 500,
+      headPurchase: 10,
+    };
+    const payload = {
       lines: [
-        { regionCode: "MIDDLE_EAST", qty: 4, unitPriceBidManwon: 12 },
-        { regionCode: "AFRICA", qty: 4, unitPriceBidManwon: 18 },
+        { regionCode: "ASIA", qty: 4, unitPriceBidManwon: 12 },
+        { regionCode: "EUROPE", qty: 4, unitPriceBidManwon: 24 },
+        { regionCode: "NORTH_AMERICA", qty: 4, unitPriceBidManwon: 20 },
+        { regionCode: "SOUTH_AMERICA", qty: 4, unitPriceBidManwon: 16 },
+        { regionCode: "MIDDLE_EAST", qty: 4, unitPriceBidManwon: 15 },
       ],
     };
-    const { validation } = validateMaterial(payload, state, DEFAULT_ECONOMY_VALUES, 1);
+    const { validation } = validateMaterial(payload, state, DEFAULT_ECONOMY_VALUES, 2);
     expect(validation.ok).toBe(false);
-    expect(validation.rules.some((r) => r.errorCode === "ERR_BRANCH_YEAR_CAP")).toBe(true);
+    expect(validation.rules.some((r) => r.errorCode === "ERR_MAT_REGION_CAP")).toBe(true);
   });
 
   it("allows sales in a region opened via purchase branch without sales branch fee", () => {

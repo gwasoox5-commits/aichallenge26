@@ -1,6 +1,6 @@
 import type { CompanyOperationalState, ValidationResult, ValidationRuleResult } from "../types";
 import type { MaterialBranchInput, MaterialPayload, SalesPayload } from "../types";
-import { isRegionCode, type RegionCode } from "./region-catalog";
+import { isRegionCode, REGION_CATALOG, type RegionCode } from "./region-catalog";
 
 function pass(ruleId: string, message: string): ValidationRuleResult {
   return { ruleId, passed: true, message };
@@ -39,8 +39,22 @@ export function isRegionSelectionRequired(year: number, selectedCount: number): 
   return regionsToSelectCount(year, selectedCount) > 0;
 }
 
+/** Max distinct regions that can hold a purchase branch (all regions in catalog). */
+export const MAX_PURCHASE_BRANCH_REGIONS = REGION_CATALOG.length;
+
 export function isRegionInOperatingPool(state: CompanyOperationalState, regionCode: RegionCode): boolean {
   return state.selectedRegions.includes(regionCode);
+}
+
+/** Distinct regions with material purchase qty > 0. */
+export function purchasingRegionsFromMaterialPayload(payload: MaterialPayload): Set<RegionCode> {
+  const codes = new Set<RegionCode>();
+  for (const line of payload.lines ?? []) {
+    if (line.qty > 0 && isRegionCode(line.regionCode)) {
+      codes.add(line.regionCode);
+    }
+  }
+  return codes;
 }
 
 /** Distinct regions with sales qty > 0 in a sales payload. */

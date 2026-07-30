@@ -18,7 +18,6 @@ import { StepFacilityForm } from "@/components/bsp/StepFacilityForm";
 import { StepFinanceForm } from "@/components/bsp/StepFinanceForm";
 import { StepHRForm } from "@/components/bsp/StepHRForm";
 import { StepMaterialForm, type MaterialLineForm } from "@/components/bsp/StepMaterialForm";
-import { RegionSelectionPanel } from "@/components/bsp/RegionSelectionPanel";
 import { StepProductionForm } from "@/components/bsp/StepProductionForm";
 import { StepSalesForm, type SalesLineForm } from "@/components/bsp/StepSalesForm";
 import { StepProgressStepper } from "@/components/bsp/StepProgressStepper";
@@ -153,10 +152,17 @@ export default function PlayPage() {
   }, [dashboard?.companyId, dashboard?.periodLabel, dashboard?.statusVersion]);
 
   useEffect(() => {
-    if (!dashboard?.selectedRegions?.length) return;
+    if (!dashboard) return;
     setMaterialLines((prev) => {
       const byCode = new Map(prev.map((line) => [line.regionCode, line]));
-      return dashboard.selectedRegions!.map((code) => {
+      const codes = new Set<string>([
+        ...(dashboard.openBranches ?? []),
+        ...prev.map((line) => line.regionCode),
+      ]);
+      if (codes.size === 0) {
+        codes.add("ASIA");
+      }
+      return [...codes].map((code) => {
         const existing = byCode.get(code);
         const region = getRegion(code as RegionCode);
         return (
@@ -169,6 +175,10 @@ export default function PlayPage() {
         );
       });
     });
+  }, [dashboard?.companyId, dashboard?.periodLabel, dashboard?.openBranches, economy]);
+
+  useEffect(() => {
+    if (!dashboard?.selectedRegions?.length) return;
     setSalesLines((prev) => {
       if (prev.some((line) => dashboard.selectedRegions!.includes(line.regionCode))) return prev;
       return dashboard.selectedRegions!.map((code, index) => ({
@@ -420,30 +430,6 @@ export default function PlayPage() {
     if (companyId) refresh(companyId);
   }, [companyId, refresh]);
 
-  const postRegionSelection = async (regionCodes: RegionCode[]) => {
-    if (!companyId || !dashboard) return;
-    setLoading(true);
-    setMessage("");
-    const res = await authFetch(`/api/v1/play/companies/${companyId}/regions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        regionCodes,
-        companyStatusVersion: dashboard.statusVersion,
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setValidation(data.details?.validation ?? null);
-      setMessage(data.error ?? "지역 선택 실패");
-    } else {
-      setDashboard(data.dashboard);
-      setMessage("운영 지역이 확정되었습니다.");
-      await refresh(companyId);
-    }
-    setLoading(false);
-  };
-
   const postDecision = async (targetStep: BspGameStep, validateOnly: boolean) => {
     if (!companyId || !dashboard) return;
     setLoading(true);
@@ -681,31 +667,41 @@ export default function PlayPage() {
                 />
               )}
 
-              {dashboard && step === "STEP4_PURCHASE" && dashboard.regionSelectionRequired && !isSubmitted && (
-                <RegionSelectionPanel
-                  year={dashboard.year ?? periodYear}
-                  regionsToSelect={dashboard.regionsToSelect ?? 0}
-                  selectedRegions={dashboard.selectedRegions ?? []}
-                  loading={loading}
-                  onSubmit={postRegionSelection}
-                />
-              )}
-
-              {dashboard && step === "STEP4_PURCHASE" && !dashboard.regionSelectionRequired && !completed.includes("MATERIAL") && !isSubmitted && (
-                <StepMaterialForm
-                  lines={materialLines}
-                  selectedRegions={dashboard.selectedRegions ?? []}
-                  purchaseCapacity={dashboard.purchaseCapacity ?? hrPreview.purchaseCapacity}
-                  openBranches={dashboard.openBranches ?? []}
-                  openSalesBranches={dashboard.openSalesBranches ?? []}
-                  regionExpansionCap={dashboard.regionExpansionCap ?? 3}
-                  preview={materialPreview}
-                  loading={loading}
-                  checklistReady={checklistReady}
-                  onChange={setMaterialLines}
-                  onValidate={() => postDecision("MATERIAL", true)}
-                  onSubmit={() => postDecision("MATERIAL", false)}
-                />
+              {dashboard && step === "STEP4_PURCHASE" && !completed.includes("MATERIAL") && !isSubmitted && (
+                <>
+                  <StepMaterialForm
+                    lines={materialLines}
+                    purchaseCapacity={dashboard.purchaseCapacity ?? hrPreview.purchaseCapacity}
+                    openBranches={dashboard.openBranches ?? []}
+                    regionExpansionCap={dashboard.regionExpansionCap ?? 3}
+                    preview={materialPreview}
+                    loading={loading}
+                    checklistReady={checklistReady}
+                    onChange={setMaterialLines}
+                    onValidate={() => postDecision("MATERIAL", true)}
+                    onSubmit={() => postDecision("MATERIAL", false)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const used = new Set(materialLines.map((line) => line.regionCode));
+                      const next = REGION_CATALOG.find((region) => !used.has(region.code));
+                      if (!next) return;
+                      setMaterialLines((prev) => [
+                        ...prev,
+                        {
+                          regionCode: next.code,
+                          qty: 0,
+                          unitPriceBidManwon: effectiveMaterialUnitPriceManwon(next, economy),
+                          openBranch: false,
+                        },
+                      ]);
+                    }}
+                    className="text-sm text-sky-400 hover:underline"
+                  >
+                    + 지역 추가
+                  </button>
+                </>
               )}
 
               {dashboard && step === "STEP5_PRODUCTION" && !completed.includes("PRODUCTION") && !isSubmitted && (

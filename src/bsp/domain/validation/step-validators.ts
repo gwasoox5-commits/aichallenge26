@@ -21,11 +21,12 @@ import {
   projectedPurchaseBranchRegions,
   projectedSalesBranchRegions,
   regionExpansionCap,
+  MAX_PURCHASE_BRANCH_REGIONS,
   openingPurchaseRegions,
   openingSalesRegions,
   hasPurchaseBranch,
   hasSalesBranch,
-  isRegionInOperatingPool,
+  purchasingRegionsFromMaterialPayload,
   sellingRegionsFromSalesPayload,
 } from "../regions/region-expansion";
 import {
@@ -619,14 +620,6 @@ export function validateMaterial(
 
     rules.push(pass("M01", `Effective floor price ${effectivePrice} for ${line.regionCode}`));
 
-    if (totalUnits > 0 && !isRegionInOperatingPool(state, line.regionCode)) {
-      rules.push(
-        fail("M08", "ERR_MAT_REGION_NOT_SELECTED", "regionCode", "Region is not in your operating pool", {
-          regionCode: line.regionCode,
-        })
-      );
-    }
-
     if (totalUnits > 0 && !hasPurchaseBranch(state, line.regionCode, openingPurchase)) {
       rules.push(
         fail("M07", "ERR_MAT_NO_BRANCH", "regionCode", "Material purchase requires a branch in this region", {
@@ -698,18 +691,32 @@ export function validateMaterial(
     rules.push(pass("M04", "Sufficient cash"));
   }
 
-  const projectedRegions = projectedPurchaseBranchRegions(state, payload.branches ?? []);
-  const cap = regionExpansionCap(year);
-  if (projectedRegions.size > cap) {
+  const projectedBranches = projectedPurchaseBranchRegions(state, payload.branches ?? []);
+  if (projectedBranches.size > MAX_PURCHASE_BRANCH_REGIONS) {
     rules.push(
-      fail("M05", "ERR_BRANCH_YEAR_CAP", "branches", "Purchase branch count exceeds year limit", {
-        year,
-        cap,
-        projected: projectedRegions.size,
+      fail("M05", "ERR_BRANCH_REGION_CAP", "branches", "Purchase branch region count exceeds catalog limit", {
+        cap: MAX_PURCHASE_BRANCH_REGIONS,
+        projected: projectedBranches.size,
       })
     );
   } else {
-    rules.push(pass("M05", `Regional branches within ${year}년차 limit (${projectedRegions.size}/${cap})`));
+    rules.push(pass("M05", `Purchase branches within catalog limit (${projectedBranches.size}/${MAX_PURCHASE_BRANCH_REGIONS})`));
+  }
+
+  const purchasingRegions = purchasingRegionsFromMaterialPayload(payload);
+  const purchaseRegionCap = regionExpansionCap(year);
+  if (purchasingRegions.size > purchaseRegionCap) {
+    rules.push(
+      fail("M09", "ERR_MAT_REGION_CAP", "lines", "Purchase region count exceeds year limit", {
+        year,
+        cap: purchaseRegionCap,
+        count: purchasingRegions.size,
+      })
+    );
+  } else {
+    rules.push(
+      pass("M09", `Purchase regions within ${year}년차 limit (${purchasingRegions.size}/${purchaseRegionCap})`)
+    );
   }
 
   return { validation: result(rules), computed };

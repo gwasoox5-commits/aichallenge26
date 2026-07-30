@@ -15,10 +15,8 @@ export type MaterialLineForm = {
 
 type Props = {
   lines: MaterialLineForm[];
-  selectedRegions: string[];
   purchaseCapacity: number;
   openBranches?: string[];
-  openSalesBranches?: string[];
   regionExpansionCap?: number;
   preview: {
     totalUnits: number;
@@ -37,7 +35,6 @@ type Props = {
 
 export function StepMaterialForm({
   lines,
-  selectedRegions,
   purchaseCapacity,
   openBranches = [],
   regionExpansionCap = 3,
@@ -49,33 +46,26 @@ export function StepMaterialForm({
   onSubmit,
 }: Props) {
   const purchaseBranchCount = openBranches.length;
+  const purchasingRegionCount = new Set(lines.filter((line) => line.qty > 0).map((line) => line.regionCode)).size;
 
   const updateLine = (index: number, patch: Partial<MaterialLineForm>) => {
     onChange(lines.map((line, i) => (i === index ? { ...line, ...patch } : line)));
   };
 
-  if (selectedRegions.length === 0) {
-    return (
-      <div className="rounded-xl border border-slate-200 bg-white p-6">
-        <h2 className="mb-2 text-lg font-semibold">Step 4 — 원재료 구매 (경쟁입찰)</h2>
-        <p className="text-sm text-slate-600">먼저 운영 지역을 선택한 뒤 원재료 입찰을 진행할 수 있습니다.</p>
-      </div>
-    );
-  }
-
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-6">
       <h2 className="mb-1 text-lg font-semibold">Step 4 — 원재료 구매 (경쟁입찰)</h2>
       <p className="mb-4 text-sm text-slate-600">
-        선택한 {selectedRegions.length}개 운영 지역 · 구매 브랜치 개설 지역에서만 구매 · 구매 브랜치{" "}
-        {regionExpansionCap}개까지 ({purchaseBranchCount}/{regionExpansionCap} 개설) · 4단위 = 완제품 1개
+        구매 브랜치 개설 지역에서만 구매 · 구매 지역 {regionExpansionCap}개까지 ({purchasingRegionCount}/
+        {regionExpansionCap} · 구매량 &gt; 0 기준) · 구매 브랜치 {purchaseBranchCount}/{REGION_CATALOG.length}개
+        개설 · 4단위 = 완제품 1개
       </p>
 
       <div className="space-y-4">
         {lines.map((line, index) => {
           const region = REGION_CATALOG.find((r) => r.code === line.regionCode);
           const hasBranch = openBranches.includes(line.regionCode);
-          const atCap = !hasBranch && line.openBranch && purchaseBranchCount >= regionExpansionCap;
+          const atCap = !hasBranch && line.openBranch && purchaseBranchCount >= REGION_CATALOG.length;
 
           return (
             <div key={line.regionCode} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
@@ -118,9 +108,9 @@ export function StepMaterialForm({
                   />
                   <span>
                     {hasBranch
-                      ? "이미 브랜치 개설됨"
+                      ? "이미 구매 브랜치 개설됨"
                       : atCap
-                        ? "연도 지역 한도 초과"
+                        ? "개설 가능 지역 한도 초과"
                         : `신규 구매 브랜치 (+${region?.branchSetupFeeManwon ?? 0}만, 1회)`}
                   </span>
                 </label>
