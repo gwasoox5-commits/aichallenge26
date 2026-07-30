@@ -28,7 +28,7 @@ export function AdminDebriefPanel() {
   }, [sessionId, refresh]);
 
   useRealtime({
-    sessionId: sessionId ?? undefined,
+    sessionId: sessionId ?? null,
     onSync: () => {
       if (sessionId) void refresh(sessionId);
     },
