@@ -26,15 +26,45 @@ import { BranchMapPanel } from "@/components/bsp/BranchMapPanel";
 import { ValidationPanel } from "@/components/bsp/ValidationPanel";
 import { buildMaterialPayload, buildSalesPayload } from "@/lib/bsp/material-form-payload";
 import { effectiveMaterialUnitPriceManwon } from "@/src/bsp/domain/economy/material-pricing";
-import { getRegion, REGION_CATALOG, type RegionCode } from "@/src/bsp/domain/regions/region-catalog";
+import { REGION_CATALOG } from "@/src/bsp/domain/regions/region-catalog";
 import {
   computeHiring,
   computeMaterial,
   computeProduction,
   computeSales,
 } from "@/src/bsp/domain/validation/step-validators";
-import { DEFAULT_ECONOMY_VALUES, GAME_CONSTANTS, PHASE_TO_STEP, type BspGameStep, type BspStepPhase, type HiringDepartment, type MarketResultsDto } from "@/src/bsp/domain/types";
+import { DEFAULT_ECONOMY_VALUES, GAME_CONSTANTS, PHASE_TO_STEP, type BspGameStep, type BspStepPhase, type EconomyValues, type HiringDepartment, type MarketResultsDto } from "@/src/bsp/domain/types";
 import { formatPeriodLabel, formatStepPhaseLabel, parseYearFromPeriodLabel } from "@/src/bsp/domain/period/display-labels";
+
+function allMaterialLines(prev: MaterialLineForm[], economy: EconomyValues): MaterialLineForm[] {
+  const byCode = new Map(prev.map((line) => [line.regionCode, line]));
+  return REGION_CATALOG.map((region) => {
+    const existing = byCode.get(region.code);
+    return (
+      existing ?? {
+        regionCode: region.code,
+        qty: 0,
+        unitPriceBidManwon: effectiveMaterialUnitPriceManwon(region, economy),
+        openBranch: false,
+      }
+    );
+  });
+}
+
+function allSalesLines(prev: SalesLineForm[]): SalesLineForm[] {
+  const byCode = new Map(prev.map((line) => [line.regionCode, line]));
+  return REGION_CATALOG.map((region) => {
+    const existing = byCode.get(region.code);
+    return (
+      existing ?? {
+        regionCode: region.code,
+        unitPriceManwon: region.maxSalePriceManwon >= 100 ? 100 : region.maxSalePriceManwon,
+        qty: 0,
+        openBranch: false,
+      }
+    );
+  });
+}
 
 type Dashboard = {
   companyId: string;
@@ -128,9 +158,7 @@ export default function PlayPage() {
   const [machineBigRun, setMachineBigRun] = useState(1);
   const [machineSmallRun, setMachineSmallRun] = useState(0);
 
-  const [salesLines, setSalesLines] = useState<SalesLineForm[]>([
-    { regionCode: "ASIA", unitPriceManwon: 100, qty: 3, openBranch: false },
-  ]);
+  const [salesLines, setSalesLines] = useState<SalesLineForm[]>([]);
 
   const step = dashboard?.stepPhase ?? "STEP1_FINANCE";
   const currentGameStep = PHASE_TO_STEP[step];
@@ -153,42 +181,13 @@ export default function PlayPage() {
 
   useEffect(() => {
     if (!dashboard) return;
-    setMaterialLines((prev) => {
-      const byCode = new Map(prev.map((line) => [line.regionCode, line]));
-      const codes = new Set<string>([
-        ...(dashboard.openBranches ?? []),
-        ...prev.map((line) => line.regionCode),
-      ]);
-      if (codes.size === 0) {
-        codes.add("ASIA");
-      }
-      return [...codes].map((code) => {
-        const existing = byCode.get(code);
-        const region = getRegion(code as RegionCode);
-        return (
-          existing ?? {
-            regionCode: code,
-            qty: 0,
-            unitPriceBidManwon: effectiveMaterialUnitPriceManwon(region, economy),
-            openBranch: false,
-          }
-        );
-      });
-    });
-  }, [dashboard?.companyId, dashboard?.periodLabel, dashboard?.openBranches, economy]);
+    setMaterialLines((prev) => allMaterialLines(prev, economy));
+  }, [dashboard?.companyId, dashboard?.periodLabel, economy]);
 
   useEffect(() => {
-    if (!dashboard?.selectedRegions?.length) return;
-    setSalesLines((prev) => {
-      if (prev.some((line) => dashboard.selectedRegions!.includes(line.regionCode))) return prev;
-      return dashboard.selectedRegions!.map((code, index) => ({
-        regionCode: code,
-        unitPriceManwon: index === 0 ? 100 : 80,
-        qty: 0,
-        openBranch: false,
-      }));
-    });
-  }, [dashboard?.companyId, dashboard?.periodLabel, dashboard?.selectedRegions, economy]);
+    if (!dashboard) return;
+    setSalesLines((prev) => allSalesLines(prev));
+  }, [dashboard?.companyId, dashboard?.periodLabel]);
 
   const periodYear = dashboard?.year ?? parseYearFromPeriodLabel(dashboard?.periodLabel);
 
@@ -668,40 +667,18 @@ export default function PlayPage() {
               )}
 
               {dashboard && step === "STEP4_PURCHASE" && !completed.includes("MATERIAL") && !isSubmitted && (
-                <>
-                  <StepMaterialForm
-                    lines={materialLines}
-                    purchaseCapacity={dashboard.purchaseCapacity ?? hrPreview.purchaseCapacity}
-                    openBranches={dashboard.openBranches ?? []}
-                    regionExpansionCap={dashboard.regionExpansionCap ?? 3}
-                    preview={materialPreview}
-                    loading={loading}
-                    checklistReady={checklistReady}
-                    onChange={setMaterialLines}
-                    onValidate={() => postDecision("MATERIAL", true)}
-                    onSubmit={() => postDecision("MATERIAL", false)}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const used = new Set(materialLines.map((line) => line.regionCode));
-                      const next = REGION_CATALOG.find((region) => !used.has(region.code));
-                      if (!next) return;
-                      setMaterialLines((prev) => [
-                        ...prev,
-                        {
-                          regionCode: next.code,
-                          qty: 0,
-                          unitPriceBidManwon: effectiveMaterialUnitPriceManwon(next, economy),
-                          openBranch: false,
-                        },
-                      ]);
-                    }}
-                    className="text-sm text-sky-400 hover:underline"
-                  >
-                    + 지역 추가
-                  </button>
-                </>
+                <StepMaterialForm
+                  lines={materialLines}
+                  purchaseCapacity={dashboard.purchaseCapacity ?? hrPreview.purchaseCapacity}
+                  openBranches={dashboard.openBranches ?? []}
+                  regionExpansionCap={dashboard.regionExpansionCap ?? 3}
+                  preview={materialPreview}
+                  loading={loading}
+                  checklistReady={checklistReady}
+                  onChange={setMaterialLines}
+                  onValidate={() => postDecision("MATERIAL", true)}
+                  onSubmit={() => postDecision("MATERIAL", false)}
+                />
               )}
 
               {dashboard && step === "STEP5_PRODUCTION" && !completed.includes("PRODUCTION") && !isSubmitted && (
@@ -726,39 +703,20 @@ export default function PlayPage() {
               )}
 
               {dashboard && step === "STEP6_SALES" && !completed.includes("SALES") && !isSubmitted && (
-                <>
-                  <StepSalesForm
-                    lines={salesLines}
-                    finishedGoodsQty={dashboard.finishedGoodsQty ?? 0}
-                    salesCapacity={dashboard.salesCapacity ?? 20}
-                    openBranches={dashboard.openBranches ?? []}
-                    openSalesBranches={dashboard.openSalesBranches ?? []}
-                    regionExpansionCap={dashboard.regionExpansionCap ?? 3}
-                    preview={salesPreview}
-                    loading={loading}
-                    checklistReady={checklistReady}
-                    onChange={setSalesLines}
-                    onValidate={() => postDecision("SALES", true)}
-                    onSubmit={() => postDecision("SALES", false)}
-                  />
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setSalesLines((prev) => [
-                        ...prev,
-                        {
-                          regionCode: REGION_CATALOG[(prev.length + 1) % REGION_CATALOG.length].code,
-                          unitPriceManwon: 80,
-                          qty: 0,
-                          openBranch: false,
-                        },
-                      ])
-                    }
-                    className="text-sm text-sky-400 hover:underline"
-                  >
-                    + 지역 추가
-                  </button>
-                </>
+                <StepSalesForm
+                  lines={salesLines}
+                  finishedGoodsQty={dashboard.finishedGoodsQty ?? 0}
+                  salesCapacity={dashboard.salesCapacity ?? 20}
+                  openBranches={dashboard.openBranches ?? []}
+                  openSalesBranches={dashboard.openSalesBranches ?? []}
+                  regionExpansionCap={dashboard.regionExpansionCap ?? 3}
+                  preview={salesPreview}
+                  loading={loading}
+                  checklistReady={checklistReady}
+                  onChange={setSalesLines}
+                  onValidate={() => postDecision("SALES", true)}
+                  onSubmit={() => postDecision("SALES", false)}
+                />
               )}
 
               {dashboard && step === "STEP7_SETTLEMENT" && (
