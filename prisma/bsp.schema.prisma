@@ -65,6 +65,7 @@ model BspGameSession {
   name             String
   joinCode         String          @unique
   sessionPhase     BspSessionPhase @default(PREPARE)
+  stepLocked       Boolean         @default(false)
   stepDurationSec  Int             @default(900)
   maxPeriodIndex   Int             @default(6)
   economyPresetId  String?

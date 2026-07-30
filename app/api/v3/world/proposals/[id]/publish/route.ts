@@ -11,8 +11,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   if (!body.sessionId) {
     return Response.json({ error: "sessionId required", code: "ERR_WORLD_INPUT" }, { status: 400 });
   }
-  return v3GmJson(req, body.sessionId, async (actor, b) => {
-    const result = await getV3WorldSimulation().publishProposal(id, actor, {
+  const sessionId = body.sessionId;
+  return v3GmJson(req, sessionId, async (actor, b) => {
+    const result = await getV3WorldSimulation().publishProposal(id, sessionId, actor, {
       applyTiming: (b.applyTiming as "IMMEDIATE" | "NEXT_STEP" | "NEXT_HALF") ?? body.applyTiming ?? "NEXT_HALF",
       reason: (b.reason as string) ?? body.reason,
     });

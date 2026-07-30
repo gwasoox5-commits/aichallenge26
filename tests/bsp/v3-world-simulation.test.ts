@@ -304,10 +304,10 @@ describe("V3.0 World Simulation Service — E2E", () => {
     const pending = svc.listProposals(session.id, "PENDING_GM");
     expect(pending.length).toBeGreaterThan(0);
 
-    const approved = svc.approveProposal(pending[0].proposalId, GM, "Test approve");
+    const approved = svc.approveProposal(pending[0].proposalId, session.id, GM, "Test approve");
     expect(approved.status).toBe("APPROVED");
 
-    const { result } = await svc.publishProposal(pending[0].proposalId, GM, {
+    const { result } = await svc.publishProposal(pending[0].proposalId, session.id, GM, {
       applyTiming: "IMMEDIATE",
       reason: "V3 test publish",
     });
@@ -321,8 +321,22 @@ describe("V3.0 World Simulation Service — E2E", () => {
     await svc.initWorld(session.id, "RECESSION", GM);
     await svc.onHalfEnd(session.id, "Y1H1", 1);
     const pending = svc.listProposals(session.id, "PENDING_GM")[0];
-    const rejected = svc.rejectProposal(pending.proposalId, GM, "Not now");
+    const rejected = svc.rejectProposal(pending.proposalId, session.id, GM, "Not now");
     expect(rejected.status).toBe("REJECTED");
+  });
+
+  it("rejects approve/publish for proposal from another session", async () => {
+    const engine = makeEngine();
+    const svc = makeWorldService(engine);
+    const sessionA = await engine.createSession("V3-Session-A");
+    const sessionB = await engine.createSession("V3-Session-B");
+    await svc.initWorld(sessionA.id, "STABLE_GROWTH", GM);
+    await svc.onHalfEnd(sessionA.id, "Y1H1", 1);
+    const pending = svc.listProposals(sessionA.id, "PENDING_GM")[0];
+
+    expect(() => svc.approveProposal(pending.proposalId, sessionB.id, GM, "wrong session")).toThrow(
+      /ERR_FORBIDDEN_SESSION|Proposal does not belong/
+    );
   });
 
   it("update chain probability", async () => {

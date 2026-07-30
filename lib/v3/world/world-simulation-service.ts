@@ -249,11 +249,19 @@ export class WorldSimulationService {
     return status ? world.proposals.filter((p) => p.status === status) : world.proposals;
   }
 
-  approveProposal(proposalId: string, actor: GmActor, reason: string): WorldEvolutionProposal {
+  approveProposal(
+    proposalId: string,
+    sessionId: string,
+    actor: GmActor,
+    reason: string
+  ): WorldEvolutionProposal {
     const world = this.store().listSessions().find((s) =>
       s.proposals.some((p) => p.proposalId === proposalId)
     );
     if (!world) throw new BspError("ERR_WORLD_PROPOSAL", "Proposal not found", 404);
+    if (world.sessionId !== sessionId) {
+      throw new BspError("ERR_FORBIDDEN_SESSION", "Proposal does not belong to this session", 403);
+    }
 
     const proposal = world.proposals.find((p) => p.proposalId === proposalId)!;
     if (proposal.status !== "PENDING_GM") {
@@ -278,11 +286,19 @@ export class WorldSimulationService {
     return proposal;
   }
 
-  rejectProposal(proposalId: string, actor: GmActor, reason: string): WorldEvolutionProposal {
+  rejectProposal(
+    proposalId: string,
+    sessionId: string,
+    actor: GmActor,
+    reason: string
+  ): WorldEvolutionProposal {
     const world = this.store().listSessions().find((s) =>
       s.proposals.some((p) => p.proposalId === proposalId)
     );
     if (!world) throw new BspError("ERR_WORLD_PROPOSAL", "Proposal not found", 404);
+    if (world.sessionId !== sessionId) {
+      throw new BspError("ERR_FORBIDDEN_SESSION", "Proposal does not belong to this session", 403);
+    }
 
     const proposal = world.proposals.find((p) => p.proposalId === proposalId)!;
     proposal.status = "REJECTED";
@@ -294,6 +310,7 @@ export class WorldSimulationService {
   /** Approved proposal → V2.4 Publish (GM must have approved first) */
   async publishProposal(
     proposalId: string,
+    sessionId: string,
     actor: GmActor,
     options?: { applyTiming?: "IMMEDIATE" | "NEXT_STEP" | "NEXT_HALF"; reason?: string }
   ) {
@@ -301,6 +318,9 @@ export class WorldSimulationService {
       s.proposals.some((p) => p.proposalId === proposalId)
     );
     if (!world) throw new BspError("ERR_WORLD_PROPOSAL", "Proposal not found", 404);
+    if (world.sessionId !== sessionId) {
+      throw new BspError("ERR_FORBIDDEN_SESSION", "Proposal does not belong to this session", 403);
+    }
 
     const proposal = world.proposals.find((p) => p.proposalId === proposalId)!;
     if (proposal.status !== "APPROVED") {

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { authFetch } from "@/lib/bsp/auth-client";
+import { useAdminSession } from "@/lib/bsp/admin-session-context";
 import { mapStudioEffectToEngine } from "@/lib/v2/event-studio/variable-mapper";
 import type {
   EventScenarioDraft,
@@ -46,6 +47,7 @@ const STEPS = [
 ];
 
 export function EventStudioWorkflow() {
+  const { sessionId: adminSessionId } = useAdminSession();
   const [sessionId, setSessionId] = useState("");
   const [step, setStep] = useState(0);
   const [input, setInput] = useState<EventStudioInput>(DEFAULT_INPUT);
@@ -64,14 +66,27 @@ export function EventStudioWorkflow() {
   const [usedFixture, setUsedFixture] = useState(false);
 
   useEffect(() => {
+    if (adminSessionId) setSessionId(adminSessionId);
+  }, [adminSessionId]);
+
+  useEffect(() => {
     authFetch("/api/v1/auth/me")
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (d?.role) setAuthRole(d.role);
+      })
+      .catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    if (adminSessionId) return;
+    authFetch("/api/v1/auth/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
         if (d?.sessionId && !sessionId) setSessionId(d.sessionId);
       })
       .catch(() => undefined);
-  }, [sessionId]);
+  }, [adminSessionId, sessionId]);
 
   useEffect(() => {
     if (!sessionId) return;

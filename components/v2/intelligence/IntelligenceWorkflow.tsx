@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { authFetch } from "@/lib/bsp/auth-client";
+import { useAdminSession } from "@/lib/bsp/admin-session-context";
 import type {
   IntelligencePreview,
   IntelligenceScenario,
@@ -47,6 +48,7 @@ async function readApiError(res: Response, fallback: string): Promise<string> {
 }
 
 export function IntelligenceWorkflow() {
+  const { sessionId: adminSessionId } = useAdminSession();
   const [sessionId, setSessionId] = useState("");
   const [keywords, setKeywords] = useState("반도체, AI, 관세");
   const [articles, setArticles] = useState<NewsArticle[]>(DEMO_ARTICLES);
@@ -64,20 +66,29 @@ export function IntelligenceWorkflow() {
   const [statusNote, setStatusNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [authRole, setAuthRole] = useState<string | null>(null);
-  const [authSessionId, setAuthSessionId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (adminSessionId) setSessionId(adminSessionId);
+  }, [adminSessionId]);
 
   useEffect(() => {
     authFetch("/api/v1/auth/me")
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (d?.role) setAuthRole(d.role);
-        if (d?.sessionId) {
-          setAuthSessionId(d.sessionId);
-          if (!sessionId) setSessionId(d.sessionId);
-        }
       })
       .catch(() => undefined);
-  }, [sessionId]);
+  }, []);
+
+  useEffect(() => {
+    if (adminSessionId) return;
+    authFetch("/api/v1/auth/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.sessionId && !sessionId) setSessionId(d.sessionId);
+      })
+      .catch(() => undefined);
+  }, [adminSessionId, sessionId]);
 
   const loadLibrary = useCallback(async (sid: string) => {
     if (!sid) return;
@@ -309,14 +320,13 @@ export function IntelligenceWorkflow() {
 
   const currentImpacts = scenarios?.find((s) => s.scenarioKey === selectedScenario)?.variableImpacts ?? [];
   const gmReady = authRole === "GM" || authRole === "PLATFORM_ADMIN";
-  const publishSessionId = authSessionId || sessionId;
   const previewSnapshot = useMemo(() => {
-    if (!previewId || !analysis || !scenarios || !publishSessionId) return intelligencePreview;
+    if (!previewId || !analysis || !scenarios || !sessionId) return intelligencePreview;
     return (
       intelligencePreview ??
       buildClientPreviewSnapshot({
         previewId,
-        sessionId: publishSessionId,
+        sessionId,
         articles: selectedArticles,
         analysis,
         scenarios,
@@ -329,7 +339,7 @@ export function IntelligenceWorkflow() {
     consultant,
     intelligencePreview,
     previewId,
-    publishSessionId,
+    sessionId,
     quality,
     scenarios,
     selectedArticles,
@@ -346,15 +356,6 @@ export function IntelligenceWorkflow() {
         <section className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
           <p className="font-medium">GM/관리자 로그인 필요</p>
           <p className="mt-1">현재 역할: {authRole ?? "미로그인"}</p>
-        </section>
-      )}
-
-      {gmReady && authSessionId && sessionId && authSessionId !== sessionId && (
-        <section className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
-          <p className="font-medium">세션 ID 불일치</p>
-          <p className="mt-1">
-            로그인 GM 세션({authSessionId})과 입력값이 다릅니다. 발행 시 로그인 세션 ID를 사용합니다.
-          </p>
         </section>
       )}
 
@@ -415,7 +416,7 @@ export function IntelligenceWorkflow() {
 
       {analysis && scenarios && previewId && !demoMode && (
         <PublishWorkflowPanel
-          sessionId={publishSessionId}
+          sessionId={sessionId}
           previewId={previewId}
           preview={previewSnapshot}
           selectedScenario={selectedScenario}

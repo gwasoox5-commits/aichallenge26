@@ -1,14 +1,25 @@
 import { NextResponse } from "next/server";
 import { getGameEngine } from "@/src/bsp/application/bsp-service";
+import { assertSessionAccess } from "@/src/bsp/infrastructure/auth/access-control";
 import { requireAuth, authErrorResponse } from "@/src/bsp/infrastructure/auth/api-guard";
+import { AuthError, type AuthRole } from "@/src/bsp/domain/auth/types";
 import type { GmAuditAction } from "@/src/bsp/domain/gm/audit-types";
-import type { AuthRole } from "@/src/bsp/domain/auth/types";
 
 export async function GET(req: Request) {
   try {
-    requireAuth(req, { roles: ["PLATFORM_ADMIN", "GM"] });
+    const ctx = requireAuth(req, { roles: ["PLATFORM_ADMIN", "GM"] });
     const url = new URL(req.url);
-    const sessionId = url.searchParams.get("sessionId") ?? undefined;
+    let sessionId = url.searchParams.get("sessionId") ?? undefined;
+    if (ctx.role === "GM") {
+      if (sessionId) {
+        assertSessionAccess(ctx, sessionId);
+      } else {
+        sessionId = ctx.sessionId ?? undefined;
+      }
+      if (!sessionId) {
+        throw new AuthError("ERR_FORBIDDEN", "GM session scope missing", 403);
+      }
+    }
     const action = (url.searchParams.get("action") as GmAuditAction | null) ?? undefined;
     const actorRole = (url.searchParams.get("actorRole") as AuthRole | null) ?? undefined;
     const from = url.searchParams.get("from");

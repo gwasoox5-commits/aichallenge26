@@ -6,8 +6,8 @@ type Params = { params: Promise<{ sessionId: string }> };
 
 export async function GET(req: Request, { params }: Params) {
   try {
-    requireAuth(req, { roles: ["PLATFORM_ADMIN", "GM"] });
     const { sessionId } = await params;
+    requireAuth(req, { roles: ["PLATFORM_ADMIN", "GM"], sessionId });
     const url = new URL(req.url);
     const limit = parseInt(url.searchParams.get("limit") ?? "50", 10);
     const errors = await getGameEngine().getErrorLog(sessionId, limit);

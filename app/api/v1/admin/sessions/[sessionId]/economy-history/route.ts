@@ -4,10 +4,10 @@ import { requireAuth, authErrorResponse } from "@/src/bsp/infrastructure/auth/ap
 
 type Params = { params: Promise<{ sessionId: string }> };
 
-export async function GET(_req: Request, { params }: Params) {
+export async function GET(req: Request, { params }: Params) {
   try {
-    requireAuth(_req, { roles: ["PLATFORM_ADMIN", "GM"] });
     const { sessionId } = await params;
+    requireAuth(req, { roles: ["PLATFORM_ADMIN", "GM"], sessionId });
     const patches = await getGameEngine().getEconomyChangeHistory(sessionId);
     return NextResponse.json(patches);
   } catch (e: unknown) {

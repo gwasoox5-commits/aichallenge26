@@ -287,6 +287,7 @@ class PrismaSessionRepository implements SessionRepository {
     joinCode: string;
     name: string;
     sessionPhase: string;
+    stepLocked?: boolean;
     stepDurationSec?: number;
     maxPeriodIndex?: number;
     economyPresetId?: string | null;
@@ -309,7 +310,7 @@ class PrismaSessionRepository implements SessionRepository {
       half: period.half as SessionAggregate["half"],
       periodLabel: period.label,
       stepPhase: progress.stepPhase as BspStepPhase,
-      stepLocked: false,
+      stepLocked: session.stepLocked ?? false,
       stepStartedAt: progress.stepStartedAt ?? new Date(),
       stepDurationSec: session.stepDurationSec ?? DEFAULT_STEP_DURATION_SEC,
       maxPeriodIndex: session.maxPeriodIndex ?? 6,
@@ -319,7 +320,12 @@ class PrismaSessionRepository implements SessionRepository {
     };
   }
 
-  async setStepLocked(_sessionId: string, _locked: boolean): Promise<void> {}
+  async setStepLocked(sessionId: string, locked: boolean): Promise<void> {
+    await bspPrisma.bspGameSession.update({
+      where: { id: sessionId },
+      data: { stepLocked: locked },
+    });
+  }
 
   async resetStepTimer(sessionId: string): Promise<void> {
     await bspPrisma.bspGameProgress.update({
