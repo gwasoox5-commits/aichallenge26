@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { EventApplyTiming } from "@/src/bsp/domain/events/event-types";
+import { useAdminSession } from "@/lib/bsp/admin-session-context";
 import { authFetch } from "@/lib/bsp/auth-client";
 import type {
   DirectorSuggestion,
@@ -23,6 +24,7 @@ import { EventChainGraphPanel } from "./EventChainGraphPanel";
 const PROFILES = Object.values(WORLD_PROFILES).filter((p) => p.id !== "CUSTOM");
 
 export function WorldDashboard() {
+  const { sessionId: adminSessionId } = useAdminSession();
   const [sessionId, setSessionId] = useState("");
   const [profileId, setProfileId] = useState<WorldProfileId>("STABLE_GROWTH");
   const [world, setWorld] = useState<WorldSessionRecord | null>(null);
@@ -31,6 +33,20 @@ export function WorldDashboard() {
   const [proposals, setProposals] = useState<WorldEvolutionProposal[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (adminSessionId) setSessionId(adminSessionId);
+  }, [adminSessionId]);
+
+  useEffect(() => {
+    if (adminSessionId) return;
+    authFetch("/api/v1/auth/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.sessionId && !sessionId) setSessionId(d.sessionId);
+      })
+      .catch(() => undefined);
+  }, [adminSessionId, sessionId]);
 
   const loadWorld = useCallback(async (sid: string) => {
     if (!sid) return;
