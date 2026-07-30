@@ -695,7 +695,7 @@ export default function PlayPage() {
                 />
               )}
 
-              {dashboard?.regionSelectionRequired && !isSubmitted && (
+              {dashboard && step === "STEP4_PURCHASE" && dashboard.regionSelectionRequired && !isSubmitted && (
                 <RegionSelectionPanel
                   year={dashboard.year ?? periodYear}
                   regionsToSelect={dashboard.regionsToSelect ?? 0}
@@ -705,7 +705,7 @@ export default function PlayPage() {
                 />
               )}
 
-              {dashboard && step === "STEP4_PURCHASE" && !completed.includes("MATERIAL") && !isSubmitted && (
+              {dashboard && step === "STEP4_PURCHASE" && !dashboard.regionSelectionRequired && !completed.includes("MATERIAL") && !isSubmitted && (
                 <StepMaterialForm
                   lines={materialLines}
                   selectedRegions={dashboard.selectedRegions ?? []}
