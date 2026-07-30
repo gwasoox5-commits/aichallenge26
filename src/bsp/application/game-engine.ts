@@ -24,6 +24,7 @@ import { StepNotImplementedError } from "../domain/steps/step-handler";
 import { AccountingEngine } from "../domain/accounting/accounting-engine";
 import { runSettlementPipeline } from "../domain/accounting/settlement-pipeline";
 import { DashboardService } from "./dashboard-service";
+import { buildSessionDebriefAnalysis, type SessionDebriefAnalysis } from "./debrief-analysis-service";
 import { EventStoreService } from "./event-store-service";
 import { EventEngineService } from "./event-engine-service";
 import { applyPresetValues, listPresets } from "../domain/economy/presets";
@@ -410,6 +411,12 @@ export class GameEngine {
       recentEvents,
       marketResults: marketResultsService.build(session, companies, "", { gmDesk: true }),
     };
+  }
+
+  async getSessionDebriefAnalysis(sessionId: string): Promise<SessionDebriefAnalysis> {
+    const session = await this.requireSession(sessionId);
+    const companies = await this.repos.company.listBySession(sessionId);
+    return buildSessionDebriefAnalysis(session, companies);
   }
 
   async getGmAuditLog(sessionId: string, limit = 50) {
