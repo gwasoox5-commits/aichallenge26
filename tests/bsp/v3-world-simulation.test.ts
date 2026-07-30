@@ -257,6 +257,23 @@ describe("V3.0 World Simulation Service — E2E", () => {
     });
   }
 
+  it("re-applies world when profile changes", async () => {
+    const engine = makeEngine();
+    const svc = makeWorldService(engine);
+    const session = await engine.createSession("V3-ProfileSwitch");
+    const recession = await svc.initWorld(session.id, "RECESSION", GM);
+    expect(recession.currentState.dimensions.technologyInnovation).toBe(50);
+
+    const aiBoom = await svc.initWorld(session.id, "AI_BOOM", GM);
+    expect(aiBoom.profileId).toBe("AI_BOOM");
+    expect(aiBoom.currentState.dimensions.technologyInnovation).toBe(85);
+    expect(aiBoom.currentState.dimensions.energyPrice).toBe(65);
+
+    const energy = await svc.initWorld(session.id, "ENERGY_CRISIS", GM);
+    expect(energy.currentState.dimensions.energyPrice).toBe(90);
+    expect(energy.currentState.dimensions.inflation).toBe(75);
+  });
+
   it("half-end evolution creates proposals", async () => {
     const engine = makeEngine();
     const svc = makeWorldService(engine);

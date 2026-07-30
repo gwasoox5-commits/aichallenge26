@@ -61,12 +61,25 @@ export class WorldSimulationService {
     sessionId: string,
     profileId: WorldProfileId,
     actor: GmActor,
-    customDimensions?: Partial<import("./types").WorldDimensionValues>
+    customDimensions?: Partial<import("./types").WorldDimensionValues>,
+    options?: { force?: boolean }
   ): Promise<WorldSessionRecord> {
     await this.getEngine().getGmDesk(sessionId);
     const existing = this.store().getSession(sessionId);
-    if (existing) return existing;
+    if (existing && existing.profileId === profileId && !options?.force) {
+      return existing;
+    }
 
+    const record = await this.buildFreshWorldRecord(sessionId, profileId, customDimensions);
+    this.store().saveSession(record);
+    return record;
+  }
+
+  private async buildFreshWorldRecord(
+    sessionId: string,
+    profileId: WorldProfileId,
+    customDimensions?: Partial<import("./types").WorldDimensionValues>
+  ): Promise<WorldSessionRecord> {
     const profile = getWorldProfile(profileId);
     const dimensions = mergeCustomDimensions(profile, customDimensions);
     const desk = await this.getEngine().getGmDesk(sessionId);
@@ -110,7 +123,6 @@ export class WorldSimulationService {
     };
 
     record.latestForecast = generateWorldForecast(sessionId, dimensions);
-    this.store().saveSession(record);
     return record;
   }
 

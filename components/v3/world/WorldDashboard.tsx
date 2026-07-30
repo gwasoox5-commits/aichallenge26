@@ -39,6 +39,7 @@ export function WorldDashboard() {
       const data = (await res.json()) as { world: WorldSessionRecord | null };
       if (data.world) {
         setWorld(data.world);
+        setProfileId(data.world.profileId);
         setProposals(data.world.proposals);
       }
     }
@@ -76,6 +77,7 @@ export function WorldDashboard() {
       if (!res.ok) throw new Error("World init failed");
       const data = (await res.json()) as { world: WorldSessionRecord };
       setWorld(data.world);
+      setProfileId(data.world.profileId);
       await loadWorld(sessionId);
     } catch (e) {
       setError(e instanceof Error ? e.message : "초기화 실패");
