@@ -1,6 +1,7 @@
 "use client";
 
 import type { ValidationRule } from "@/components/bsp/ValidationPanel";
+import { participantVisibleRules } from "@/components/bsp/participant-validation";
 
 export type ChecklistItem = {
   id: string;
@@ -37,9 +38,9 @@ export function SubmitChecklistGate({
   }
 
   if (validation) {
-    for (const rule of validation.rules) {
+    for (const rule of participantVisibleRules(validation.rules)) {
       items.push({
-        id: rule.ruleId,
+        id: `${rule.ruleId}-${rule.message}`,
         label: rule.message,
         status: rule.passed ? "done" : rule.errorCode?.startsWith("WARN") ? "warn" : "block",
         message: rule.passed ? undefined : rule.message,

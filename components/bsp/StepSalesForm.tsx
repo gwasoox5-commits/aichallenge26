@@ -18,6 +18,9 @@ type Props = {
   lines: SalesLineForm[];
   finishedGoodsQty: number;
   salesCapacity: number;
+  openBranches?: string[];
+  openSalesBranches?: string[];
+  regionExpansionCap?: number;
   preview: {
     totalRevenueManwon: number;
     totalSoldQty: number;
@@ -37,6 +40,9 @@ export function StepSalesForm({
   lines,
   finishedGoodsQty,
   salesCapacity,
+  openBranches = [],
+  openSalesBranches = [],
+  regionExpansionCap = 3,
   preview,
   loading,
   checklistReady = true,
@@ -44,21 +50,27 @@ export function StepSalesForm({
   onValidate,
   onSubmit,
 }: Props) {
+  const operatingCount = new Set([...openBranches, ...openSalesBranches]).size;
+
   const updateLine = (index: number, patch: Partial<SalesLineForm>) => {
-    const next = lines.map((l, i) => (i === index ? { ...l, ...patch } : l));
-    onChange(next);
+    onChange(lines.map((line, i) => (i === index ? { ...line, ...patch } : line)));
   };
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-6">
       <h2 className="mb-1 text-lg font-semibold">Step 6 — 판매 (경쟁입찰)</h2>
       <p className="mb-4 text-sm text-slate-600">
-        7개 지역 · 입찰가 ↓ 우선 판매 · GM Step 종료 시 지역별 수요 배분 · 완제품 {finishedGoodsQty} · Capacity {salesCapacity}
+        입찰가 ↓ 우선 판매 · GM Step 종료 시 지역별 수요 배분 · 완제품 {finishedGoodsQty} · Capacity {salesCapacity} ·
+        브랜치 개설 지역에서만 판매 ({operatingCount}/{regionExpansionCap} 개설)
       </p>
 
       <div className="space-y-4">
         {lines.map((line, index) => {
           const region = REGION_CATALOG.find((r) => r.code === line.regionCode);
+          const hasBranch =
+            openBranches.includes(line.regionCode) || openSalesBranches.includes(line.regionCode);
+          const atCap = !hasBranch && line.openBranch && operatingCount >= regionExpansionCap;
+
           return (
             <div key={line.regionCode} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
               <p className="mb-2 font-medium">{region?.displayName ?? line.regionCode}</p>
@@ -80,7 +92,14 @@ export function StepSalesForm({
                     type="number"
                     min={0}
                     value={line.qty}
-                    onChange={(e) => updateLine(index, { qty: Number(e.target.value) })}
+                    onChange={(e) => {
+                      const qty = Number(e.target.value);
+                      const patch: Partial<SalesLineForm> = { qty };
+                      if (qty > 0 && !hasBranch && !atCap) {
+                        patch.openBranch = true;
+                      }
+                      updateLine(index, patch);
+                    }}
                     className="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2"
                   />
                 </label>
@@ -88,12 +107,24 @@ export function StepSalesForm({
                   <input
                     type="checkbox"
                     checked={line.openBranch}
+                    disabled={hasBranch || atCap}
                     onChange={(e) => updateLine(index, { openBranch: e.target.checked })}
                     className="rounded"
                   />
-                  <span>판매 브랜치 (+{region?.salesSetupFeeManwon ?? 0}만)</span>
+                  <span>
+                    {hasBranch
+                      ? "이미 브랜치 개설됨"
+                      : atCap
+                        ? "연도 지역 한도 초과"
+                        : `신규 판매 브랜치 (+${region?.salesSetupFeeManwon ?? 0}만, 1회)`}
+                  </span>
                 </label>
               </div>
+              {!hasBranch && line.qty > 0 && !line.openBranch && (
+                <p className="mt-2 text-xs text-amber-800">
+                  이 지역에 브랜치가 없습니다. 판매하려면 「신규 판매 브랜치」를 선택하세요.
+                </p>
+              )}
             </div>
           );
         })}
@@ -104,7 +135,7 @@ export function StepSalesForm({
           매출 {fmt(preview.totalRevenueManwon)} · 매출원가 {fmt(preview.cogsManwon)} · 물류 {fmt(preview.logisticsSalesManwon)}
         </p>
         <p className="mt-1">
-          판매량 {preview.totalSoldQty} · 브랜치비 {fmt(preview.branchFeesManwon)} · 생산 후 현금 {fmt(preview.cashAfterManwon)}
+          판매량 {preview.totalSoldQty} · 브랜치비 {fmt(preview.branchFeesManwon)} · 판매 후 현금 {fmt(preview.cashAfterManwon)}
         </p>
       </div>
 
@@ -118,7 +149,7 @@ export function StepSalesForm({
         </button>
         <button
           onClick={onSubmit}
-          disabled={loading}
+          disabled={loading || !checklistReady}
           className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium hover:bg-sky-500 disabled:opacity-50"
         >
           판매 제출

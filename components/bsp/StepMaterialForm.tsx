@@ -99,7 +99,14 @@ export function StepMaterialForm({
                     type="number"
                     min={0}
                     value={line.qty}
-                    onChange={(e) => updateLine(index, { qty: Number(e.target.value) })}
+                    onChange={(e) => {
+                      const qty = Number(e.target.value);
+                      const patch: Partial<MaterialLineForm> = { qty };
+                      if (qty > 0 && !hasBranch && !atCap) {
+                        patch.openBranch = true;
+                      }
+                      updateLine(index, patch);
+                    }}
                     className="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2"
                   />
                 </label>

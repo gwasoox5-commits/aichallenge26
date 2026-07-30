@@ -25,6 +25,7 @@ import { StepProgressStepper } from "@/components/bsp/StepProgressStepper";
 import { MarketClearingResultsPanel } from "@/components/bsp/MarketClearingResultsPanel";
 import { BranchMapPanel } from "@/components/bsp/BranchMapPanel";
 import { ValidationPanel } from "@/components/bsp/ValidationPanel";
+import { buildMaterialPayload, buildSalesPayload } from "@/lib/bsp/material-form-payload";
 import { effectiveMaterialUnitPriceManwon } from "@/src/bsp/domain/economy/material-pricing";
 import { getRegion, REGION_CATALOG, type RegionCode } from "@/src/bsp/domain/regions/region-catalog";
 import {
@@ -190,6 +191,11 @@ export default function PlayPage() {
     setChecklistReady(false);
   }, [step, requiresManualChecklist]);
 
+  useEffect(() => {
+    setValidation(null);
+    setValidationMode("default");
+  }, [step, dashboard?.companyId, dashboard?.periodLabel]);
+
   const facilityPreview = useMemo(() => {
     const landCost = landPlots * 3000;
     const machineCost = machineBig * 600 + machineSmall * 300;
@@ -221,14 +227,11 @@ export default function PlayPage() {
         cashAfter: GAME_CONSTANTS.initialCashManwon,
       };
     }
-    const payload = {
-      lines: materialLines.map((l) => ({
-        regionCode: l.regionCode,
-        qty: l.qty,
-        unitPriceBidManwon: l.unitPriceBidManwon,
-      })),
-      branches: materialLines.filter((l) => l.openBranch).map((l) => ({ regionCode: l.regionCode })),
-    };
+    const payload = buildMaterialPayload(
+      materialLines,
+      dashboard.openBranches ?? [],
+      dashboard.openSalesBranches ?? []
+    );
     const mockState = {
       cashManwon: dashboard.cashManwon,
       rawMaterialQty: dashboard.inventoryTotalUnits ?? 0,
@@ -300,14 +303,11 @@ export default function PlayPage() {
         cashAfterManwon: 0,
       };
     }
-    const payload = {
-      lines: salesLines.map((l) => ({
-        regionCode: l.regionCode,
-        unitPriceManwon: l.unitPriceManwon,
-        qty: l.qty,
-      })),
-      branchesNew: salesLines.filter((l) => l.openBranch).map((l) => ({ regionCode: l.regionCode })),
-    };
+    const payload = buildSalesPayload(
+      salesLines,
+      dashboard.openBranches ?? [],
+      dashboard.openSalesBranches ?? []
+    );
     const mockState = {
       cashManwon: dashboard.cashManwon,
       finishedGoodsQty: dashboard.finishedGoodsQty ?? 15,
@@ -475,25 +475,19 @@ export default function PlayPage() {
         },
       };
     } else if (targetStep === "MATERIAL") {
-      payload = {
-        branches: materialLines.filter((l) => l.openBranch).map((l) => ({ regionCode: l.regionCode })),
-        lines: materialLines.map((l) => ({
-          regionCode: l.regionCode,
-          qty: l.qty,
-          unitPriceBidManwon: l.unitPriceBidManwon,
-        })),
-      };
+      payload = buildMaterialPayload(
+        materialLines,
+        dashboard.openBranches ?? [],
+        dashboard.openSalesBranches ?? []
+      );
     } else if (targetStep === "PRODUCTION") {
       payload = { productionQty, machineBigRun, machineSmallRun };
     } else if (targetStep === "SALES") {
-      payload = {
-        lines: salesLines.map((l) => ({
-          regionCode: l.regionCode,
-          unitPriceManwon: l.unitPriceManwon,
-          qty: l.qty,
-        })),
-        branchesNew: salesLines.filter((l) => l.openBranch).map((l) => ({ regionCode: l.regionCode })),
-      };
+      payload = buildSalesPayload(
+        salesLines,
+        dashboard.openBranches ?? [],
+        dashboard.openSalesBranches ?? []
+      );
     } else {
       payload = {};
     }
@@ -749,6 +743,9 @@ export default function PlayPage() {
                     lines={salesLines}
                     finishedGoodsQty={dashboard.finishedGoodsQty ?? 0}
                     salesCapacity={dashboard.salesCapacity ?? 20}
+                    openBranches={dashboard.openBranches ?? []}
+                    openSalesBranches={dashboard.openSalesBranches ?? []}
+                    regionExpansionCap={dashboard.regionExpansionCap ?? 3}
                     preview={salesPreview}
                     loading={loading}
                     checklistReady={checklistReady}
@@ -788,7 +785,14 @@ export default function PlayPage() {
                 </div>
               )}
 
-              <ValidationPanel validation={step === "STEP7_SETTLEMENT" ? null : validation} mode={validationMode} />
+              <ValidationPanel
+                validation={
+                  step === "STEP7_SETTLEMENT" || (validationMode === "post-submit" && !isSubmitted)
+                    ? null
+                    : validation
+                }
+                mode={validationMode}
+              />
               <JournalSummaryPanel journals={journals} />
               {message && <p className="text-sm text-sky-700">{message}</p>}
             </>

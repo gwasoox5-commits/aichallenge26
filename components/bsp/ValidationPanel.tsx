@@ -1,5 +1,7 @@
 "use client";
 
+import { participantVisibleRules, participantValidationView } from "./participant-validation";
+
 export type ValidationRule = {
   ruleId: string;
   passed: boolean;
@@ -14,10 +16,11 @@ export function ValidationPanel({
   validation: { ok: boolean; rules: ValidationRule[] } | null;
   mode?: "default" | "post-submit";
 }) {
-  if (!validation) return null;
+  const view = participantValidationView(validation);
+  if (!view) return null;
 
-  const passedCount = validation.rules.filter((r) => r.passed).length;
-  const failedRules = validation.rules.filter((r) => !r.passed);
+  const passedCount = view.rules.filter((r) => r.passed).length;
+  const failedRules = view.rules.filter((r) => !r.passed);
 
   return (
     <div
@@ -28,7 +31,7 @@ export function ValidationPanel({
     >
       <h3 className="mb-2 font-medium text-base">
         {mode === "post-submit" ? "제출 후 피드백" : "검증 결과"}{" "}
-        {validation.ok ? (
+        {view.ok ? (
           <span className="text-emerald-700" aria-label="통과">
             ✓ 통과
           </span>
@@ -39,16 +42,16 @@ export function ValidationPanel({
         )}
       </h3>
 
-      {mode === "post-submit" && validation.ok && (
+      {mode === "post-submit" && view.ok && (
         <p className="mb-3 text-sm text-slate-700">
           {passedCount}개 규칙 통과 · 재무 영향은 아래 항목과 Dashboard·재무제표에서 확인하세요.
         </p>
       )}
 
       <ul className="space-y-2 text-sm">
-        {validation.rules.map((r) => (
+        {view.rules.map((r, index) => (
           <li
-            key={`${r.ruleId}-${r.message}`}
+            key={`${r.ruleId}-${index}-${r.message}`}
             className={`flex items-start gap-2 rounded px-2 py-1 ${
               r.passed ? "text-emerald-700 bg-emerald-50" : "text-rose-300 bg-rose-950/20"
             }`}
@@ -63,7 +66,7 @@ export function ValidationPanel({
         ))}
       </ul>
 
-      {!validation.ok && failedRules.length > 0 && (
+      {!view.ok && failedRules.length > 0 && (
         <p className="mt-3 text-xs text-amber-800" role="alert">
           ⚠ {failedRules.length}개 항목을 수정한 후 다시 검증·제출하세요.
         </p>
