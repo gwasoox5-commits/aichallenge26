@@ -12,6 +12,7 @@ import { GmEventControlPanel } from "./GmEventControlPanel";
 import { GmEconomyControlPanel } from "./GmEconomyControlPanel";
 import { GmOpsSummaryPanel, getGmRecommendedAction } from "./GmOpsSummaryPanel";
 import { GmStatusBanner, GmTeamTable, STEP_LABELS } from "./GmTeamTable";
+import { MarketClearingResultsPanel } from "@/components/bsp/MarketClearingResultsPanel";
 
 type PendingAction = {
   key: string;
@@ -435,6 +436,8 @@ export function GmCommandCenter({ sessionId, desk, onRefresh, onMessage }: Props
               })
             }
           />
+
+          <MarketClearingResultsPanel marketResults={desk.marketResults} variant="gm" />
         </div>
 
         <div className="space-y-4">

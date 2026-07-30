@@ -70,6 +70,7 @@ import { validateBalanceSheet, validateTrialBalance } from "../domain/accounting
 import { buildOperationalParityReport } from "../domain/accounting/operational-parity-report";
 import { computePeriodChanges } from "../domain/accounting/period-financial-snapshot";
 import { MarketClearingService } from "./market-clearing-service";
+import { marketResultsService } from "./market-results-service";
 import { isBidWorkflowStep } from "../domain/market/market-clearing";
 
 function isJoinCodeCollision(e: unknown): boolean {
@@ -201,6 +202,7 @@ export class GameEngine {
     return {
       ...this.dashboard.build(company, session),
       ...stats,
+      marketResults: marketResultsService.build(session, companies, company.id),
     };
   }
 
@@ -404,6 +406,7 @@ export class GameEngine {
       teams,
       ranking,
       recentEvents,
+      marketResults: marketResultsService.build(session, companies, ""),
     };
   }
 

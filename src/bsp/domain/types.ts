@@ -474,6 +474,43 @@ export interface DashboardDto {
   totalTeamCount?: number;
   submittedTeamCount?: number;
   submitRatePercent?: number;
+  /** Posted market clearing summary (visible after Step advance) */
+  marketResults?: MarketResultsDto | null;
+}
+
+export interface MarketTeamRowDto {
+  companyId: string;
+  teamName: string;
+  isSelf: boolean;
+  unitPriceManwon: number;
+  requestedQty: number;
+  awardedQty: number;
+  fillRatePercent: number;
+}
+
+export interface MarketRegionResultDto {
+  regionCode: string;
+  regionName: string;
+  regionalLimit: number;
+  totalRequested: number;
+  totalAwarded: number;
+  sortRule: "HIGHER_PRICE_WINS" | "LOWER_PRICE_WINS";
+  teams: MarketTeamRowDto[];
+}
+
+export interface MarketStepResultDto {
+  step: "MATERIAL" | "SALES";
+  stepLabel: string;
+  visible: boolean;
+  cleared: boolean;
+  sortRule: "HIGHER_PRICE_WINS" | "LOWER_PRICE_WINS";
+  regions: MarketRegionResultDto[];
+}
+
+export interface MarketResultsDto {
+  periodLabel: string;
+  material: MarketStepResultDto | null;
+  sales: MarketStepResultDto | null;
 }
 
 export type GmTeamWarningStatus = "OK" | "NOT_SUBMITTED" | "BEHIND";
@@ -526,6 +563,7 @@ export interface GmDeskDto {
   teams: GmTeamSubmissionStatus[];
   ranking: GmRankingEntry[];
   recentEvents: string[];
+  marketResults?: MarketResultsDto | null;
 }
 
 export interface TrialBalanceLine {

@@ -21,6 +21,7 @@ import { StepMaterialForm, type MaterialFormState } from "@/components/bsp/StepM
 import { StepProductionForm } from "@/components/bsp/StepProductionForm";
 import { StepSalesForm, type SalesLineForm } from "@/components/bsp/StepSalesForm";
 import { StepProgressStepper } from "@/components/bsp/StepProgressStepper";
+import { MarketClearingResultsPanel } from "@/components/bsp/MarketClearingResultsPanel";
 import { ValidationPanel } from "@/components/bsp/ValidationPanel";
 import { effectiveMaterialUnitPriceManwon, logisticsCostManwon } from "@/src/bsp/domain/economy/material-pricing";
 import { getRegion, REGION_CATALOG } from "@/src/bsp/domain/regions/region-catalog";
@@ -29,7 +30,7 @@ import {
   computeProduction,
   computeSales,
 } from "@/src/bsp/domain/validation/step-validators";
-import { DEFAULT_ECONOMY_VALUES, GAME_CONSTANTS, PHASE_TO_STEP, type BspGameStep, type BspStepPhase, type HiringDepartment } from "@/src/bsp/domain/types";
+import { DEFAULT_ECONOMY_VALUES, GAME_CONSTANTS, PHASE_TO_STEP, type BspGameStep, type BspStepPhase, type HiringDepartment, type MarketResultsDto } from "@/src/bsp/domain/types";
 import { formatPeriodLabel, formatStepPhaseLabel, parseYearFromPeriodLabel } from "@/src/bsp/domain/period/display-labels";
 
 type Dashboard = {
@@ -73,6 +74,7 @@ type Dashboard = {
   settlementComplete?: boolean;
   journalsLocked?: boolean;
   economy?: typeof DEFAULT_ECONOMY_VALUES;
+  marketResults?: MarketResultsDto | null;
 };
 
 type ValidationResult = { ok: boolean; rules: Array<{ ruleId: string; passed: boolean; message: string }> };
@@ -519,6 +521,10 @@ export default function PlayPage() {
               )}
 
               <StepProgressStepper stepPhase={step} completedSteps={completed} />
+
+              {dashboard?.marketResults && (
+                <MarketClearingResultsPanel marketResults={dashboard.marketResults} variant="ceo" />
+              )}
 
               {!isSubmitted && requiresManualChecklist && (
                 <SubmitChecklistGate
