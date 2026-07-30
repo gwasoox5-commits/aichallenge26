@@ -1,8 +1,8 @@
-import type { EconomyValues, MaterialInventory, MaterialPayload, RegionCode, SalesPayload } from "../types";
+import type { EconomyValues, MaterialInventory, MaterialPayload, SalesPayload } from "../types";
 import { DEFAULT_ECONOMY_VALUES } from "../types";
 import { effectiveMaterialLimit, effectiveMaterialUnitPriceManwon } from "../economy/material-pricing";
 import { effectiveSaleLimit } from "../economy/sales-pricing";
-import { getRegion, isRegionCode } from "../regions/region-catalog";
+import { getRegion, isRegionCode, type RegionCode } from "../regions/region-catalog";
 
 export interface MaterialBid {
   companyId: string;

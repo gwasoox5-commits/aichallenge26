@@ -1,6 +1,4 @@
-import type { BspGameStep } from "../domain/types";
-import { STEP_TO_PHASE } from "../domain/types";
-import type { MaterialPayload, SalesPayload } from "../domain/types";
+import type { BspGameStep, MaterialPayload, SalesPayload } from "../domain/types";
 import {
   buildAwardedMaterialPayload,
   buildAwardedSalesPayload,
@@ -22,6 +20,12 @@ import { AccountingEngine } from "../domain/accounting/accounting-engine";
 
 function isActiveDecision(d: DecisionRecord, periodId: string, step: BspGameStep) {
   return d.periodId === periodId && d.step === step && (d.status === "SUBMITTED" || d.status === "POSTED");
+}
+
+function withComputedExtras(computed: unknown, extras: Record<string, unknown>) {
+  const base =
+    typeof computed === "object" && computed !== null ? (computed as Record<string, unknown>) : {};
+  return { ...base, ...extras };
 }
 
 export class MarketClearingService {
@@ -112,7 +116,7 @@ export class MarketClearingService {
       source,
       payload,
       validation: outcome.validation,
-      computed: { ...outcome.computed, bidPhase: true },
+      computed: withComputedExtras(outcome.computed, { bidPhase: true }),
       companyStatusVersion,
       journalEntryIds: [],
       submittedAt: new Date(),
@@ -163,7 +167,7 @@ export class MarketClearingService {
     };
 
     existingDecision.status = "POSTED";
-    existingDecision.computed = { ...outcome.computed, marketAwards };
+    existingDecision.computed = withComputedExtras(outcome.computed, { marketAwards });
     existingDecision.validation = outcome.validation;
     existingDecision.journalEntryIds = [journal.id];
 
