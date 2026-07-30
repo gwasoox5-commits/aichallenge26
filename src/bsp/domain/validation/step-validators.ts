@@ -484,16 +484,16 @@ export function validateHiring(
         transferOk = false;
         continue;
       }
-      if (transfer.headcount < 30 || transfer.headcount % 30 !== 0) {
+      if (transfer.headcount < 1) {
         rules.push(
-          fail("H02", "ERR_TRANSFER_INVALID", field, "Transfer headcount must be a positive multiple of 30", {
+          fail("H02", "ERR_TRANSFER_INVALID", field, "Transfer headcount must be at least 1", {
             headcount: transfer.headcount,
           })
         );
         transferOk = false;
         continue;
       }
-      const headsMoved = transfer.headcount / 30;
+      const headsMoved = transfer.headcount;
       const sourceKey = HIRING_DEPT_HEAD_KEY[transfer.from];
       if (afterResign[sourceKey] < headsMoved) {
         rules.push(

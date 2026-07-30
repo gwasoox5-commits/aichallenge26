@@ -10,7 +10,7 @@ describe("validateHiring restructuring", () => {
         headPurchase: 2,
         headProduction: 3,
         headSales: 2,
-        transfers: [{ from: "PURCHASE", to: "PRODUCTION", headcount: 30 }],
+        transfers: [{ from: "PURCHASE", to: "PRODUCTION", headcount: 1 }],
         resignations: { purchase: 0, production: 0, sales: 0 },
       },
       1,
@@ -35,13 +35,13 @@ describe("validateHiring restructuring", () => {
     expect(validation.rules.some((r) => r.ruleId === "H03" && !r.passed)).toBe(true);
   });
 
-  it("rejects invalid transfer headcount (H02)", () => {
+  it("rejects zero transfer headcount (H02)", () => {
     const { validation } = validateHiring(
       {
         headPurchase: 2,
         headProduction: 4,
         headSales: 2,
-        transfers: [{ from: "PURCHASE", to: "PRODUCTION", headcount: 15 }],
+        transfers: [{ from: "PURCHASE", to: "PRODUCTION", headcount: 0 }],
       },
       2,
       currentHeads
@@ -56,7 +56,7 @@ describe("validateHiring restructuring", () => {
         headPurchase: 1,
         headProduction: 5,
         headSales: 2,
-        transfers: [{ from: "PURCHASE", to: "PRODUCTION", headcount: 60 }],
+        transfers: [{ from: "PURCHASE", to: "PRODUCTION", headcount: 2 }],
       },
       2,
       { headPurchase: 1, headProduction: 3, headSales: 2 }
@@ -65,13 +65,13 @@ describe("validateHiring restructuring", () => {
     expect(validation.rules.some((r) => r.ruleId === "H02" && !r.passed)).toBe(true);
   });
 
-  it("accepts valid Y2 transfer and resignation", () => {
+  it("accepts single-head Y2 transfer and resignation", () => {
     const { validation } = validateHiring(
       {
         headPurchase: 2,
         headProduction: 4,
         headSales: 1,
-        transfers: [{ from: "PURCHASE", to: "PRODUCTION", headcount: 30 }],
+        transfers: [{ from: "PURCHASE", to: "PRODUCTION", headcount: 1 }],
         resignations: { purchase: 0, production: 0, sales: 1 },
       },
       2,

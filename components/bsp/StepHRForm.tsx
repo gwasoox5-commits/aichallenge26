@@ -149,7 +149,7 @@ export function StepHRForm({
 
       {restructuringEnabled && (
         <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
-          <h3 className="mb-2 text-sm font-semibold text-slate-800">구조조정 — 부서 전환 (30명 단위)</h3>
+          <h3 className="mb-2 text-sm font-semibold text-slate-800">구조조정 — 부서 전환</h3>
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <select
               value={transferFrom}
@@ -177,12 +177,12 @@ export function StepHRForm({
             <input
               type="number"
               min={0}
-              step={30}
+              step={1}
               value={transferHeadcount}
               onChange={(e) => onTransferChange("transferHeadcount", Number(e.target.value))}
               className="w-24 rounded border border-slate-300 bg-white px-2 py-1"
             />
-            <span className="text-slate-600">명 (30명 단위, 30명 = 1명 전환)</span>
+            <span className="text-slate-600">명</span>
           </div>
         </div>
       )}
