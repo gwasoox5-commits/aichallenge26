@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { authFetch } from "@/lib/bsp/auth-client";
+import { useRealtime } from "@/lib/bsp/use-realtime";
 import { GmConfirmDialog } from "@/components/gm/GmConfirmDialog";
 import { GmTeamTable } from "@/components/gm/GmTeamTable";
 import { MarketClearingResultsPanel } from "@/components/bsp/MarketClearingResultsPanel";
@@ -34,8 +35,29 @@ type PendingAction = {
 
 export function AdminDashboard({ sessionId, desk, onRefresh, onMessage, message }: Props) {
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [pending, setPending] = useState<PendingAction | null>(null);
   const [reason, setReason] = useState("");
+
+  useRealtime({
+    sessionId,
+    onSync: () => {
+      void onRefresh();
+    },
+    onEvent: () => {
+      void onRefresh();
+    },
+  });
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await onRefresh();
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const remainingTimeSec = useStepCountdown({
     stepStartedAt: desk?.stepStartedAt,
     stepDurationSec: desk?.stepDurationSec,
@@ -79,6 +101,14 @@ export function AdminDashboard({ sessionId, desk, onRefresh, onMessage, message 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-semibold">운영 개요</h2>
         <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => void handleRefresh()}
+            disabled={refreshing || loading}
+            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-50"
+          >
+            {refreshing ? "새로고침 중…" : "새로고침"}
+          </button>
           <Link href="/admin/control" className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm text-white hover:bg-indigo-500">
             게임 진행 →
           </Link>
