@@ -6,8 +6,16 @@ export function regionHasPurchaseBranch(regionCode: string, openBranches: string
   return openBranches.includes(regionCode);
 }
 
-export function regionCanSell(regionCode: string, openBranches: string[], openSalesBranches: string[]): boolean {
+export function regionCanPurchase(
+  regionCode: string,
+  openBranches: string[],
+  openSalesBranches: string[]
+): boolean {
   return openBranches.includes(regionCode) || openSalesBranches.includes(regionCode);
+}
+
+export function regionCanSell(regionCode: string, openBranches: string[], openSalesBranches: string[]): boolean {
+  return regionCanPurchase(regionCode, openBranches, openSalesBranches);
 }
 
 /** @deprecated Use regionHasPurchaseBranch / regionCanSell. */
@@ -21,11 +29,12 @@ export function regionHasBranch(
 
 function purchaseBranchInputsForLines<T extends { regionCode: string; qty: number; openBranch: boolean }>(
   lines: T[],
-  openBranches: string[]
+  openBranches: string[],
+  openSalesBranches: string[]
 ) {
   const codes = new Set<string>();
   for (const line of lines) {
-    if (regionHasPurchaseBranch(line.regionCode, openBranches)) continue;
+    if (regionCanPurchase(line.regionCode, openBranches, openSalesBranches)) continue;
     if (line.qty > 0 || line.openBranch) {
       codes.add(line.regionCode);
     }
@@ -48,8 +57,12 @@ function salesBranchInputsForLines<T extends { regionCode: string; qty: number; 
   return [...codes].map((regionCode) => ({ regionCode }));
 }
 
-export function materialBranchInputs(lines: MaterialLineForm[], openBranches: string[]) {
-  return purchaseBranchInputsForLines(lines, openBranches);
+export function materialBranchInputs(
+  lines: MaterialLineForm[],
+  openBranches: string[],
+  openSalesBranches: string[] = []
+) {
+  return purchaseBranchInputsForLines(lines, openBranches, openSalesBranches);
 }
 
 export function salesBranchInputs(
@@ -60,9 +73,13 @@ export function salesBranchInputs(
   return salesBranchInputsForLines(lines, openBranches, openSalesBranches);
 }
 
-export function buildMaterialPayload(lines: MaterialLineForm[], openBranches: string[]): MaterialPayload {
+export function buildMaterialPayload(
+  lines: MaterialLineForm[],
+  openBranches: string[],
+  openSalesBranches: string[] = []
+): MaterialPayload {
   return {
-    branches: materialBranchInputs(lines, openBranches),
+    branches: materialBranchInputs(lines, openBranches, openSalesBranches),
     lines: lines.map((line) => ({
       regionCode: line.regionCode,
       qty: line.qty,

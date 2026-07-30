@@ -24,7 +24,7 @@ import {
   MAX_PURCHASE_BRANCH_REGIONS,
   openingPurchaseRegions,
   openingSalesRegions,
-  hasPurchaseBranch,
+  canPurchaseInRegion,
   hasSalesBranch,
   purchasingRegionsFromMaterialPayload,
   sellingRegionsFromSalesPayload,
@@ -620,7 +620,7 @@ export function validateMaterial(
 
     rules.push(pass("M01", `Effective floor price ${effectivePrice} for ${line.regionCode}`));
 
-    if (totalUnits > 0 && !hasPurchaseBranch(state, line.regionCode, openingPurchase)) {
+    if (totalUnits > 0 && !canPurchaseInRegion(state, line.regionCode, openingPurchase)) {
       rules.push(
         fail("M07", "ERR_MAT_NO_BRANCH", "regionCode", "Material purchase requires a branch in this region", {
           regionCode: line.regionCode,

@@ -17,6 +17,7 @@ type Props = {
   lines: MaterialLineForm[];
   purchaseCapacity: number;
   openBranches?: string[];
+  openSalesBranches?: string[];
   regionExpansionCap?: number;
   preview: {
     totalUnits: number;
@@ -37,6 +38,7 @@ export function StepMaterialForm({
   lines,
   purchaseCapacity,
   openBranches = [],
+  openSalesBranches = [],
   regionExpansionCap = 3,
   preview,
   loading,
@@ -56,7 +58,7 @@ export function StepMaterialForm({
     <div className="rounded-xl border border-slate-200 bg-white p-6">
       <h2 className="mb-1 text-lg font-semibold">Step 4 — 원재료 구매 (경쟁입찰)</h2>
       <p className="mb-4 text-sm text-slate-600">
-        구매 브랜치 개설 지역에서만 구매 · 구매 지역 {regionExpansionCap}개까지 ({purchasingRegionCount}/
+        구매·판매 브랜치 중 하나만 있어도 구매 가능 · 구매 지역 {regionExpansionCap}개까지 ({purchasingRegionCount}/
         {regionExpansionCap} · 구매량 &gt; 0 기준) · 구매 브랜치 {purchaseBranchCount}/{REGION_CATALOG.length}개
         개설 · 4단위 = 완제품 1개
       </p>
@@ -64,8 +66,10 @@ export function StepMaterialForm({
       <div className="space-y-4">
         {lines.map((line, index) => {
           const region = REGION_CATALOG.find((r) => r.code === line.regionCode);
-          const hasBranch = openBranches.includes(line.regionCode);
-          const atCap = !hasBranch && line.openBranch && purchaseBranchCount >= REGION_CATALOG.length;
+          const hasPurchaseBranch = openBranches.includes(line.regionCode);
+          const canPurchase =
+            hasPurchaseBranch || openSalesBranches.includes(line.regionCode);
+          const atCap = !canPurchase && line.openBranch && purchaseBranchCount >= REGION_CATALOG.length;
 
           return (
             <div key={line.regionCode} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
@@ -90,7 +94,7 @@ export function StepMaterialForm({
                     onChange={(e) => {
                       const qty = Number(e.target.value);
                       const patch: Partial<MaterialLineForm> = { qty };
-                      if (qty > 0 && !hasBranch && !atCap) {
+                      if (qty > 0 && !canPurchase && !atCap) {
                         patch.openBranch = true;
                       }
                       updateLine(index, patch);
@@ -102,22 +106,24 @@ export function StepMaterialForm({
                   <input
                     type="checkbox"
                     checked={line.openBranch}
-                    disabled={hasBranch || atCap}
+                    disabled={canPurchase || atCap}
                     onChange={(e) => updateLine(index, { openBranch: e.target.checked })}
                     className="rounded"
                   />
                   <span>
-                    {hasBranch
-                      ? "이미 구매 브랜치 개설됨"
+                    {canPurchase
+                      ? hasPurchaseBranch
+                        ? "이미 구매 브랜치 개설됨"
+                        : "판매 브랜치로 구매 가능"
                       : atCap
                         ? "개설 가능 지역 한도 초과"
                         : `신규 구매 브랜치 (+${region?.branchSetupFeeManwon ?? 0}만, 1회)`}
                   </span>
                 </label>
               </div>
-              {!hasBranch && line.qty > 0 && !line.openBranch && (
+              {!canPurchase && line.qty > 0 && !line.openBranch && (
                 <p className="mt-2 text-xs text-amber-800">
-                  이 지역에 구매 브랜치가 없습니다. 구매하려면 「신규 구매 브랜치」를 선택하세요.
+                  이 지역에 브랜치가 없습니다. 구매하려면 「신규 구매 브랜치」를 선택하세요.
                 </p>
               )}
             </div>

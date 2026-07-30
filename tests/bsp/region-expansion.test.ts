@@ -12,16 +12,18 @@ describe("Region branch rules", () => {
     expect(validation.rules.some((r) => r.errorCode === "ERR_MAT_NO_BRANCH")).toBe(true);
   });
 
-  it("does not allow material purchase with sales-only branch", () => {
+  it("allows material purchase with sales-only branch", () => {
     const state = {
       ...createInitialOperationalState(),
       openSalesBranches: ["ASIA"],
       selectedRegions: ["ASIA"],
+      headPurchase: 1,
+      purchaseCapacity: 60,
     };
     const payload = materialBidPayload("ASIA", 10, 12, { openBranch: false });
     const { validation } = validateMaterial(payload, state, DEFAULT_ECONOMY_VALUES, 1);
-    expect(validation.ok).toBe(false);
-    expect(validation.rules.some((r) => r.errorCode === "ERR_MAT_NO_BRANCH")).toBe(true);
+    expect(validation.ok).toBe(true);
+    expect(validation.rules.some((r) => r.errorCode === "ERR_MAT_NO_BRANCH")).toBe(false);
   });
 
   it("charges purchase branch setup fee only once per region", () => {

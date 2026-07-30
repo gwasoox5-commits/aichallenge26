@@ -236,7 +236,7 @@ export default function PlayPage() {
         cashAfter: GAME_CONSTANTS.initialCashManwon,
       };
     }
-    const payload = buildMaterialPayload(materialLines, dashboard.openBranches ?? []);
+    const payload = buildMaterialPayload(materialLines, dashboard.openBranches ?? [], dashboard.openSalesBranches ?? []);
     const mockState = {
       cashManwon: dashboard.cashManwon,
       rawMaterialQty: dashboard.inventoryTotalUnits ?? 0,
@@ -456,7 +456,11 @@ export default function PlayPage() {
         },
       };
     } else if (targetStep === "MATERIAL") {
-      payload = buildMaterialPayload(materialLines, dashboard.openBranches ?? []);
+      payload = buildMaterialPayload(
+        materialLines,
+        dashboard.openBranches ?? [],
+        dashboard.openSalesBranches ?? []
+      );
     } else if (targetStep === "PRODUCTION") {
       payload = { productionQty, machineBigRun, machineSmallRun };
     } else if (targetStep === "SALES") {
@@ -671,6 +675,7 @@ export default function PlayPage() {
                   lines={materialLines}
                   purchaseCapacity={dashboard.purchaseCapacity ?? hrPreview.purchaseCapacity}
                   openBranches={dashboard.openBranches ?? []}
+                  openSalesBranches={dashboard.openSalesBranches ?? []}
                   regionExpansionCap={dashboard.regionExpansionCap ?? 3}
                   preview={materialPreview}
                   loading={loading}

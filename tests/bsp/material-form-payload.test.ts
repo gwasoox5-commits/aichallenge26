@@ -35,6 +35,15 @@ describe("buildMaterialPayload", () => {
     expect(payload.branchesNew).toEqual([]);
   });
 
+  it("skips purchase branch when sales branch already exists in region", () => {
+    const payload = buildMaterialPayload(
+      [{ regionCode: "MIDDLE_EAST", qty: 5, unitPriceBidManwon: 15, openBranch: false }],
+      [],
+      ["MIDDLE_EAST"]
+    );
+    expect(payload.branches).toEqual([]);
+  });
+
   it("skips sales branch when purchase branch already exists in region", () => {
     const payload = buildSalesPayload(
       [{ regionCode: "ASIA", unitPriceManwon: 100, qty: 2, openBranch: false }],

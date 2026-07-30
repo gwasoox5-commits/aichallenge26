@@ -155,6 +155,19 @@ export function hasPurchaseBranch(
   return state.openBranches.includes(regionCode) || openingPurchase.has(regionCode);
 }
 
+/** Sales branch in a region satisfies purchase; otherwise a purchase branch is required. */
+export function canPurchaseInRegion(
+  state: CompanyOperationalState,
+  regionCode: RegionCode,
+  openingPurchase: Set<RegionCode> = new Set()
+): boolean {
+  return (
+    state.openBranches.includes(regionCode) ||
+    state.openSalesBranches.includes(regionCode) ||
+    openingPurchase.has(regionCode)
+  );
+}
+
 /** Purchase branch in a region satisfies sales; otherwise a sales branch is required. */
 export function hasSalesBranch(
   state: CompanyOperationalState,
