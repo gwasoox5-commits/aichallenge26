@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { EventApplyTiming } from "@/src/bsp/domain/events/event-types";
 import type { WorldEvolutionProposal } from "@/lib/v3/world/types";
+import { WORLD_UI } from "@/lib/v3/world/world-ui-labels";
 
 const APPLY_LABELS: Record<EventApplyTiming, string> = {
   IMMEDIATE: "즉시 적용",
@@ -48,7 +49,9 @@ export function UpcomingEventsPanel({ proposals, onApprove, onPublish, loading }
       </div>
 
       {pending.length === 0 && approved.length === 0 && (
-        <p className="mt-3 text-sm text-slate-500">대기 중인 제안이 없습니다. 반기 종료 시 AI Evolution이 생성됩니다.</p>
+        <p className="mt-3 text-sm text-slate-500">
+          대기 중인 제안이 없습니다. 반기 종료 시 {WORLD_UI.evolveButton}이 생성됩니다.
+        </p>
       )}
 
       <ul className="mt-3 space-y-3">

@@ -28,11 +28,13 @@ export type WorldProfileId =
   | "CUSTOM";
 
 export type WorldRegionId =
-  | "NORTH_AMERICA"
   | "EUROPE"
-  | "CHINA"
-  | "KOREA"
-  | "SOUTHEAST_ASIA";
+  | "ASIA"
+  | "MIDDLE_EAST"
+  | "AFRICA"
+  | "OCEANIA"
+  | "NORTH_AMERICA"
+  | "SOUTH_AMERICA";
 
 export type IndustryId =
   | "AUTOMOTIVE"
@@ -40,7 +42,9 @@ export type IndustryId =
   | "BATTERY"
   | "STEEL"
   | "CHEMICAL"
-  | "CONSUMER";
+  | "CONSUMER"
+  | "POWER"
+  | "ENERGY";
 
 export interface RegionalState {
   regionId: WorldRegionId;

@@ -1,14 +1,12 @@
 /** V3.0 — Regional & industry layer initialization */
 
+import { REGION_CATALOG } from "@/src/bsp/domain/regions/region-catalog";
 import type { IndustryId, IndustryState, RegionalState, WorldRegionId } from "./types";
 
-export const REGION_DEFS: Array<{ id: WorldRegionId; label: string }> = [
-  { id: "NORTH_AMERICA", label: "북미" },
-  { id: "EUROPE", label: "유럽" },
-  { id: "CHINA", label: "중국" },
-  { id: "KOREA", label: "한국" },
-  { id: "SOUTHEAST_ASIA", label: "동남아" },
-];
+export const REGION_DEFS: Array<{ id: WorldRegionId; label: string }> = REGION_CATALOG.map((region) => ({
+  id: region.code as WorldRegionId,
+  label: region.displayName,
+}));
 
 export const INDUSTRY_DEFS: Array<{ id: IndustryId; label: string }> = [
   { id: "AUTOMOTIVE", label: "자동차" },
@@ -17,17 +15,21 @@ export const INDUSTRY_DEFS: Array<{ id: IndustryId; label: string }> = [
   { id: "STEEL", label: "철강" },
   { id: "CHEMICAL", label: "화학" },
   { id: "CONSUMER", label: "소비재" },
+  { id: "POWER", label: "전력" },
+  { id: "ENERGY", label: "에너지" },
 ];
 
 const REGION_PROFILE_OFFSETS: Record<
   WorldRegionId,
   Partial<{ growth: number; stability: number; tradeOpenness: number; riskLevel: number }>
 > = {
+  EUROPE: { growth: 5, stability: 12, tradeOpenness: 65, riskLevel: 40 },
+  ASIA: { growth: 12, stability: 10, tradeOpenness: 70, riskLevel: 45 },
+  MIDDLE_EAST: { growth: 8, stability: 6, tradeOpenness: 55, riskLevel: 55 },
+  AFRICA: { growth: 10, stability: 5, tradeOpenness: 50, riskLevel: 58 },
+  OCEANIA: { growth: 7, stability: 14, tradeOpenness: 68, riskLevel: 38 },
   NORTH_AMERICA: { growth: 10, stability: 15, tradeOpenness: 70, riskLevel: 30 },
-  EUROPE: { growth: 5, stability: 10, tradeOpenness: 65, riskLevel: 40 },
-  CHINA: { growth: 15, stability: 5, tradeOpenness: 55, riskLevel: 55 },
-  KOREA: { growth: 8, stability: 12, tradeOpenness: 75, riskLevel: 45 },
-  SOUTHEAST_ASIA: { growth: 12, stability: 8, tradeOpenness: 60, riskLevel: 50 },
+  SOUTH_AMERICA: { growth: 9, stability: 8, tradeOpenness: 58, riskLevel: 52 },
 };
 
 const INDUSTRY_SENSITIVITY: Record<
@@ -40,6 +42,8 @@ const INDUSTRY_SENSITIVITY: Record<
   STEEL: { demandBase: 45, costBase: 60, innovationBase: 35, multiplier: 0.9 },
   CHEMICAL: { demandBase: 50, costBase: 55, innovationBase: 45, multiplier: 0.95 },
   CONSUMER: { demandBase: 60, costBase: 45, innovationBase: 40, multiplier: 0.85 },
+  POWER: { demandBase: 58, costBase: 62, innovationBase: 50, multiplier: 1.15 },
+  ENERGY: { demandBase: 65, costBase: 58, innovationBase: 48, multiplier: 1.25 },
 };
 
 function clamp(v: number) {
@@ -112,8 +116,8 @@ export function computeIndustryEventWeight(
     공급망: ["SEMICONDUCTOR", "AUTOMOTIVE", "BATTERY"],
     재무: ["CONSUMER", "STEEL"],
     혁신: ["SEMICONDUCTOR", "BATTERY"],
-    ESG: ["CHEMICAL", "AUTOMOTIVE"],
-    원가: ["STEEL", "CHEMICAL", "BATTERY"],
+    ESG: ["CHEMICAL", "AUTOMOTIVE", "ENERGY"],
+    원가: ["STEEL", "CHEMICAL", "BATTERY", "POWER", "ENERGY"],
   };
 
   const weighted = new Set<IndustryId>();

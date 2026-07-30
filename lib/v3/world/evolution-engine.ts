@@ -50,13 +50,15 @@ export function evolveWorldState(state: WorldState, ctx: EvolutionContext): Worl
   return {
     dimensions: newDimensions,
     regions: applyRegionalImpact(state.regions, {
-      CHINA: clampDimension(newDimensions.tradeEnvironment - 50) > 0 ? 1 : -1,
-      KOREA: newDimensions.globalGrowth > 55 ? 1 : -1,
+      ASIA: clampDimension(newDimensions.tradeEnvironment - 50) > 0 ? 1 : -1,
+      MIDDLE_EAST: newDimensions.energyPrice > 60 ? -1 : 0,
     }),
     industries: applyIndustryImpact(state.industries, {
       SEMICONDUCTOR: newDimensions.technologyInnovation > 70 ? 3 : 0,
       BATTERY: newDimensions.energyPrice > 60 ? -2 : 1,
       AUTOMOTIVE: newDimensions.consumerConfidence > 55 ? 2 : -2,
+      POWER: newDimensions.energyPrice > 60 ? 2 : -1,
+      ENERGY: newDimensions.energyPrice > 60 ? 3 : -1,
     }),
     updatedAt: now,
     periodLabel: ctx.periodLabel,

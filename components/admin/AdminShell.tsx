@@ -20,7 +20,7 @@ const NAV = [
   { href: "/admin/control", label: "게임 진행" },
   { href: "/admin/event-studio", label: "이벤트 스튜디오" },
   { href: "/admin/intelligence", label: "뉴스 Intelligence" },
-  { href: "/admin/world", label: "World Simulation" },
+  { href: "/admin/world", label: "경제 시나리오" },
   { href: "/admin/debrief", label: "디브리프" },
   { href: "/admin/audit", label: "운영 로그" },
   { href: "/admin/pilot-check", label: "시스템 점검" },

@@ -11,6 +11,7 @@ import type {
   WorldSessionRecord,
 } from "@/lib/v3/world/types";
 import { WORLD_PROFILES } from "@/lib/v3/world/world-profiles";
+import { WORLD_UI } from "@/lib/v3/world/world-ui-labels";
 import { WorldStatePanel } from "./WorldStatePanel";
 import { RiskMapPanel } from "./RiskMapPanel";
 import { ForecastPanel } from "./ForecastPanel";
@@ -138,9 +139,9 @@ export function WorldDashboard() {
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-6">
       <header>
-        <h1 className="text-2xl font-bold text-slate-900">V3.0 World Simulation Dashboard</h1>
+        <h1 className="text-2xl font-bold text-slate-900">V3.0 {WORLD_UI.pageTitle} Dashboard</h1>
         <p className="mt-1 text-sm text-slate-600">
-          살아있는 경제 세계 — GM 설정 · AI Evolution · Event Chain · V2.4 Publish
+          살아있는 경제 세계 — GM 설정 · {WORLD_UI.evolveButton} · Event Chain · V2.4 Publish
         </p>
       </header>
 
@@ -155,7 +156,7 @@ export function WorldDashboard() {
           />
         </label>
         <label className="text-sm">
-          <span className="text-slate-600">World Profile</span>
+          <span className="text-slate-600">{WORLD_UI.profile}</span>
           <select
             className="mt-1 block rounded border border-slate-300 p-2 text-sm"
             value={profileId}
@@ -172,7 +173,7 @@ export function WorldDashboard() {
           onClick={initWorld}
           className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
         >
-          World 초기화
+          {WORLD_UI.initButton}
         </button>
         {world && (
           <button
@@ -181,7 +182,7 @@ export function WorldDashboard() {
             onClick={evolve}
             className="rounded-lg border border-indigo-300 px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-50 disabled:opacity-50"
           >
-            AI Evolution (반기 종료 시뮬)
+            {WORLD_UI.evolveButton}
           </button>
         )}
       </div>
@@ -220,7 +221,9 @@ export function WorldDashboard() {
       )}
 
       {!world && sessionId && (
-        <p className="text-sm text-slate-500">World Profile을 선택하고 &quot;World 초기화&quot;를 클릭하세요.</p>
+        <p className="text-sm text-slate-500">
+          {WORLD_UI.profile}을 선택하고 &quot;{WORLD_UI.initButton}&quot;을 클릭하세요.
+        </p>
       )}
     </div>
   );

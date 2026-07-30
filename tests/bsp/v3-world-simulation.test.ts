@@ -120,16 +120,19 @@ describe("V3.0 World Profiles", () => {
 });
 
 describe("V3.0 Regional & Industry Layer", () => {
-  it("builds 5 regions", () => {
+  it("builds 7 game regions", () => {
     const regions = buildInitialRegions(60, 55);
-    expect(regions).toHaveLength(5);
-    expect(regions.map((r) => r.regionId)).toContain("KOREA");
+    expect(regions).toHaveLength(7);
+    expect(regions.map((r) => r.regionId)).toContain("ASIA");
+    expect(regions.map((r) => r.label)).toContain("유럽");
   });
 
-  it("builds 6 industries", () => {
+  it("builds 8 industries including power and energy", () => {
     const industries = buildInitialIndustries(70, 50);
-    expect(industries).toHaveLength(6);
+    expect(industries).toHaveLength(8);
     expect(industries.find((i) => i.industryId === "SEMICONDUCTOR")?.impactMultiplier).toBe(1.3);
+    expect(industries.find((i) => i.industryId === "POWER")?.label).toBe("전력");
+    expect(industries.find((i) => i.industryId === "ENERGY")?.label).toBe("에너지");
   });
 });
 
