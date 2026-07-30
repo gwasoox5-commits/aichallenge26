@@ -133,20 +133,19 @@ export async function runExcelScenario(input: ExcelScenarioInput): Promise<Excel
   };
   const matRegion = getRegion(input.material.regionCode as Parameters<typeof getRegion>[0]);
   const matBidPrice = effectiveMaterialUnitPriceManwon(matRegion, economy);
-  const matV = validateMaterial(
-    {
-      lines: [
-        {
-          regionCode: input.material.regionCode,
-          materials: { A: input.material.perType, B: input.material.perType, C: input.material.perType, D: input.material.perType },
-          unitPriceBidManwon: matBidPrice,
-        },
-      ],
-    },
-    state,
-    economy
+  const matPayload = materialBidPayload(
+    input.material.regionCode as Parameters<typeof materialBidPayload>[0],
+    input.material.perType,
+    matBidPrice
   );
-  state = { ...state, cashManwon: matV.computed.cashAfterManwon, inventory: matV.computed.inventoryAfter, inventoryCostManwon: state.inventoryCostManwon + matV.computed.materialCostManwon };
+  const matV = validateMaterial(matPayload, state, economy, 1);
+  state = {
+    ...state,
+    cashManwon: matV.computed.cashAfterManwon,
+    inventory: matV.computed.inventoryAfter,
+    inventoryCostManwon: state.inventoryCostManwon + matV.computed.materialCostManwon,
+    openBranches: [...new Set([...state.openBranches, ...matV.computed.newBranches])],
+  };
   const prodC = computeProduction(input.production, state, economy);
   state = applyProductionToState(state, input.production, prodC);
   const salesC = computeSales(

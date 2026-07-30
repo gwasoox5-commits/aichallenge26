@@ -80,8 +80,12 @@ export const VALIDATION_MESSAGES_KO: Record<string, { pass: string; fail: string
     fail: "원재료 구매에 필요한 현금이 부족합니다. (M04)",
   },
   M05: {
-    pass: "브랜치 개설비가 반영되었습니다.",
-    fail: "브랜치 개설 조건을 확인하세요. (M05)",
+    pass: "연도별 지역 브랜치 한도 이내입니다.",
+    fail: "연도별 지역 브랜치 개설 한도를 초과했습니다. (M05)",
+  },
+  M07: {
+    pass: "해당 지역에 브랜치가 있어 원재료 구매가 가능합니다.",
+    fail: "브랜치가 개설되지 않은 지역에서는 원재료를 구매할 수 없습니다. (M07)",
   },
   M06: {
     pass: "입찰 단가가 유효합니다.",
@@ -130,6 +134,14 @@ export const VALIDATION_MESSAGES_KO: Record<string, { pass: string; fail: string
   S06: {
     pass: "판매 입찰이 등록되었습니다.",
     fail: "판매 입찰을 확인하세요. (S06)",
+  },
+  S07: {
+    pass: "해당 지역에 브랜치가 있어 판매가 가능합니다.",
+    fail: "브랜치가 개설되지 않은 지역에서는 판매할 수 없습니다. (S07)",
+  },
+  S08: {
+    pass: "연도별 지역 브랜치 한도 이내입니다.",
+    fail: "연도별 지역 브랜치 개설 한도를 초과했습니다. (S08)",
   },
 };
 

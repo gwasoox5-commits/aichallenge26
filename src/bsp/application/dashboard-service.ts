@@ -2,6 +2,7 @@ import type { CompanyAggregate, SessionAggregate } from "./ports/repositories";
 import type { BspGameStep, BspStepPhase, DashboardDto } from "../domain/types";
 import { ALL_GAME_STEPS, PHASE_TO_STEP, STEP_TO_PHASE } from "../domain/types";
 import { buildFinancialStatements } from "../domain/accounting/financial-statements";
+import { operatingRegions, regionExpansionCap } from "../domain/regions/region-expansion";
 
 export class DashboardService {
   build(company: CompanyAggregate, session: SessionAggregate): DashboardDto {
@@ -66,6 +67,9 @@ export class DashboardService {
       payrollForecastHalfManwon: op.payrollForecastHalfManwon,
       inventoryTotalUnits,
       openBranches: op.openBranches,
+      openSalesBranches: op.openSalesBranches,
+      regionExpansionCap: regionExpansionCap(session.year),
+      operatingRegionCount: operatingRegions(op).size,
       finishedGoodsQty: op.finishedGoodsQty,
       halfYearProductionQty: op.halfYearProductionQty,
       halfYearSalesQty: op.halfYearSalesQty,

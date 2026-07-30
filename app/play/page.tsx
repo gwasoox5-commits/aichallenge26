@@ -22,6 +22,7 @@ import { StepProductionForm } from "@/components/bsp/StepProductionForm";
 import { StepSalesForm, type SalesLineForm } from "@/components/bsp/StepSalesForm";
 import { StepProgressStepper } from "@/components/bsp/StepProgressStepper";
 import { MarketClearingResultsPanel } from "@/components/bsp/MarketClearingResultsPanel";
+import { BranchMapPanel } from "@/components/bsp/BranchMapPanel";
 import { ValidationPanel } from "@/components/bsp/ValidationPanel";
 import { effectiveMaterialUnitPriceManwon, logisticsCostManwon } from "@/src/bsp/domain/economy/material-pricing";
 import { getRegion, REGION_CATALOG } from "@/src/bsp/domain/regions/region-catalog";
@@ -71,6 +72,9 @@ type Dashboard = {
   submittedTeamCount?: number;
   submitRatePercent?: number;
   openBranches?: string[];
+  openSalesBranches?: string[];
+  regionExpansionCap?: number;
+  operatingRegionCount?: number;
   settlementComplete?: boolean;
   journalsLocked?: boolean;
   economy?: typeof DEFAULT_ECONOMY_VALUES;
@@ -189,10 +193,10 @@ export default function PlayPage() {
     const bidPrice = materialForm.unitPriceBidManwon;
     const materialCost = totalUnits * bidPrice;
     const logistics = logisticsCostManwon(totalUnits, economy);
-    const branchFee =
-      materialForm.openBranch && !(dashboard?.openBranches ?? []).includes(materialForm.regionCode)
-        ? region.branchSetupFeeManwon
-        : 0;
+    const alreadyOpen =
+      (dashboard?.openBranches ?? []).includes(materialForm.regionCode) ||
+      (dashboard?.openSalesBranches ?? []).includes(materialForm.regionCode);
+    const branchFee = materialForm.openBranch && !alreadyOpen ? region.branchSetupFeeManwon : 0;
     const totalCost = materialCost + logistics + branchFee;
     const cashAfter = (dashboard?.cashManwon ?? GAME_CONSTANTS.initialCashManwon) - totalCost;
     return { unitPrice, bidPrice, totalUnits, materialCost, logisticsCost: logistics, branchFee, totalCost, cashAfter };
@@ -262,7 +266,8 @@ export default function PlayPage() {
       finishedGoodsQty: dashboard.finishedGoodsQty ?? 15,
       unitFinishedGoodsCostManwon: 48,
       salesCapacity: dashboard.salesCapacity ?? 20,
-      openSalesBranches: [] as string[],
+      openBranches: dashboard.openBranches ?? [],
+      openSalesBranches: dashboard.openSalesBranches ?? [],
     } as Parameters<typeof computeSales>[1];
     const c = computeSales(payload, mockState, economy);
     return {
@@ -624,6 +629,9 @@ export default function PlayPage() {
                 <StepMaterialForm
                   form={materialForm}
                   purchaseCapacity={dashboard.purchaseCapacity ?? hrPreview.purchaseCapacity}
+                  openBranches={dashboard.openBranches ?? []}
+                  openSalesBranches={dashboard.openSalesBranches ?? []}
+                  regionExpansionCap={dashboard.regionExpansionCap ?? 3}
                   preview={materialPreview}
                   loading={loading}
                   checklistReady={checklistReady}
@@ -707,6 +715,14 @@ export default function PlayPage() {
         </section>
 
         <aside className="space-y-4">
+          {dashboard && companyId && (
+            <BranchMapPanel
+              year={dashboard.year ?? periodYear}
+              openBranches={dashboard.openBranches ?? []}
+              openSalesBranches={dashboard.openSalesBranches ?? []}
+              compact
+            />
+          )}
           {sessionId && (
             <CeoNewsFeed
               items={newsItems}

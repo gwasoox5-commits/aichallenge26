@@ -18,7 +18,8 @@ export class SalesStepHandler implements StepHandler {
     const { validation, computed } = validateSales(
       payload,
       context.company.operational,
-      context.session.economy
+      context.session.economy,
+      context.session.year
     );
     const localized = { ...validation, rules: localizeValidationResult(validation.rules) };
     return {

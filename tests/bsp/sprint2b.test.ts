@@ -151,6 +151,7 @@ describe("Sprint 2B — Sales domain", () => {
     state.finishedGoodsCostManwon = 576;
     state.unitFinishedGoodsCostManwon = 192;
     state.salesCapacity = 20;
+    state.openBranches = ["ASIA"];
     return state;
   }
 
@@ -211,7 +212,7 @@ describe("Sprint 2B — Step 5 Production integration", () => {
       { productionQty: 3, machineBigRun: 1, machineSmallRun: 0 },
       version
     );
-    expect(s5.dashboard.cashManwon).toBe(6300);
+    expect(s5.dashboard.cashManwon).toBe(6000);
     expect(s5.dashboard.finishedGoodsQty).toBe(3);
     expect(s5.dashboard.halfYearProductionQty).toBe(3);
     expect(s5.dashboard.inventoryTotalUnits).toBe(12);
@@ -249,12 +250,12 @@ describe("Sprint 2B — Step 6 Sales integration", () => {
       { lines: [{ regionCode: "ASIA", unitPriceManwon: 100, qty: 3 }] },
       s5.statusVersion
     );
-    expect(s6.dashboard.cashManwon).toBe(6300);
+    expect(s6.dashboard.cashManwon).toBe(6000);
     expect(s6.dashboard.halfYearSalesQty).toBe(0);
     await engine.gmAdvanceStep(session.id);
 
     const afterSales = await engine.getDashboard(company.id);
-    expect(afterSales.cashManwon).toBe(6570);
+    expect(afterSales.cashManwon).toBe(6270);
     expect(afterSales.halfYearSalesQty).toBe(3);
     expect(afterSales.halfYearRevenueManwon).toBe(300);
     expect(afterSales.finishedGoodsQty).toBe(0);
@@ -367,7 +368,7 @@ describe("Sprint 2B — Excel regression (zero tolerance)", () => {
   it("matches Excel demo scenario end-to-end", async () => {
     const { session, company, version } = await setupThroughMaterial(engine);
 
-    expect((await engine.getDashboard(company.id)).cashManwon).toBe(6380);
+    expect((await engine.getDashboard(company.id)).cashManwon).toBe(6080);
 
     let v = version;
     const s5 = await engine.submitDecision(
@@ -376,7 +377,7 @@ describe("Sprint 2B — Excel regression (zero tolerance)", () => {
       { productionQty: 3, machineBigRun: 1, machineSmallRun: 0 },
       v
     );
-    expect(s5.dashboard.cashManwon).toBe(6300);
+    expect(s5.dashboard.cashManwon).toBe(6000);
     expect(s5.dashboard.finishedGoodsQty).toBe(3);
     v = s5.statusVersion;
     await engine.gmAdvanceStep(session.id);
@@ -387,7 +388,7 @@ describe("Sprint 2B — Excel regression (zero tolerance)", () => {
       { lines: [{ regionCode: "ASIA", unitPriceManwon: 100, qty: 3 }] },
       v
     );
-    expect(s6.dashboard.cashManwon).toBe(6300);
+    expect(s6.dashboard.cashManwon).toBe(6000);
     expect(s6.dashboard.halfYearRevenueManwon).toBe(0);
     await engine.gmAdvanceStep(session.id);
 

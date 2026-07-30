@@ -17,6 +17,9 @@ export type MaterialFormState = {
 type Props = {
   form: MaterialFormState;
   purchaseCapacity: number;
+  openBranches?: string[];
+  openSalesBranches?: string[];
+  regionExpansionCap?: number;
   preview: {
     unitPrice: number;
     totalUnits: number;
@@ -36,6 +39,9 @@ type Props = {
 export function StepMaterialForm({
   form,
   purchaseCapacity,
+  openBranches = [],
+  openSalesBranches = [],
+  regionExpansionCap = 3,
   preview,
   loading,
   checklistReady = true,
@@ -44,12 +50,16 @@ export function StepMaterialForm({
   onSubmit,
 }: Props) {
   const region = REGION_CATALOG.find((r) => r.code === form.regionCode);
+  const hasBranch =
+    openBranches.includes(form.regionCode) || openSalesBranches.includes(form.regionCode);
+  const operatingCount = new Set([...openBranches, ...openSalesBranches]).size;
+  const atCap = !hasBranch && form.openBranch && operatingCount >= regionExpansionCap;
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-6">
       <h2 className="mb-1 text-lg font-semibold">Step 4 — 원재료 구매 (경쟁입찰)</h2>
       <p className="mb-4 text-sm text-slate-600">
-        7개 지역 · 입찰 단가 ↑ 우선 낙찰 · GM Step 종료 시 지역별 수량 배분
+        브랜치 개설 지역에서만 구매 가능 · {regionExpansionCap}개 지역까지 ({operatingCount}/{regionExpansionCap} 개설)
       </p>
 
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
@@ -81,12 +91,25 @@ export function StepMaterialForm({
           <input
             type="checkbox"
             checked={form.openBranch}
+            disabled={hasBranch || atCap}
             onChange={(e) => onChange({ ...form, openBranch: e.target.checked })}
             className="rounded"
           />
-          <span>신규 브랜치 개설 (+{region?.branchSetupFeeManwon ?? 0}만)</span>
+          <span>
+            {hasBranch
+              ? "이미 브랜치 개설됨"
+              : atCap
+                ? "연도 지역 한도 초과"
+                : `신규 브랜치 개설 (+${region?.branchSetupFeeManwon ?? 0}만, 1회)`}
+          </span>
         </label>
       </div>
+
+      {!hasBranch && preview.totalUnits > 0 && !form.openBranch && (
+        <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          이 지역에 브랜치가 없습니다. 원재료 구매를 하려면 「신규 브랜치 개설」을 선택하세요.
+        </p>
+      )}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {(["A", "B", "C", "D"] as const).map((mat) => (

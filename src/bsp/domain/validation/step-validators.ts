@@ -17,6 +17,14 @@ import {
 } from "../types";
 import { getRegion, isRegionCode } from "../regions/region-catalog";
 import {
+  isRegionAlreadyOpened,
+  projectedOperatingRegions,
+  regionExpansionCap,
+  openingPurchaseRegions,
+  openingSalesRegions,
+  hasOperationalBranch,
+} from "../regions/region-expansion";
+import {
   effectiveMaterialLimit,
   effectiveMaterialUnitPriceManwon,
   logisticsCostManwon,
@@ -527,13 +535,15 @@ export function computeMaterial(
   const branches = payload.branches ?? [];
   const newBranches: string[] = [];
   let branchFeesManwon = 0;
+  const seenNew = new Set<string>();
 
   for (const branch of branches) {
     if (!isRegionCode(branch.regionCode)) continue;
-    if (!state.openBranches.includes(branch.regionCode)) {
-      newBranches.push(branch.regionCode);
-      branchFeesManwon += getRegion(branch.regionCode).branchSetupFeeManwon;
-    }
+    if (isRegionAlreadyOpened(state, branch.regionCode)) continue;
+    if (seenNew.has(branch.regionCode)) continue;
+    seenNew.add(branch.regionCode);
+    newBranches.push(branch.regionCode);
+    branchFeesManwon += getRegion(branch.regionCode).branchSetupFeeManwon;
   }
 
   const lines = [];
@@ -583,10 +593,12 @@ export function computeMaterial(
 export function validateMaterial(
   payload: MaterialPayload,
   state: CompanyOperationalState,
-  economy: EconomyValues
+  economy: EconomyValues,
+  year = 1
 ): { validation: ValidationResult; computed: ReturnType<typeof computeMaterial> } {
   const computed = computeMaterial(payload, state, economy);
   const rules: ValidationRuleResult[] = [];
+  const openingPurchase = openingPurchaseRegions(payload);
 
   let totalUnitsAll = 0;
 
@@ -602,6 +614,18 @@ export function validateMaterial(
     const limit = effectiveMaterialLimit(region, economy);
 
     rules.push(pass("M01", `Effective floor price ${effectivePrice} for ${line.regionCode}`));
+
+    if (totalUnits > 0 && !hasOperationalBranch(state, line.regionCode, openingPurchase)) {
+      rules.push(
+        fail("M07", "ERR_MAT_NO_BRANCH", "regionCode", "Material purchase requires a branch in this region", {
+          regionCode: line.regionCode,
+        })
+      );
+    } else if (totalUnits > 0) {
+      rules.push(pass("M07", "Branch available for material purchase"));
+    } else {
+      rules.push(pass("M07", "No material purchase in region"));
+    }
 
     if (totalUnits > limit) {
       rules.push(
@@ -662,7 +686,19 @@ export function validateMaterial(
     rules.push(pass("M04", "Sufficient cash"));
   }
 
-  rules.push(pass("M05", "Branch setup fees included"));
+  const projectedRegions = projectedOperatingRegions(state, payload.branches ?? [], []);
+  const cap = regionExpansionCap(year);
+  if (projectedRegions.size > cap) {
+    rules.push(
+      fail("M05", "ERR_BRANCH_YEAR_CAP", "branches", "Regional branch count exceeds year limit", {
+        year,
+        cap,
+        projected: projectedRegions.size,
+      })
+    );
+  } else {
+    rules.push(pass("M05", `Regional branches within ${year}년차 limit (${projectedRegions.size}/${cap})`));
+  }
 
   return { validation: result(rules), computed };
 }
@@ -821,13 +857,15 @@ export function computeSales(payload: SalesPayload, state: CompanyOperationalSta
   const branches = payload.branchesNew ?? [];
   const newSalesBranches: string[] = [];
   let branchFeesManwon = 0;
+  const seenNew = new Set<string>();
 
   for (const branch of branches) {
     if (!isRegionCode(branch.regionCode)) continue;
-    if (!state.openSalesBranches.includes(branch.regionCode)) {
-      newSalesBranches.push(branch.regionCode);
-      branchFeesManwon += getRegion(branch.regionCode).salesSetupFeeManwon;
-    }
+    if (isRegionAlreadyOpened(state, branch.regionCode)) continue;
+    if (seenNew.has(branch.regionCode)) continue;
+    seenNew.add(branch.regionCode);
+    newSalesBranches.push(branch.regionCode);
+    branchFeesManwon += getRegion(branch.regionCode).salesSetupFeeManwon;
   }
 
   const lines = [];
@@ -870,10 +908,11 @@ export function computeSales(payload: SalesPayload, state: CompanyOperationalSta
   };
 }
 
-export function validateSales(payload: SalesPayload, state: CompanyOperationalState, economy: EconomyValues) {
+export function validateSales(payload: SalesPayload, state: CompanyOperationalState, economy: EconomyValues, year = 1) {
   const computed = computeSales(payload, state, economy);
   const rules: ValidationRuleResult[] = [];
   let totalSoldQty = 0;
+  const openingSales = openingSalesRegions(payload);
 
   for (const line of payload.lines ?? []) {
     if (!isRegionCode(line.regionCode)) {
@@ -882,6 +921,18 @@ export function validateSales(payload: SalesPayload, state: CompanyOperationalSt
     }
     const region = getRegion(line.regionCode);
     totalSoldQty += line.qty;
+
+    if (line.qty > 0 && !hasOperationalBranch(state, line.regionCode, new Set(), openingSales)) {
+      rules.push(
+        fail("S07", "ERR_SALE_NO_BRANCH", "regionCode", "Sales require a branch in this region", {
+          regionCode: line.regionCode,
+        })
+      );
+    } else if (line.qty > 0) {
+      rules.push(pass("S07", "Branch available for sales"));
+    } else {
+      rules.push(pass("S07", "No sales in region"));
+    }
 
     if (!Number.isInteger(line.qty) || line.qty < 0) {
       rules.push(fail("S02", "ERR_SALE_QTY", "qty", "qty must be non-negative integer"));
@@ -928,6 +979,20 @@ export function validateSales(payload: SalesPayload, state: CompanyOperationalSt
     rules.push(fail("S05", "ERR_SALE_CASH", "lines", "Cash would become negative after sales"));
   } else {
     rules.push(pass("S05", "Cash sufficient after sales"));
+  }
+
+  const projectedRegions = projectedOperatingRegions(state, [], payload.branchesNew ?? []);
+  const cap = regionExpansionCap(year);
+  if (projectedRegions.size > cap) {
+    rules.push(
+      fail("S08", "ERR_BRANCH_YEAR_CAP", "branchesNew", "Regional branch count exceeds year limit", {
+        year,
+        cap,
+        projected: projectedRegions.size,
+      })
+    );
+  } else {
+    rules.push(pass("S08", `Regional branches within ${year}년차 limit (${projectedRegions.size}/${cap})`));
   }
 
   return { validation: result(rules), computed };

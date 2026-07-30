@@ -449,6 +449,9 @@ export interface DashboardDto {
   payrollForecastHalfManwon: number;
   inventoryTotalUnits: number;
   openBranches: string[];
+  openSalesBranches: string[];
+  regionExpansionCap: number;
+  operatingRegionCount: number;
   finishedGoodsQty: number;
   halfYearProductionQty: number;
   halfYearSalesQty: number;

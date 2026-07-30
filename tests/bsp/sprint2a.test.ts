@@ -76,7 +76,7 @@ describe("Sprint 2A — full demo flow", () => {
     await engine.gmAdvanceStep(session.id);
 
     const afterMaterial = await engine.getDashboard(company.id);
-    expect(afterMaterial.cashManwon).toBe(6380);
+    expect(afterMaterial.cashManwon).toBe(6080);
     expect(afterMaterial.inventoryTotalUnits).toBe(60);
 
     const journals = await engine.getJournals(company.id);
@@ -129,20 +129,13 @@ describe("Material domain", () => {
     state.purchaseCapacity = 60;
 
     const ok = validateMaterial(
-      {
-        lines: [
-          {
-            regionCode: "ASIA",
-            materials: { A: 15, B: 15, C: 15, D: 15 },
-            unitPriceBidManwon: 12,
-          },
-        ],
-      },
+      materialBidPayload("ASIA", 15, 12),
       state,
       DEFAULT_ECONOMY_VALUES
     );
     expect(ok.validation.ok).toBe(true);
     expect(ok.computed.materialCostManwon).toBe(720);
     expect(ok.computed.logisticsCostManwon).toBe(300);
+    expect(ok.computed.branchFeesManwon).toBe(300);
   });
 });

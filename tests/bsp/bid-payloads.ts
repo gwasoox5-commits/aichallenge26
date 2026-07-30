@@ -3,7 +3,8 @@ import type { RegionCode } from "@/src/bsp/domain/regions/region-catalog";
 export function materialBidPayload(
   regionCode: RegionCode,
   perType: number,
-  unitPriceBidManwon?: number
+  unitPriceBidManwon?: number,
+  options?: { openBranch?: boolean }
 ) {
   const line: {
     regionCode: RegionCode;
@@ -16,7 +17,11 @@ export function materialBidPayload(
   if (unitPriceBidManwon !== undefined) {
     line.unitPriceBidManwon = unitPriceBidManwon;
   }
-  return { lines: [line] };
+  const openBranch = options?.openBranch ?? perType > 0;
+  return {
+    lines: [line],
+    ...(openBranch ? { branches: [{ regionCode }] } : {}),
+  };
 }
 
 /** Explicit floor bid for ASIA default economy (12만). */
