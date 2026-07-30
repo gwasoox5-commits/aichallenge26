@@ -72,6 +72,8 @@ import { computePeriodChanges } from "../domain/accounting/period-financial-snap
 import { MarketClearingService } from "./market-clearing-service";
 import { marketResultsService } from "./market-results-service";
 import { isBidWorkflowStep } from "../domain/market/market-clearing";
+import { isRegionCode, type RegionCode } from "../domain/regions/region-catalog";
+import { applyRegionSelection, validateRegionSelection } from "../domain/regions/region-expansion";
 
 function isJoinCodeCollision(e: unknown): boolean {
   if (e instanceof Error && e.message === "Join code already exists") return true;
@@ -428,6 +430,56 @@ export class GameEngine {
     }
     const handler = this.registry.get(step);
     return handler.validate({ company, session, payload });
+  }
+
+  async selectOperatingRegions(
+    companyId: string,
+    regionCodes: string[],
+    companyStatusVersion: number
+  ) {
+    const company = await this.requireCompany(companyId);
+    const session = await this.requireSession(company.sessionId);
+
+    if (company.statusVersion !== companyStatusVersion) {
+      throw new BspError("ERR_STALE_VERSION", "Company status version mismatch", 409, {
+        ruleId: "G06",
+        expected: company.statusVersion,
+        received: companyStatusVersion,
+      });
+    }
+
+    const validation = validateRegionSelection(regionCodes, company.operational, session.year);
+    if (!validation.ok) {
+      const firstFail = validation.rules.find((r) => !r.passed);
+      throw new BspError(firstFail?.errorCode ?? "ERR_VALIDATION", firstFail?.message ?? "Validation failed", 422, {
+        validation,
+      });
+    }
+
+    const validCodes = regionCodes.filter((c): c is RegionCode => isRegionCode(c));
+    company.operational = applyRegionSelection(company.operational, validCodes);
+    await this.repos.company.updateOperational(company.id, company.operational);
+    const newVersion = await this.repos.company.incrementStatusVersion(company.id, companyStatusVersion);
+    company.statusVersion = newVersion;
+
+    await this.audit.log(
+      session.id,
+      { userId: company.id, role: "CEO" },
+      GM_AUDIT_ACTIONS.REGION_SELECT,
+      { regionCodes: validCodes },
+      { companyId: company.id, teamName: company.teamName }
+    );
+
+    const companies = await this.repos.company.listBySession(session.id);
+    const submitStats = this.computeSessionSubmitStats(session, companies);
+    return {
+      statusVersion: newVersion,
+      selectedRegions: company.operational.selectedRegions,
+      dashboard: {
+        ...this.dashboard.build(company, session),
+        ...submitStats,
+      },
+    };
   }
 
   async submitDecision(

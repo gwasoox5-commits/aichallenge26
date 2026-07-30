@@ -22,8 +22,10 @@ function phaseIndex(phase: BspStepPhase): number {
   return idx >= 0 ? idx : OPERATIONAL_STEP_PHASES.length;
 }
 
-function sumMaterials(m: { A: number; B: number; C: number; D: number }) {
-  return m.A + m.B + m.C + m.D;
+function lineQty(line: { qty?: number; materials?: { A: number; B: number; C: number; D: number } }): number {
+  if (typeof line.qty === "number") return line.qty;
+  if (line.materials) return line.materials.A + line.materials.B + line.materials.C + line.materials.D;
+  return 0;
 }
 
 function readMarketAwards(computed: unknown): Array<MaterialAward | SalesAward> {
@@ -155,10 +157,10 @@ export class MarketResultsService {
       if (step === "MATERIAL") {
         const payload = decision.payload as MaterialPayload;
         for (const line of payload.lines ?? []) {
-          if (sumMaterials(line.materials) > 0) regionCodes.add(line.regionCode as RegionCode);
+          if (lineQty(line) > 0) regionCodes.add(line.regionCode as RegionCode);
         }
         for (const award of readMarketAwards(decision.computed) as MaterialAward[]) {
-          if (award.requestedUnits > 0 || award.awardedUnits > 0) regionCodes.add(award.regionCode);
+          if (award.requestedQty > 0 || award.awardedQty > 0) regionCodes.add(award.regionCode);
         }
       } else {
         const payload = decision.payload as SalesPayload;
@@ -192,12 +194,12 @@ export class MarketResultsService {
     for (const { company, decision } of posted) {
       const payload = decision.payload as MaterialPayload;
       const line = (payload.lines ?? []).find((l) => l.regionCode === regionCode);
-      const requestedQty = line ? sumMaterials(line.materials) : 0;
+      const requestedQty = line ? lineQty(line) : 0;
       const effectivePrice = effectiveMaterialUnitPriceManwon(region, economy);
       const unitPriceManwon = line?.unitPriceBidManwon ?? effectivePrice;
       const awards = readMarketAwards(decision.computed) as MaterialAward[];
       const award = awards.find((a) => a.regionCode === regionCode);
-      const awardedQty = award?.awardedUnits ?? 0;
+      const awardedQty = award?.awardedQty ?? 0;
       if (requestedQty <= 0 && awardedQty <= 0) continue;
 
       teams.push({
@@ -205,7 +207,7 @@ export class MarketResultsService {
         teamName: company.teamName,
         isSelf: company.id === viewerCompanyId,
         unitPriceManwon: award?.clearingPriceManwon ?? unitPriceManwon,
-        requestedQty: award?.requestedUnits ?? requestedQty,
+        requestedQty: award?.requestedQty ?? requestedQty,
         awardedQty,
         fillRatePercent: requestedQty > 0 ? Math.round((awardedQty / requestedQty) * 1000) / 10 : 0,
       });

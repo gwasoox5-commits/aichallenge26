@@ -14,7 +14,7 @@ import { GM_AUDIT_ACTIONS, type GmActor } from "@/src/bsp/domain/gm/audit-types"
 import { PILOT_DEFAULTS } from "@/lib/bsp/pilot-config";
 import { canSubmitFromGate } from "@/components/bsp/SubmitChecklistGate";
 import type { BspGameStep } from "@/src/bsp/domain/types";
-import { materialBidPayload, asiaMaterialBidPayload } from "./bid-payloads";
+import { materialBidPayload, asiaMaterialBidPayload, ensureOperatingRegionsSelected, legacyPerTypeToQty } from "./bid-payloads";
 
 const GM: GmActor = { userId: "gm-pilot", role: "GM", reason: "pilot ui test" };
 
@@ -522,11 +522,16 @@ describe("pilot close period flow", () => {
       { step: "LOAN", payload: { loanEarly: 2, loanMid: 0, deposit: 1, loanRepayment: 0, step1UiPhase: "COMPLETE" } },
       { step: "FACILITY", payload: { landPlotsPurchased: 1, machineBigPurchased: 1, machineSmallPurchased: 0 } },
       { step: "HIRING", payload: { headPurchase: 2, headProduction: 3, headSales: 2 } },
-      { step: "MATERIAL", payload: asiaMaterialBidPayload(15) },
+      { step: "MATERIAL", payload: asiaMaterialBidPayload(legacyPerTypeToQty(15)) },
       { step: "PRODUCTION", payload: { productionQty: 3, machineBigRun: 1, machineSmallRun: 0 } },
       { step: "SALES", payload: { lines: [{ regionCode: "ASIA", unitPriceManwon: 100, qty: 3 }] } },
     ];
-    for (let i = 0; i < steps.length; i++) {
+    for (let i = 0; i < 3; i++) {
+      await submitStep(engine, company.id, steps[i].step, steps[i].payload);
+      await engine.gmAdvanceStep(session.id, GM);
+    }
+    await ensureOperatingRegionsSelected(engine, company.id);
+    for (let i = 3; i < steps.length; i++) {
       await submitStep(engine, company.id, steps[i].step, steps[i].payload);
       if (i < steps.length - 1) await engine.gmAdvanceStep(session.id, GM);
     }
@@ -625,11 +630,16 @@ describe("pilot next half after close", () => {
       { loanEarly: 2, loanMid: 0, deposit: 1, loanRepayment: 0, step1UiPhase: "COMPLETE" },
       { landPlotsPurchased: 1, machineBigPurchased: 1, machineSmallPurchased: 0 },
       { headPurchase: 2, headProduction: 3, headSales: 2 },
-      asiaMaterialBidPayload(15),
+      asiaMaterialBidPayload(legacyPerTypeToQty(15)),
       { productionQty: 3, machineBigRun: 1, machineSmallRun: 0 },
       { lines: [{ regionCode: "ASIA", unitPriceManwon: 100, qty: 3 }] },
     ];
-    for (let i = 0; i < steps.length; i++) {
+    for (let i = 0; i < 3; i++) {
+      await submitStep(engine, company.id, steps[i], payloads[i]);
+      await engine.gmAdvanceStep(session.id, GM);
+    }
+    await ensureOperatingRegionsSelected(engine, company.id);
+    for (let i = 3; i < steps.length; i++) {
       await submitStep(engine, company.id, steps[i], payloads[i]);
       if (i < steps.length - 1) await engine.gmAdvanceStep(session.id, GM);
     }

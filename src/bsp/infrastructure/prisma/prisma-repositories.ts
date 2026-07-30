@@ -29,6 +29,22 @@ import { createPrismaSimulationEventRepository } from "./prisma-simulation-event
 import { DEFAULT_STEP_DURATION_SEC } from "../../domain/types";
 import { getPeriodDescriptor } from "../../domain/period/period-calendar";
 
+function normalizeOperational(row: Record<string, unknown>): CompanyOperationalState {
+  const legacyInventory = row.inventory as { A?: number; B?: number; C?: number; D?: number } | undefined;
+  const legacyTotal =
+    (legacyInventory?.A ?? 0) +
+    (legacyInventory?.B ?? 0) +
+    (legacyInventory?.C ?? 0) +
+    (legacyInventory?.D ?? 0);
+  const rawMaterialQty =
+    typeof row.rawMaterialQty === "number" ? row.rawMaterialQty : legacyTotal;
+  return {
+    ...(row as unknown as CompanyOperationalState),
+    rawMaterialQty,
+    selectedRegions: Array.isArray(row.selectedRegions) ? (row.selectedRegions as string[]) : [],
+  };
+}
+
 function toOperationalPrismaData(
   state: CompanyOperationalState,
 ): Prisma.BspCompanyOperationalCreateWithoutCompanyInput {
@@ -37,12 +53,11 @@ function toOperationalPrismaData(
     lastBalanceSheetValidation,
     lastTrialBalanceValidation,
     lastExcelDiffReport,
-    inventory,
     ...rest
   } = state;
   return {
     ...rest,
-    inventory: inventory as unknown as Prisma.InputJsonValue,
+    inventory: { A: 0, B: 0, C: 0, D: 0 } as unknown as Prisma.InputJsonValue,
     periodOpenFinancials: (periodOpenFinancials ?? Prisma.JsonNull) as unknown as Prisma.InputJsonValue,
     lastBalanceSheetValidation: (lastBalanceSheetValidation ?? Prisma.JsonNull) as unknown as Prisma.InputJsonValue,
     lastTrialBalanceValidation: (lastTrialBalanceValidation ?? Prisma.JsonNull) as unknown as Prisma.InputJsonValue,
@@ -384,7 +399,7 @@ class PrismaCompanyRepository implements CompanyRepository {
       periodLabel: period.label,
       sessionPhase: row.session.sessionPhase as CompanyAggregate["sessionPhase"],
       stepPhase: progress.stepPhase as BspStepPhase,
-      operational: row.operational as unknown as CompanyOperationalState,
+      operational: normalizeOperational(row.operational as Record<string, unknown>),
       ledger: new Map(row.ledger.map((l) => [l.accountCode, l.balanceManwon])),
       decisions: row.decisions.map((d) => ({
         id: d.id,
@@ -465,7 +480,7 @@ class PrismaCompanyRepository implements CompanyRepository {
       periodLabel: session.periodLabel,
       sessionPhase: session.sessionPhase,
       stepPhase: session.stepPhase,
-      operational: row.operational! as unknown as CompanyOperationalState,
+      operational: normalizeOperational(row.operational! as Record<string, unknown>),
       ledger: createLedgerFromInitial(buildInitialLedgerBalances()),
       decisions: [],
       journals: [],

@@ -5,7 +5,7 @@ import { AccountingEngine } from "@/src/bsp/domain/accounting/accounting-engine"
 import { DashboardService } from "@/src/bsp/application/dashboard-service";
 import { EventStoreService } from "@/src/bsp/application/event-store-service";
 import { stepHandlerRegistry } from "@/src/bsp/domain/steps/step-handler-registry";
-import { asiaMaterialBidPayload } from "./bid-payloads";
+import { asiaMaterialBidPayload, ensureOperatingRegionsSelected } from "./bid-payloads";
 
 describe("Market results dashboard", () => {
   let engine: GameEngine;
@@ -109,6 +109,10 @@ async function advanceSessionToMaterial(
       await engine.submitDecision(company.id, step, payload, v);
     }
     await engine.gmAdvanceStep(sessionId);
+  }
+
+  for (const company of companies) {
+    await ensureOperatingRegionsSelected(engine, company.id);
   }
 }
 

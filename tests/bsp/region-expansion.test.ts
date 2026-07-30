@@ -5,7 +5,7 @@ import { materialBidPayload } from "./bid-payloads";
 
 describe("Region branch rules", () => {
   it("requires a branch before material purchase in a new region", () => {
-    const state = createInitialOperationalState();
+    const state = { ...createInitialOperationalState(), selectedRegions: ["ASIA"] };
     const payload = materialBidPayload("ASIA", 10, 12, { openBranch: false });
     const { validation } = validateMaterial(payload, state, DEFAULT_ECONOMY_VALUES, 1);
     expect(validation.ok).toBe(false);
@@ -13,10 +13,14 @@ describe("Region branch rules", () => {
   });
 
   it("charges branch setup fee only once per region", () => {
-    const state = { ...createInitialOperationalState(), openBranches: ["ASIA"] };
+    const state = {
+      ...createInitialOperationalState(),
+      openBranches: ["ASIA"],
+      selectedRegions: ["ASIA"],
+    };
     const payload = {
       branches: [{ regionCode: "ASIA" }],
-      lines: [{ regionCode: "ASIA", materials: { A: 5, B: 5, C: 5, D: 5 }, unitPriceBidManwon: 12 }],
+      lines: [{ regionCode: "ASIA", qty: 20, unitPriceBidManwon: 12 }],
     };
     const { computed } = validateMaterial(payload, state, DEFAULT_ECONOMY_VALUES, 1);
     expect(computed.branchFeesManwon).toBe(0);
@@ -27,12 +31,13 @@ describe("Region branch rules", () => {
       ...createInitialOperationalState(),
       openBranches: ["ASIA", "EUROPE"],
       openSalesBranches: ["MIDDLE_EAST"],
+      selectedRegions: ["ASIA", "EUROPE", "MIDDLE_EAST", "AFRICA", "OCEANIA"],
     };
     const payload = {
       branches: [{ regionCode: "AFRICA" }, { regionCode: "OCEANIA" }],
       lines: [
-        { regionCode: "AFRICA", materials: { A: 1, B: 1, C: 1, D: 1 }, unitPriceBidManwon: 12 },
-        { regionCode: "OCEANIA", materials: { A: 1, B: 1, C: 1, D: 1 }, unitPriceBidManwon: 18 },
+        { regionCode: "AFRICA", qty: 4, unitPriceBidManwon: 12 },
+        { regionCode: "OCEANIA", qty: 4, unitPriceBidManwon: 18 },
       ],
     };
     const { validation } = validateMaterial(payload, state, DEFAULT_ECONOMY_VALUES, 1);
@@ -45,6 +50,7 @@ describe("Region branch rules", () => {
       ...createInitialOperationalState(),
       openBranches: ["ASIA"],
       openSalesBranches: [],
+      selectedRegions: ["ASIA"],
       finishedGoodsQty: 10,
       salesCapacity: 10,
       unitFinishedGoodsCostManwon: 40,
@@ -59,6 +65,7 @@ describe("Region branch rules", () => {
   it("requires branch for sales in a new region", () => {
     const state = {
       ...createInitialOperationalState(),
+      selectedRegions: ["ASIA"],
       finishedGoodsQty: 10,
       salesCapacity: 10,
       unitFinishedGoodsCostManwon: 40,

@@ -19,7 +19,7 @@ import {
 } from "@/src/bsp/domain/validation/step-validators";
 import { DEFAULT_ECONOMY_VALUES, GAME_CONSTANTS } from "@/src/bsp/domain/types";
 import { BspError } from "@/src/bsp/application/game-engine";
-import { materialBidPayload, asiaMaterialBidPayload } from "./bid-payloads";
+import { materialBidPayload, asiaMaterialBidPayload, ensureOperatingRegionsSelected, legacyPerTypeToQty } from "./bid-payloads";
 
 function makeEngine() {
   const repos = createMemoryRepositories();
@@ -65,11 +65,14 @@ async function setupThroughMaterial(engine: GameEngine) {
   v = s3.statusVersion;
   await engine.gmAdvanceStep(session.id);
 
+  await ensureOperatingRegionsSelected(engine, company.id);
+  const beforeMaterial = await engine.getDashboard(company.id);
+
   const s4 = await engine.submitDecision(
     company.id,
     "MATERIAL",
-    asiaMaterialBidPayload(15),
-    v
+    asiaMaterialBidPayload(legacyPerTypeToQty(15)),
+    beforeMaterial.statusVersion
   );
   v = s4.statusVersion;
   await engine.gmAdvanceStep(session.id);
@@ -88,8 +91,8 @@ describe("Sprint 2B — Production domain", () => {
     );
     state.headProduction = 3;
     state.productionCapacity = 30;
-    state.inventory = { A: 15, B: 15, C: 15, D: 15 };
-    state.inventoryCostManwon = 720;
+    state.rawMaterialQty = 12;
+    state.inventoryCostManwon = 144;
     state.machineBig = 1;
 
     const c = computeProduction(
@@ -102,12 +105,12 @@ describe("Sprint 2B — Production domain", () => {
     expect(c.maxByLabor).toBe(30);
     expect(c.maxProduction).toBe(3);
     expect(c.machineOpCostManwon).toBe(80);
-    expect(c.materialCostConsumedManwon).toBe(576);
+    expect(c.materialCostConsumedManwon).toBe(144);
   });
 
   it("P01 rejects productionQty > capacity", () => {
     let state = createInitialOperationalState();
-    state.inventory = { A: 8, B: 8, C: 8, D: 8 };
+    state.rawMaterialQty = 32;
     state.headProduction = 3;
     state.productionCapacity = 30;
     state.machineBig = 1;
@@ -123,7 +126,7 @@ describe("Sprint 2B — Production domain", () => {
   it("P02 rejects machineBigRun > owned", () => {
     let state = createInitialOperationalState();
     state.machineBig = 1;
-    state.inventory = { A: 20, B: 20, C: 20, D: 20 };
+    state.rawMaterialQty = 80;
     state.headProduction = 5;
     const r = validateProduction(
       { productionQty: 5, machineBigRun: 2, machineSmallRun: 0 },
@@ -148,8 +151,8 @@ describe("Sprint 2B — Sales domain", () => {
     let state = createInitialOperationalState();
     state.cashManwon = 6300;
     state.finishedGoodsQty = 3;
-    state.finishedGoodsCostManwon = 576;
-    state.unitFinishedGoodsCostManwon = 192;
+    state.finishedGoodsCostManwon = 144;
+    state.unitFinishedGoodsCostManwon = 48;
     state.salesCapacity = 20;
     state.openBranches = ["ASIA"];
     return state;
@@ -163,7 +166,7 @@ describe("Sprint 2B — Sales domain", () => {
     );
     expect(c.totalRevenueManwon).toBe(300);
     expect(c.totalSoldQty).toBe(3);
-    expect(c.cogsManwon).toBe(576);
+    expect(c.cogsManwon).toBe(144);
     expect(c.logisticsSalesManwon).toBe(30);
     expect(c.cashAfterManwon).toBe(6570);
   });
@@ -215,12 +218,12 @@ describe("Sprint 2B — Step 5 Production integration", () => {
     expect(s5.dashboard.cashManwon).toBe(6000);
     expect(s5.dashboard.finishedGoodsQty).toBe(3);
     expect(s5.dashboard.halfYearProductionQty).toBe(3);
-    expect(s5.dashboard.inventoryTotalUnits).toBe(12);
+    expect(s5.dashboard.inventoryTotalUnits).toBe(48);
 
     const journals = await engine.getJournals(company.id);
     const prod = journals.find((j) => j.transactionType === "PRODUCTION");
     expect(prod?.lines.some((l) => l.accountCode === "6500" && l.debitManwon === 80)).toBe(true);
-    expect(prod?.lines.some((l) => l.accountCode === "1400" && l.debitManwon === 576)).toBe(true);
+    expect(prod?.lines.some((l) => l.accountCode === "1400" && l.debitManwon === 144)).toBe(true);
 
     await engine.gmAdvanceStep(session.id);
   });
@@ -263,7 +266,7 @@ describe("Sprint 2B — Step 6 Sales integration", () => {
     const journals = await engine.getJournals(company.id);
     const sales = journals.find((j) => j.transactionType === "SALES");
     expect(sales?.lines.some((l) => l.accountCode === "4100" && l.creditManwon === 300)).toBe(true);
-    expect(sales?.lines.some((l) => l.accountCode === "5100" && l.debitManwon === 576)).toBe(true);
+    expect(sales?.lines.some((l) => l.accountCode === "5100" && l.debitManwon === 144)).toBe(true);
   });
 });
 
@@ -402,7 +405,7 @@ describe("Sprint 2B — Excel regression (zero tolerance)", () => {
     expect(dash.halfYearSalesQty).toBe(3);
     expect(fs.profitAndLoss.revenue).toBe(300);
     expect(fs.balanceSheet.assets.finishedGoods).toBe(0);
-    expect(fs.balanceSheet.assets.rawMaterials).toBe(144);
+    expect(fs.balanceSheet.assets.rawMaterials).toBe(576);
     expect(dash.journalsLocked).toBe(true);
 
     const journals = await engine.getJournals(company.id);

@@ -1,6 +1,24 @@
-import type { CompanyOperationalState } from "../types";
+import type { CompanyOperationalState, ValidationResult, ValidationRuleResult } from "../types";
 import type { MaterialBranchInput, MaterialPayload, SalesPayload } from "../types";
 import { isRegionCode, type RegionCode } from "./region-catalog";
+
+function pass(ruleId: string, message: string): ValidationRuleResult {
+  return { ruleId, passed: true, message };
+}
+
+function fail(
+  ruleId: string,
+  errorCode: string,
+  field: string,
+  message: string,
+  params?: Record<string, unknown>
+): ValidationRuleResult {
+  return { ruleId, errorCode, passed: false, field, message, params };
+}
+
+function result(rules: ValidationRuleResult[]): ValidationResult {
+  return { ok: rules.every((r) => r.passed), rules };
+}
 
 /** Rule: 1년차 3개 / 2년차 4개 / 3년차 5개 지역까지 브랜치 개설 */
 export const REGION_EXPANSION_CAP_BY_YEAR: Record<number, number> = {
@@ -11,6 +29,18 @@ export const REGION_EXPANSION_CAP_BY_YEAR: Record<number, number> = {
 
 export function regionExpansionCap(year: number): number {
   return REGION_EXPANSION_CAP_BY_YEAR[year] ?? 7;
+}
+
+export function regionsToSelectCount(year: number, selectedCount: number): number {
+  return Math.max(0, regionExpansionCap(year) - selectedCount);
+}
+
+export function isRegionSelectionRequired(year: number, selectedCount: number): boolean {
+  return regionsToSelectCount(year, selectedCount) > 0;
+}
+
+export function isRegionInOperatingPool(state: CompanyOperationalState, regionCode: RegionCode): boolean {
+  return state.selectedRegions.includes(regionCode);
 }
 
 export function operatingRegions(state: CompanyOperationalState): Set<RegionCode> {
@@ -68,4 +98,70 @@ export function hasOperationalBranch(
 
 export function isRegionAlreadyOpened(state: CompanyOperationalState, regionCode: RegionCode): boolean {
   return state.openBranches.includes(regionCode) || state.openSalesBranches.includes(regionCode);
+}
+
+export function validateRegionSelection(
+  regionCodes: string[],
+  state: CompanyOperationalState,
+  year: number
+): ValidationResult {
+  const rules: ValidationRuleResult[] = [];
+  const needed = regionsToSelectCount(year, state.selectedRegions.length);
+
+  if (needed === 0) {
+    rules.push(fail("R01", "ERR_REGION_NONE_NEEDED", "regionCodes", "No additional regions to select"));
+    return result(rules);
+  }
+
+  if (regionCodes.length !== needed) {
+    rules.push(
+      fail("R02", "ERR_REGION_COUNT", "regionCodes", `Select exactly ${needed} region(s) for year ${year}`, {
+        needed,
+        received: regionCodes.length,
+      })
+    );
+  } else {
+    rules.push(pass("R02", `Selected ${needed} region(s)`));
+  }
+
+  const unique = new Set(regionCodes);
+  if (unique.size !== regionCodes.length) {
+    rules.push(fail("R03", "ERR_REGION_DUPLICATE", "regionCodes", "Duplicate regions in selection"));
+  } else {
+    rules.push(pass("R03", "No duplicate regions"));
+  }
+
+  for (const code of regionCodes) {
+    if (!isRegionCode(code)) {
+      rules.push(fail("R04", "ERR_REGION_INVALID", "regionCodes", `Unknown region: ${code}`));
+    } else if (state.selectedRegions.includes(code)) {
+      rules.push(fail("R05", "ERR_REGION_ALREADY", "regionCodes", `${code} is already in your operating pool`));
+    } else {
+      rules.push(pass("R04", `${code} is valid`));
+    }
+  }
+
+  const totalAfter = state.selectedRegions.length + regionCodes.length;
+  if (totalAfter > regionExpansionCap(year)) {
+    rules.push(
+      fail("R06", "ERR_REGION_CAP", "regionCodes", "Selection exceeds year operating region cap", {
+        cap: regionExpansionCap(year),
+        totalAfter,
+      })
+    );
+  } else {
+    rules.push(pass("R06", "Within year operating region cap"));
+  }
+
+  return result(rules);
+}
+
+export function applyRegionSelection(
+  state: CompanyOperationalState,
+  regionCodes: RegionCode[]
+): CompanyOperationalState {
+  return {
+    ...state,
+    selectedRegions: [...state.selectedRegions, ...regionCodes],
+  };
 }

@@ -17,7 +17,7 @@ import {
   runExcelScenario,
   type ExcelScenarioInput,
 } from "./excel-regression-20.test";
-import { materialBidPayload } from "./bid-payloads";
+import { materialBidPayload, ensureOperatingRegionsSelected, legacyPerTypeToQty, yearOneTestRegions } from "./bid-payloads";
 
 const GM: GmActor = { userId: "gm-p9", role: "GM", reason: "P9 RC pilot" };
 
@@ -59,7 +59,7 @@ async function submitHalfYearSteps(
       step: "MATERIAL" as const,
       payload: materialBidPayload(
         scenario.material.regionCode as Parameters<typeof materialBidPayload>[0],
-        scenario.material.perType
+        legacyPerTypeToQty(scenario.material.perType)
       ),
     },
     { step: "PRODUCTION" as const, payload: scenario.production },
@@ -77,7 +77,21 @@ async function submitHalfYearSteps(
     },
   ];
 
-  for (const s of steps) {
+  for (const s of steps.slice(0, 3)) {
+    for (const company of companies) {
+      const dash = await engine.getDashboard(company.id);
+      await engine.submitDecision(company.id, s.step, s.payload, dash.statusVersion);
+    }
+    await engine.gmAdvanceStep(sessionId, GM);
+  }
+  for (const company of companies) {
+    await ensureOperatingRegionsSelected(
+      engine,
+      company.id,
+      yearOneTestRegions(scenario.material.regionCode, scenario.sales.regionCode)
+    );
+  }
+  for (const s of steps.slice(3)) {
     for (const company of companies) {
       const dash = await engine.getDashboard(company.id);
       await engine.submitDecision(company.id, s.step, s.payload, dash.statusVersion);
@@ -190,7 +204,7 @@ describe("P9 RC Pilot — E2E", () => {
                 ? { headPurchase: 1, headProduction: 1, headSales: 1 }
                 : step === "MATERIAL"
                   ? {
-                      lines: [{ regionCode: "ASIA", materials: { A: 0, B: 0, C: 0, D: 0 } }],
+                      lines: [{ regionCode: "ASIA", qty: 0 }],
                     }
                   : step === "PRODUCTION"
                     ? { productionQty: 0, machineBigRun: 0, machineSmallRun: 0 }
@@ -231,7 +245,7 @@ describe("P9 RC Pilot — E2E", () => {
                 ? { headPurchase: 1, headProduction: 1, headSales: 1 }
                 : step === "MATERIAL"
                   ? {
-                      lines: [{ regionCode: "ASIA", materials: { A: 0, B: 0, C: 0, D: 0 } }],
+                      lines: [{ regionCode: "ASIA", qty: 0 }],
                     }
                   : step === "PRODUCTION"
                     ? { productionQty: 0, machineBigRun: 0, machineSmallRun: 0 }

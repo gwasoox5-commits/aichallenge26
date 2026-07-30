@@ -173,6 +173,7 @@ export const PREV_STEP_PHASE: Partial<Record<BspStepPhase, BspStepPhase>> = {
 /** Default step timer for GM command center (30 min) */
 export const DEFAULT_STEP_DURATION_SEC = 30 * 60;
 
+/** @deprecated Legacy 4-type inventory — use rawMaterialQty on CompanyOperationalState. */
 export interface MaterialInventory {
   A: number;
   B: number;
@@ -198,7 +199,8 @@ export interface CompanyOperationalState {
   salesCapacity: number;
   payrollForecastHalfManwon: number;
   welfareForecastHalfManwon: number;
-  inventory: MaterialInventory;
+  /** Single raw material pool — GAME_CONSTANTS.bomRatio units per finished good. */
+  rawMaterialQty: number;
   inventoryCostManwon: number;
   finishedGoodsQty: number;
   finishedGoodsCostManwon: number;
@@ -206,6 +208,8 @@ export interface CompanyOperationalState {
   halfYearProductionQty: number;
   halfYearSalesQty: number;
   halfYearRevenueManwon: number;
+  /** Team-chosen operating regions (3/4/5 by game year). */
+  selectedRegions: string[];
   openBranches: string[];
   openSalesBranches: string[];
   miscIncomeManwon: number;
@@ -261,7 +265,8 @@ export interface MaterialBranchInput {
 
 export interface MaterialLineInput {
   regionCode: string;
-  materials: MaterialInventory;
+  /** Raw material units to purchase in this region. */
+  qty: number;
   /** Competitive bid unit price (만원). Higher price wins regional allocation. */
   unitPriceBidManwon?: number;
 }
@@ -352,7 +357,7 @@ export interface MaterialComputed {
   logisticsCostManwon: number;
   totalCostManwon: number;
   cashAfterManwon: number;
-  inventoryAfter: MaterialInventory;
+  rawMaterialQtyAfter: number;
   newBranches: string[];
 }
 
@@ -361,7 +366,7 @@ export interface ProductionComputed {
   maxByMachine: number;
   maxByLabor: number;
   maxProduction: number;
-  materialConsumed: MaterialInventory;
+  materialUnitsConsumed: number;
   materialCostConsumedManwon: number;
   machineOpCostManwon: number;
   carbonTaxManwon: number;
@@ -371,7 +376,7 @@ export interface ProductionComputed {
   finishedGoodsCostAfterManwon: number;
   unitFinishedGoodsCostManwon: number;
   cashAfterManwon: number;
-  inventoryAfter: MaterialInventory;
+  rawMaterialQtyAfter: number;
   inventoryCostAfterManwon: number;
 }
 
@@ -450,8 +455,11 @@ export interface DashboardDto {
   inventoryTotalUnits: number;
   openBranches: string[];
   openSalesBranches: string[];
+  selectedRegions: string[];
   regionExpansionCap: number;
   operatingRegionCount: number;
+  regionsToSelect: number;
+  regionSelectionRequired: boolean;
   finishedGoodsQty: number;
   halfYearProductionQty: number;
   halfYearSalesQty: number;

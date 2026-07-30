@@ -17,17 +17,19 @@ import { JournalSummaryPanel, type JournalView } from "@/components/bsp/JournalS
 import { StepFacilityForm } from "@/components/bsp/StepFacilityForm";
 import { StepFinanceForm } from "@/components/bsp/StepFinanceForm";
 import { StepHRForm } from "@/components/bsp/StepHRForm";
-import { StepMaterialForm, type MaterialFormState } from "@/components/bsp/StepMaterialForm";
+import { StepMaterialForm, type MaterialLineForm } from "@/components/bsp/StepMaterialForm";
+import { RegionSelectionPanel } from "@/components/bsp/RegionSelectionPanel";
 import { StepProductionForm } from "@/components/bsp/StepProductionForm";
 import { StepSalesForm, type SalesLineForm } from "@/components/bsp/StepSalesForm";
 import { StepProgressStepper } from "@/components/bsp/StepProgressStepper";
 import { MarketClearingResultsPanel } from "@/components/bsp/MarketClearingResultsPanel";
 import { BranchMapPanel } from "@/components/bsp/BranchMapPanel";
 import { ValidationPanel } from "@/components/bsp/ValidationPanel";
-import { effectiveMaterialUnitPriceManwon, logisticsCostManwon } from "@/src/bsp/domain/economy/material-pricing";
-import { getRegion, REGION_CATALOG } from "@/src/bsp/domain/regions/region-catalog";
+import { effectiveMaterialUnitPriceManwon } from "@/src/bsp/domain/economy/material-pricing";
+import { getRegion, REGION_CATALOG, type RegionCode } from "@/src/bsp/domain/regions/region-catalog";
 import {
   computeHiring,
+  computeMaterial,
   computeProduction,
   computeSales,
 } from "@/src/bsp/domain/validation/step-validators";
@@ -73,6 +75,9 @@ type Dashboard = {
   submitRatePercent?: number;
   openBranches?: string[];
   openSalesBranches?: string[];
+  selectedRegions?: string[];
+  regionsToSelect?: number;
+  regionSelectionRequired?: boolean;
   regionExpansionCap?: number;
   operatingRegionCount?: number;
   settlementComplete?: boolean;
@@ -117,12 +122,7 @@ export default function PlayPage() {
   const [transferTo, setTransferTo] = useState<HiringDepartment>("PRODUCTION");
   const [transferHeadcount, setTransferHeadcount] = useState(0);
 
-  const [materialForm, setMaterialForm] = useState<MaterialFormState>({
-    regionCode: "ASIA",
-    materials: { A: 15, B: 15, C: 15, D: 15 },
-    unitPriceBidManwon: 12,
-    openBranch: false,
-  });
+  const [materialLines, setMaterialLines] = useState<MaterialLineForm[]>([]);
 
   const [productionQty, setProductionQty] = useState(3);
   const [machineBigRun, setMachineBigRun] = useState(1);
@@ -150,6 +150,34 @@ export default function PlayPage() {
     setTransferTo("PRODUCTION");
     setTransferHeadcount(0);
   }, [dashboard?.companyId, dashboard?.periodLabel, dashboard?.statusVersion]);
+
+  useEffect(() => {
+    if (!dashboard?.selectedRegions?.length) return;
+    setMaterialLines((prev) => {
+      const byCode = new Map(prev.map((line) => [line.regionCode, line]));
+      return dashboard.selectedRegions!.map((code) => {
+        const existing = byCode.get(code);
+        const region = getRegion(code as RegionCode);
+        return (
+          existing ?? {
+            regionCode: code,
+            qty: 0,
+            unitPriceBidManwon: effectiveMaterialUnitPriceManwon(region, economy),
+            openBranch: false,
+          }
+        );
+      });
+    });
+    setSalesLines((prev) => {
+      if (prev.some((line) => dashboard.selectedRegions!.includes(line.regionCode))) return prev;
+      return dashboard.selectedRegions!.map((code, index) => ({
+        regionCode: code,
+        unitPriceManwon: index === 0 ? 100 : 80,
+        qty: 0,
+        openBranch: false,
+      }));
+    });
+  }, [dashboard?.companyId, dashboard?.periodLabel, dashboard?.selectedRegions, economy]);
 
   const periodYear = dashboard?.year ?? parseYearFromPeriodLabel(dashboard?.periodLabel);
 
@@ -183,24 +211,43 @@ export default function PlayPage() {
   }, [headPurchase, headProduction, headSales]);
 
   const materialPreview = useMemo(() => {
-    const region = getRegion(materialForm.regionCode as Parameters<typeof getRegion>[0]);
-    const unitPrice = effectiveMaterialUnitPriceManwon(region, economy);
-    const totalUnits =
-      materialForm.materials.A +
-      materialForm.materials.B +
-      materialForm.materials.C +
-      materialForm.materials.D;
-    const bidPrice = materialForm.unitPriceBidManwon;
-    const materialCost = totalUnits * bidPrice;
-    const logistics = logisticsCostManwon(totalUnits, economy);
-    const alreadyOpen =
-      (dashboard?.openBranches ?? []).includes(materialForm.regionCode) ||
-      (dashboard?.openSalesBranches ?? []).includes(materialForm.regionCode);
-    const branchFee = materialForm.openBranch && !alreadyOpen ? region.branchSetupFeeManwon : 0;
-    const totalCost = materialCost + logistics + branchFee;
-    const cashAfter = (dashboard?.cashManwon ?? GAME_CONSTANTS.initialCashManwon) - totalCost;
-    return { unitPrice, bidPrice, totalUnits, materialCost, logisticsCost: logistics, branchFee, totalCost, cashAfter };
-  }, [materialForm, dashboard, economy]);
+    if (!dashboard) {
+      return {
+        totalUnits: 0,
+        materialCost: 0,
+        logisticsCost: 0,
+        branchFee: 0,
+        totalCost: 0,
+        cashAfter: GAME_CONSTANTS.initialCashManwon,
+      };
+    }
+    const payload = {
+      lines: materialLines.map((l) => ({
+        regionCode: l.regionCode,
+        qty: l.qty,
+        unitPriceBidManwon: l.unitPriceBidManwon,
+      })),
+      branches: materialLines.filter((l) => l.openBranch).map((l) => ({ regionCode: l.regionCode })),
+    };
+    const mockState = {
+      cashManwon: dashboard.cashManwon,
+      rawMaterialQty: dashboard.inventoryTotalUnits ?? 0,
+      headPurchase: dashboard.headPurchase,
+      purchaseCapacity: dashboard.purchaseCapacity ?? 0,
+      openBranches: dashboard.openBranches ?? [],
+      openSalesBranches: dashboard.openSalesBranches ?? [],
+      selectedRegions: dashboard.selectedRegions ?? [],
+    } as Parameters<typeof computeMaterial>[1];
+    const c = computeMaterial(payload, mockState, economy);
+    return {
+      totalUnits: c.lines.reduce((sum, line) => sum + line.totalUnits, 0),
+      materialCost: c.materialCostManwon,
+      logisticsCost: c.logisticsCostManwon,
+      branchFee: c.branchFeesManwon,
+      totalCost: c.totalCostManwon,
+      cashAfter: c.cashAfterManwon,
+    };
+  }, [materialLines, dashboard, economy]);
 
   const productionPreview = useMemo(() => {
     if (!dashboard) {
@@ -217,8 +264,8 @@ export default function PlayPage() {
     }
     const mockState = {
       cashManwon: dashboard.cashManwon,
-      inventory: { A: 15, B: 15, C: 15, D: 15 },
-      inventoryCostManwon: 720,
+      rawMaterialQty: dashboard.inventoryTotalUnits ?? 0,
+      inventoryCostManwon: (dashboard.inventoryTotalUnits ?? 0) * 12,
       headProduction: dashboard.headProduction,
       machineBig: dashboard.machineBig,
       machineSmall: dashboard.machineSmall,
@@ -268,6 +315,7 @@ export default function PlayPage() {
       salesCapacity: dashboard.salesCapacity ?? 20,
       openBranches: dashboard.openBranches ?? [],
       openSalesBranches: dashboard.openSalesBranches ?? [],
+      selectedRegions: dashboard.selectedRegions ?? [],
     } as Parameters<typeof computeSales>[1];
     const c = computeSales(payload, mockState, economy);
     return {
@@ -376,6 +424,30 @@ export default function PlayPage() {
     if (companyId) refresh(companyId);
   }, [companyId, refresh]);
 
+  const postRegionSelection = async (regionCodes: RegionCode[]) => {
+    if (!companyId || !dashboard) return;
+    setLoading(true);
+    setMessage("");
+    const res = await authFetch(`/api/v1/play/companies/${companyId}/regions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        regionCodes,
+        companyStatusVersion: dashboard.statusVersion,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setValidation(data.details?.validation ?? null);
+      setMessage(data.error ?? "지역 선택 실패");
+    } else {
+      setDashboard(data.dashboard);
+      setMessage("운영 지역이 확정되었습니다.");
+      await refresh(companyId);
+    }
+    setLoading(false);
+  };
+
   const postDecision = async (targetStep: BspGameStep, validateOnly: boolean) => {
     if (!companyId || !dashboard) return;
     setLoading(true);
@@ -404,14 +476,12 @@ export default function PlayPage() {
       };
     } else if (targetStep === "MATERIAL") {
       payload = {
-        branches: materialForm.openBranch ? [{ regionCode: materialForm.regionCode }] : [],
-        lines: [
-          {
-            regionCode: materialForm.regionCode,
-            materials: materialForm.materials,
-            unitPriceBidManwon: materialForm.unitPriceBidManwon,
-          },
-        ],
+        branches: materialLines.filter((l) => l.openBranch).map((l) => ({ regionCode: l.regionCode })),
+        lines: materialLines.map((l) => ({
+          regionCode: l.regionCode,
+          qty: l.qty,
+          unitPriceBidManwon: l.unitPriceBidManwon,
+        })),
       };
     } else if (targetStep === "PRODUCTION") {
       payload = { productionQty, machineBigRun, machineSmallRun };
@@ -625,9 +695,20 @@ export default function PlayPage() {
                 />
               )}
 
+              {dashboard?.regionSelectionRequired && !isSubmitted && (
+                <RegionSelectionPanel
+                  year={dashboard.year ?? periodYear}
+                  regionsToSelect={dashboard.regionsToSelect ?? 0}
+                  selectedRegions={dashboard.selectedRegions ?? []}
+                  loading={loading}
+                  onSubmit={postRegionSelection}
+                />
+              )}
+
               {dashboard && step === "STEP4_PURCHASE" && !completed.includes("MATERIAL") && !isSubmitted && (
                 <StepMaterialForm
-                  form={materialForm}
+                  lines={materialLines}
+                  selectedRegions={dashboard.selectedRegions ?? []}
                   purchaseCapacity={dashboard.purchaseCapacity ?? hrPreview.purchaseCapacity}
                   openBranches={dashboard.openBranches ?? []}
                   openSalesBranches={dashboard.openSalesBranches ?? []}
@@ -635,7 +716,7 @@ export default function PlayPage() {
                   preview={materialPreview}
                   loading={loading}
                   checklistReady={checklistReady}
-                  onChange={setMaterialForm}
+                  onChange={setMaterialLines}
                   onValidate={() => postDecision("MATERIAL", true)}
                   onSubmit={() => postDecision("MATERIAL", false)}
                 />
@@ -649,7 +730,7 @@ export default function PlayPage() {
                   machineBig={dashboard.machineBig}
                   machineSmall={dashboard.machineSmall}
                   productionCapacity={dashboard.productionCapacity ?? 30}
-                  inventoryTotalUnits={dashboard.inventoryTotalUnits ?? 60}
+                  inventoryTotalUnits={dashboard.inventoryTotalUnits ?? 0}
                   preview={productionPreview}
                   loading={loading}
                   onChange={(field, value) => {

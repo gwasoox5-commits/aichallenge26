@@ -23,7 +23,7 @@ import {
   applySalesToState,
 } from "@/src/bsp/domain/validation/step-validators";
 import { DEFAULT_ECONOMY_VALUES, type EconomyValues } from "@/src/bsp/domain/types";
-import { materialBidPayload } from "./bid-payloads";
+import { materialBidPayload, ensureOperatingRegionsSelected, legacyPerTypeToQty, yearOneTestRegions } from "./bid-payloads";
 import { effectiveMaterialUnitPriceManwon } from "@/src/bsp/domain/economy/material-pricing";
 import { getRegion } from "@/src/bsp/domain/regions/region-catalog";
 
@@ -79,7 +79,13 @@ export async function runExcelScenario(input: ExcelScenarioInput): Promise<Excel
     await engine.applyEconomyPreset(session.id, "baseline");
   }
 
-  let v = 0;
+  await ensureOperatingRegionsSelected(
+    engine,
+    company.id,
+    yearOneTestRegions(input.material.regionCode, input.sales.regionCode)
+  );
+  let v = (await engine.getDashboard(company.id)).statusVersion;
+
   const steps: Array<{ step: "LOAN" | "FACILITY" | "HIRING" | "MATERIAL" | "PRODUCTION" | "SALES"; payload: unknown }> = [
     { step: "LOAN", payload: input.loan },
     { step: "FACILITY", payload: input.facility },
@@ -88,7 +94,7 @@ export async function runExcelScenario(input: ExcelScenarioInput): Promise<Excel
       step: "MATERIAL",
       payload: materialBidPayload(
         input.material.regionCode as Parameters<typeof materialBidPayload>[0],
-        input.material.perType
+        legacyPerTypeToQty(input.material.perType)
       ),
     },
     {
@@ -130,19 +136,20 @@ export async function runExcelScenario(input: ExcelScenarioInput): Promise<Excel
     purchaseCapacity: hireC.purchaseCapacity,
     productionCapacity: hireC.productionCapacity,
     salesCapacity: hireC.salesCapacity,
+    selectedRegions: yearOneTestRegions(input.material.regionCode, input.sales.regionCode),
   };
   const matRegion = getRegion(input.material.regionCode as Parameters<typeof getRegion>[0]);
   const matBidPrice = effectiveMaterialUnitPriceManwon(matRegion, economy);
   const matPayload = materialBidPayload(
     input.material.regionCode as Parameters<typeof materialBidPayload>[0],
-    input.material.perType,
+    legacyPerTypeToQty(input.material.perType),
     matBidPrice
   );
   const matV = validateMaterial(matPayload, state, economy, 1);
   state = {
     ...state,
     cashManwon: matV.computed.cashAfterManwon,
-    inventory: matV.computed.inventoryAfter,
+    rawMaterialQty: matV.computed.rawMaterialQtyAfter,
     inventoryCostManwon: state.inventoryCostManwon + matV.computed.materialCostManwon,
     openBranches: [...new Set([...state.openBranches, ...matV.computed.newBranches])],
   };
@@ -168,7 +175,7 @@ export async function runExcelScenario(input: ExcelScenarioInput): Promise<Excel
   compare("productionCapacity", hireC.productionCapacity, dash.productionCapacity);
   compare("salesCapacity", hireC.salesCapacity, dash.salesCapacity);
   compare("revenue", salesC.totalRevenueManwon, fs.profitAndLoss.revenue);
-  compare("inventoryUnits", state.inventory.A + state.inventory.B + state.inventory.C + state.inventory.D, dash.inventoryTotalUnits);
+  compare("inventoryUnits", state.rawMaterialQty, dash.inventoryTotalUnits);
   compare("cash(post-settle)", dash.cashManwon, fs.balanceSheet.assets.cash);
 
   return {
@@ -448,9 +455,23 @@ describe("Lecture simulation — 10 teams", () => {
       { step: "LOAN" as const, payload: base.loan },
       { step: "FACILITY" as const, payload: base.facility },
       { step: "HIRING" as const, payload: base.hiring },
+    ]) {
+      for (const company of teams) {
+        const fresh = await engine.getDashboard(company.id);
+        await engine.submitDecision(company.id, s.step, s.payload, fresh.statusVersion);
+      }
+      await engine.gmAdvanceStep(session.id);
+    }
+    for (const company of teams) {
+      await ensureOperatingRegionsSelected(engine, company.id);
+    }
+    for (const s of [
       {
         step: "MATERIAL" as const,
-        payload: materialBidPayload(base.material.regionCode as Parameters<typeof materialBidPayload>[0], 15),
+        payload: materialBidPayload(
+          base.material.regionCode as Parameters<typeof materialBidPayload>[0],
+          legacyPerTypeToQty(15)
+        ),
       },
       { step: "PRODUCTION" as const, payload: base.production },
       {

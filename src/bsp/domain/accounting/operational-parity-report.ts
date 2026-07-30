@@ -99,8 +99,9 @@ export function buildOperationalParityReport(
       state = {
         ...state,
         cashManwon: matV.computed.cashAfterManwon,
-        inventory: matV.computed.inventoryAfter,
+        rawMaterialQty: matV.computed.rawMaterialQtyAfter,
         inventoryCostManwon: state.inventoryCostManwon + matV.computed.materialCostManwon,
+        openBranches: [...new Set([...state.openBranches, ...matV.computed.newBranches])],
       };
     } else if (d.step === "PRODUCTION") {
       const c = computeProduction(d.payload as Parameters<typeof computeProduction>[0], state, economy);
@@ -119,7 +120,7 @@ export function buildOperationalParityReport(
   pushDelta(
     deltas,
     "inventoryUnits",
-    state.inventory.A + state.inventory.B + state.inventory.C + state.inventory.D,
+    state.rawMaterialQty,
     dashboard.inventoryTotalUnits
   );
   pushDelta(deltas, "productionQty", state.halfYearProductionQty, dashboard.halfYearProductionQty);

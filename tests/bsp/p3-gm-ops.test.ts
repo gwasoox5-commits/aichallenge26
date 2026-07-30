@@ -11,7 +11,7 @@ import { stepHandlerRegistry } from "@/src/bsp/domain/steps/step-handler-registr
 import { GM_AUDIT_ACTIONS, type GmActor } from "@/src/bsp/domain/gm/audit-types";
 import type { ExcelScenarioInput } from "./excel-regression-20.test";
 import { EXCEL_SCENARIOS } from "./excel-regression-20.test";
-import { materialBidPayload } from "./bid-payloads";
+import { materialBidPayload, ensureOperatingRegionsSelected, legacyPerTypeToQty, yearOneTestRegions } from "./bid-payloads";
 
 const GM: GmActor = {
   userId: "gm-test",
@@ -54,7 +54,7 @@ async function submitStep(
     LOAN: scenario.loan,
     FACILITY: scenario.facility,
     HIRING: scenario.hiring,
-    MATERIAL: materialBidPayload(scenario.material.regionCode, scenario.material.perType),
+    MATERIAL: materialBidPayload(scenario.material.regionCode, legacyPerTypeToQty(scenario.material.perType)),
     PRODUCTION: scenario.production,
     SALES: {
       lines: [{ regionCode: scenario.sales.regionCode, unitPriceManwon: scenario.sales.unitPriceManwon, qty: scenario.sales.qty }],
@@ -71,7 +71,16 @@ async function runAllStepsForTeam(
   scenario: ExcelScenarioInput
 ) {
   const steps = ["LOAN", "FACILITY", "HIRING", "MATERIAL", "PRODUCTION", "SALES"] as const;
-  for (const step of steps) {
+  for (const step of steps.slice(0, 3)) {
+    await submitStep(engine, companyId, step, scenario);
+    await engine.gmAdvanceStep(sessionId, GM);
+  }
+  await ensureOperatingRegionsSelected(
+    engine,
+    companyId,
+    yearOneTestRegions(scenario.material.regionCode, scenario.sales.regionCode)
+  );
+  for (const step of steps.slice(3)) {
     await submitStep(engine, companyId, step, scenario);
     await engine.gmAdvanceStep(sessionId, GM);
   }

@@ -16,7 +16,7 @@ import {
   createInitialOperationalState,
 } from "@/src/bsp/domain/validation/step-validators";
 import { DEFAULT_ECONOMY_VALUES } from "@/src/bsp/domain/types";
-import { materialBidPayload, asiaMaterialBidPayload } from "./bid-payloads";
+import { materialBidPayload, asiaMaterialBidPayload, ensureOperatingRegionsSelected, legacyPerTypeToQty } from "./bid-payloads";
 
 describe("Sprint 2A — full demo flow", () => {
   let engine: GameEngine;
@@ -65,11 +65,14 @@ describe("Sprint 2A — full demo flow", () => {
     expect(s3.dashboard.payrollForecastHalfManwon).toBe(2100);
     await engine.gmAdvanceStep(session.id);
 
+    await ensureOperatingRegionsSelected(engine, company.id);
+    const beforeMaterial = await engine.getDashboard(company.id);
+
     const s4 = await engine.submitDecision(
       company.id,
       "MATERIAL",
-      materialBidPayload("ASIA", 15, 12),
-      s3.statusVersion
+      materialBidPayload("ASIA", legacyPerTypeToQty(15), 12),
+      beforeMaterial.statusVersion
     );
     expect(s4.dashboard.cashManwon).toBe(7400);
     expect(s4.dashboard.inventoryTotalUnits).toBe(0);
@@ -127,9 +130,10 @@ describe("Material domain", () => {
     );
     state.headPurchase = 2;
     state.purchaseCapacity = 60;
+    state.selectedRegions = ["ASIA", "EUROPE", "AFRICA"];
 
     const ok = validateMaterial(
-      materialBidPayload("ASIA", 15, 12),
+      materialBidPayload("ASIA", legacyPerTypeToQty(15), 12),
       state,
       DEFAULT_ECONOMY_VALUES
     );

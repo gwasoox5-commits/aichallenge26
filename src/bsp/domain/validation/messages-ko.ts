@@ -87,6 +87,10 @@ export const VALIDATION_MESSAGES_KO: Record<string, { pass: string; fail: string
     pass: "해당 지역에 브랜치가 있어 원재료 구매가 가능합니다.",
     fail: "브랜치가 개설되지 않은 지역에서는 원재료를 구매할 수 없습니다. (M07)",
   },
+  M08: {
+    pass: "운영 지역 풀에 포함된 지역입니다.",
+    fail: "선택한 운영 지역에 포함되지 않은 지역입니다. (M08)",
+  },
   M06: {
     pass: "입찰 단가가 유효합니다.",
     fail: "입찰 단가는 적용 단가(최저가) 이상이어야 합니다. (M06)",

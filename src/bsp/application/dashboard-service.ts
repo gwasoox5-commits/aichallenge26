@@ -2,7 +2,7 @@ import type { CompanyAggregate, SessionAggregate } from "./ports/repositories";
 import type { BspGameStep, BspStepPhase, DashboardDto } from "../domain/types";
 import { ALL_GAME_STEPS, PHASE_TO_STEP, STEP_TO_PHASE } from "../domain/types";
 import { buildFinancialStatements } from "../domain/accounting/financial-statements";
-import { operatingRegions, regionExpansionCap } from "../domain/regions/region-expansion";
+import { operatingRegions, regionExpansionCap, regionsToSelectCount } from "../domain/regions/region-expansion";
 
 export class DashboardService {
   build(company: CompanyAggregate, session: SessionAggregate): DashboardDto {
@@ -11,7 +11,9 @@ export class DashboardService {
       .filter((d) => d.periodId === company.periodId && d.status === "POSTED")
       .map((d) => d.step as BspGameStep);
 
-    const inventoryTotalUnits = op.inventory.A + op.inventory.B + op.inventory.C + op.inventory.D;
+    const inventoryTotalUnits = op.rawMaterialQty;
+    const selectedCount = op.selectedRegions.length;
+    const regionsToSelect = regionsToSelectCount(session.year, selectedCount);
     const fs = buildFinancialStatements(
       company.ledger,
       company.periodLabel,
@@ -68,8 +70,11 @@ export class DashboardService {
       inventoryTotalUnits,
       openBranches: op.openBranches,
       openSalesBranches: op.openSalesBranches,
+      selectedRegions: op.selectedRegions,
       regionExpansionCap: regionExpansionCap(session.year),
       operatingRegionCount: operatingRegions(op).size,
+      regionsToSelect,
+      regionSelectionRequired: regionsToSelect > 0,
       finishedGoodsQty: op.finishedGoodsQty,
       halfYearProductionQty: op.halfYearProductionQty,
       halfYearSalesQty: op.halfYearSalesQty,

@@ -8,7 +8,6 @@ import {
   type HiringResignations,
   type HiringTransfer,
   type LoanPayload,
-  type MaterialInventory,
   type MaterialPayload,
   type ProductionPayload,
   type SalesPayload,
@@ -23,6 +22,7 @@ import {
   openingPurchaseRegions,
   openingSalesRegions,
   hasOperationalBranch,
+  isRegionInOperatingPool,
 } from "../regions/region-expansion";
 import {
   effectiveMaterialLimit,
@@ -303,7 +303,7 @@ export function createInitialOperationalState(): CompanyOperationalState {
     salesCapacity: 0,
     payrollForecastHalfManwon: 0,
     welfareForecastHalfManwon: 0,
-    inventory: { A: 0, B: 0, C: 0, D: 0 },
+    rawMaterialQty: 0,
     inventoryCostManwon: 0,
     finishedGoodsQty: 0,
     finishedGoodsCostManwon: 0,
@@ -311,6 +311,7 @@ export function createInitialOperationalState(): CompanyOperationalState {
     halfYearProductionQty: 0,
     halfYearSalesQty: 0,
     halfYearRevenueManwon: 0,
+    selectedRegions: [],
     openBranches: [],
     openSalesBranches: [],
     miscIncomeManwon: 0,
@@ -321,8 +322,10 @@ export function createInitialOperationalState(): CompanyOperationalState {
 }
 
 
-function sumMaterials(m: { A: number; B: number; C: number; D: number }) {
-  return m.A + m.B + m.C + m.D;
+function lineQty(line: { qty?: number; materials?: { A: number; B: number; C: number; D: number } }): number {
+  if (typeof line.qty === "number") return line.qty;
+  if (line.materials) return line.materials.A + line.materials.B + line.materials.C + line.materials.D;
+  return 0;
 }
 
 export function computePayrollForecast(
@@ -549,22 +552,19 @@ export function computeMaterial(
   const lines = [];
   let materialCostManwon = 0;
   let logisticsCostManwonTotal = 0;
-  const inventoryAfter = { ...state.inventory };
+  let rawMaterialQtyAfter = state.rawMaterialQty;
 
   for (const line of payload.lines ?? []) {
     if (!isRegionCode(line.regionCode)) continue;
     const region = getRegion(line.regionCode);
     const effectivePrice = effectiveMaterialUnitPriceManwon(region, economy);
     const unitPrice = line.unitPriceBidManwon ?? effectivePrice;
-    const totalUnits = sumMaterials(line.materials);
+    const totalUnits = lineQty(line);
     const lineMaterialCost = totalUnits * unitPrice;
     const lineLogistics = logisticsCostManwon(totalUnits, economy);
     materialCostManwon += lineMaterialCost;
     logisticsCostManwonTotal += lineLogistics;
-    inventoryAfter.A += line.materials.A;
-    inventoryAfter.B += line.materials.B;
-    inventoryAfter.C += line.materials.C;
-    inventoryAfter.D += line.materials.D;
+    rawMaterialQtyAfter += totalUnits;
     lines.push({
       regionCode: line.regionCode,
       effectiveUnitPriceManwon: effectivePrice,
@@ -585,7 +585,7 @@ export function computeMaterial(
     logisticsCostManwon: logisticsCostManwonTotal,
     totalCostManwon,
     cashAfterManwon,
-    inventoryAfter,
+    rawMaterialQtyAfter,
     newBranches,
   };
 }
@@ -609,11 +609,19 @@ export function validateMaterial(
     }
     const region = getRegion(line.regionCode);
     const effectivePrice = effectiveMaterialUnitPriceManwon(region, economy);
-    const totalUnits = sumMaterials(line.materials);
+    const totalUnits = lineQty(line);
     totalUnitsAll += totalUnits;
     const limit = effectiveMaterialLimit(region, economy);
 
     rules.push(pass("M01", `Effective floor price ${effectivePrice} for ${line.regionCode}`));
+
+    if (totalUnits > 0 && !isRegionInOperatingPool(state, line.regionCode)) {
+      rules.push(
+        fail("M08", "ERR_MAT_REGION_NOT_SELECTED", "regionCode", "Region is not in your operating pool", {
+          regionCode: line.regionCode,
+        })
+      );
+    }
 
     if (totalUnits > 0 && !hasOperationalBranch(state, line.regionCode, openingPurchase)) {
       rules.push(
@@ -655,9 +663,9 @@ export function validateMaterial(
       rules.push(pass("M06", "No material bid"));
     }
 
-    for (const [mat, qty] of Object.entries(line.materials)) {
+    for (const [mat, qty] of Object.entries({ units: totalUnits })) {
       if (!Number.isInteger(qty) || qty < 0) {
-        rules.push(fail("M02", "ERR_MAT_QTY", mat, `${mat} must be non-negative integer`));
+        rules.push(fail("M02", "ERR_MAT_QTY", mat, `qty must be non-negative integer`));
       }
     }
   }
@@ -709,42 +717,29 @@ export function applyMaterialToState(
 ): CompanyOperationalState {
   const next = { ...state };
   next.cashManwon = computed.cashAfterManwon;
-  next.inventory = computed.inventoryAfter;
+  next.rawMaterialQty = computed.rawMaterialQtyAfter;
   next.inventoryCostManwon = state.inventoryCostManwon + computed.materialCostManwon;
   next.openBranches = [...new Set([...state.openBranches, ...computed.newBranches])];
   next.equityManwon = computeEquity(next);
   return next;
 }
 
-function inventoryTotalUnits(inv: MaterialInventory) {
-  return inv.A + inv.B + inv.C + inv.D;
-}
-
 function avgMaterialUnitCost(state: CompanyOperationalState): number {
-  const total = inventoryTotalUnits(state.inventory);
-  if (total <= 0) return 0;
-  return state.inventoryCostManwon / total;
+  if (state.rawMaterialQty <= 0) return 0;
+  return state.inventoryCostManwon / state.rawMaterialQty;
 }
 
 export function computeProduction(payload: ProductionPayload, state: CompanyOperationalState, economy: EconomyValues) {
-  const inv = state.inventory;
-  const maxByMaterial = Math.floor(Math.min(inv.A, inv.B, inv.C, inv.D) / GAME_CONSTANTS.bomRatio);
+  const maxByMaterial = Math.floor(state.rawMaterialQty / GAME_CONSTANTS.bomRatio);
   const maxByMachine =
     payload.machineBigRun * GAME_CONSTANTS.machineLargeCapacity +
     payload.machineSmallRun * GAME_CONSTANTS.machineSmallCapacity;
   const maxByLabor = state.headProduction * GAME_CONSTANTS.productionCapacityPerHead;
   const maxProduction = Math.min(maxByMaterial, maxByMachine, maxByLabor);
 
-  const consumePerType = payload.productionQty * GAME_CONSTANTS.bomRatio;
-  const materialConsumed: MaterialInventory = {
-    A: consumePerType,
-    B: consumePerType,
-    C: consumePerType,
-    D: consumePerType,
-  };
-  const totalMaterialUnitsConsumed = consumePerType * 4;
+  const materialUnitsConsumed = payload.productionQty * GAME_CONSTANTS.bomRatio;
   const unitMatCost = avgMaterialUnitCost(state);
-  const materialCostConsumedManwon = Math.round(unitMatCost * totalMaterialUnitsConsumed);
+  const materialCostConsumedManwon = Math.round(unitMatCost * materialUnitsConsumed);
 
   const machineOpCostManwon =
     payload.machineBigRun * GAME_CONSTANTS.machineBigOperatingCostManwon +
@@ -754,12 +749,7 @@ export function computeProduction(payload: ProductionPayload, state: CompanyOper
   const unitManufacturingCostManwon =
     payload.productionQty > 0 ? Math.round(totalManufacturingCostManwon / payload.productionQty) : 0;
 
-  const inventoryAfter: MaterialInventory = {
-    A: inv.A - materialConsumed.A,
-    B: inv.B - materialConsumed.B,
-    C: inv.C - materialConsumed.C,
-    D: inv.D - materialConsumed.D,
-  };
+  const rawMaterialQtyAfter = state.rawMaterialQty - materialUnitsConsumed;
   const inventoryCostAfterManwon = Math.max(0, state.inventoryCostManwon - materialCostConsumedManwon);
   const finishedGoodsQtyAfter = state.finishedGoodsQty + payload.productionQty;
   const finishedGoodsCostAfterManwon = state.finishedGoodsCostManwon + materialCostConsumedManwon;
@@ -773,7 +763,7 @@ export function computeProduction(payload: ProductionPayload, state: CompanyOper
     maxByMachine,
     maxByLabor,
     maxProduction,
-    materialConsumed,
+    materialUnitsConsumed,
     materialCostConsumedManwon,
     machineOpCostManwon,
     carbonTaxManwon,
@@ -783,7 +773,7 @@ export function computeProduction(payload: ProductionPayload, state: CompanyOper
     finishedGoodsCostAfterManwon,
     unitFinishedGoodsCostManwon,
     cashAfterManwon,
-    inventoryAfter,
+    rawMaterialQtyAfter,
     inventoryCostAfterManwon,
   };
 }
@@ -843,7 +833,7 @@ export function applyProductionToState(
 ): CompanyOperationalState {
   const next = { ...state };
   next.cashManwon = computed.cashAfterManwon;
-  next.inventory = computed.inventoryAfter;
+  next.rawMaterialQty = computed.rawMaterialQtyAfter;
   next.inventoryCostManwon = computed.inventoryCostAfterManwon;
   next.finishedGoodsQty = computed.finishedGoodsQtyAfter;
   next.finishedGoodsCostManwon = computed.finishedGoodsCostAfterManwon;
@@ -921,6 +911,14 @@ export function validateSales(payload: SalesPayload, state: CompanyOperationalSt
     }
     const region = getRegion(line.regionCode);
     totalSoldQty += line.qty;
+
+    if (line.qty > 0 && !isRegionInOperatingPool(state, line.regionCode)) {
+      rules.push(
+        fail("S01", "ERR_SALE_REGION_NOT_SELECTED", "regionCode", "Region is not in your operating pool", {
+          regionCode: line.regionCode,
+        })
+      );
+    }
 
     if (line.qty > 0 && !hasOperationalBranch(state, line.regionCode, new Set(), openingSales)) {
       rules.push(

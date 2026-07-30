@@ -1,0 +1,2 @@
+ALTER TABLE "BspCompanyOperational" ADD COLUMN IF NOT EXISTS "rawMaterialQty" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "BspCompanyOperational" ADD COLUMN IF NOT EXISTS "selectedRegions" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];

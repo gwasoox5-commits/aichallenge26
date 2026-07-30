@@ -19,6 +19,7 @@ import {
   type RealtimeServerMessage,
 } from "@/src/bsp/domain/realtime/realtime-event-types";
 import type { ExcelScenarioInput } from "./excel-regression-20.test";
+import { materialBidPayload, ensureOperatingRegionsSelected, legacyPerTypeToQty, yearOneTestRegions } from "./bid-payloads";
 
 const GM: GmActor = { userId: "gm-p6", role: "GM", reason: "P6 E2E" };
 
@@ -57,24 +58,22 @@ async function submitStep(
     LOAN: scenario.loan,
     FACILITY: scenario.facility,
     HIRING: scenario.hiring,
-    MATERIAL: {
-      lines: [
-        {
-          regionCode: scenario.material.regionCode,
-          materials: {
-            A: scenario.material.perType,
-            B: scenario.material.perType,
-            C: scenario.material.perType,
-            D: scenario.material.perType,
-          },
-        },
-      ],
-    },
+    MATERIAL: materialBidPayload(
+      scenario.material.regionCode as Parameters<typeof materialBidPayload>[0],
+      legacyPerTypeToQty(scenario.material.perType)
+    ),
     PRODUCTION: scenario.production,
     SALES: {
       lines: [{ regionCode: scenario.sales.regionCode, unitPriceManwon: scenario.sales.unitPriceManwon, qty: scenario.sales.qty }],
     },
   };
+  if (step === "MATERIAL") {
+    await ensureOperatingRegionsSelected(
+      engine,
+      companyId,
+      yearOneTestRegions(scenario.material.regionCode, scenario.sales.regionCode)
+    );
+  }
   const dash = await engine.getDashboard(companyId);
   await engine.submitDecision(companyId, step, payloads[step], dash.statusVersion);
 }

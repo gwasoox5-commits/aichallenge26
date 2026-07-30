@@ -1,4 +1,4 @@
-import type { EconomyValues, MaterialInventory, MaterialPayload, SalesPayload } from "../types";
+import type { EconomyValues, MaterialPayload, SalesPayload } from "../types";
 import { DEFAULT_ECONOMY_VALUES } from "../types";
 import { effectiveMaterialLimit, effectiveMaterialUnitPriceManwon } from "../economy/material-pricing";
 import { effectiveSaleLimit } from "../economy/sales-pricing";
@@ -7,17 +7,15 @@ import { getRegion, isRegionCode, type RegionCode } from "../regions/region-cata
 export interface MaterialBid {
   companyId: string;
   regionCode: RegionCode;
-  materials: MaterialInventory;
-  totalUnits: number;
+  qty: number;
   unitPriceBidManwon: number;
 }
 
 export interface MaterialAward {
   regionCode: RegionCode;
-  awardedUnits: number;
-  awardedMaterials: MaterialInventory;
+  awardedQty: number;
   clearingPriceManwon: number;
-  requestedUnits: number;
+  requestedQty: number;
   requestedPriceManwon: number;
 }
 
@@ -36,20 +34,10 @@ export interface SalesAward {
   requestedPriceManwon: number;
 }
 
-function sumMaterials(m: MaterialInventory) {
-  return m.A + m.B + m.C + m.D;
-}
-
-function scaleMaterials(m: MaterialInventory, awardedUnits: number, totalUnits: number): MaterialInventory {
-  if (totalUnits <= 0 || awardedUnits <= 0) return { A: 0, B: 0, C: 0, D: 0 };
-  if (awardedUnits >= totalUnits) return { ...m };
-  const ratio = awardedUnits / totalUnits;
-  return {
-    A: Math.floor(m.A * ratio),
-    B: Math.floor(m.B * ratio),
-    C: Math.floor(m.C * ratio),
-    D: Math.floor(m.D * ratio),
-  };
+function lineQty(line: { qty?: number; materials?: { A: number; B: number; C: number; D: number } }): number {
+  if (typeof line.qty === "number") return line.qty;
+  if (line.materials) return line.materials.A + line.materials.B + line.materials.C + line.materials.D;
+  return 0;
 }
 
 /** Material: higher bid price wins allocation within regional supply. */
@@ -63,26 +51,24 @@ export function clearMaterialRegionBids(bids: MaterialBid[], supplyLimit: number
   let remaining = supplyLimit;
   for (const bid of sorted) {
     const awards = byCompany.get(bid.companyId) ?? [];
-    if (bid.totalUnits <= 0 || remaining <= 0) {
+    if (bid.qty <= 0 || remaining <= 0) {
       awards.push({
         regionCode: bid.regionCode,
-        awardedUnits: 0,
-        awardedMaterials: { A: 0, B: 0, C: 0, D: 0 },
+        awardedQty: 0,
         clearingPriceManwon: bid.unitPriceBidManwon,
-        requestedUnits: bid.totalUnits,
+        requestedQty: bid.qty,
         requestedPriceManwon: bid.unitPriceBidManwon,
       });
       byCompany.set(bid.companyId, awards);
       continue;
     }
-    const awardedUnits = Math.min(bid.totalUnits, remaining);
-    remaining -= awardedUnits;
+    const awardedQty = Math.min(bid.qty, remaining);
+    remaining -= awardedQty;
     awards.push({
       regionCode: bid.regionCode,
-      awardedUnits,
-      awardedMaterials: scaleMaterials(bid.materials, awardedUnits, bid.totalUnits),
+      awardedQty,
       clearingPriceManwon: bid.unitPriceBidManwon,
-      requestedUnits: bid.totalUnits,
+      requestedQty: bid.qty,
       requestedPriceManwon: bid.unitPriceBidManwon,
     });
     byCompany.set(bid.companyId, awards);
@@ -134,14 +120,13 @@ export function collectMaterialBids(
   const bids: MaterialBid[] = [];
   for (const line of payload.lines ?? []) {
     if (!isRegionCode(line.regionCode)) continue;
-    const totalUnits = sumMaterials(line.materials);
-    if (totalUnits <= 0) continue;
+    const qty = lineQty(line);
+    if (qty <= 0) continue;
     const region = getRegion(line.regionCode);
     bids.push({
       companyId,
       regionCode: line.regionCode,
-      materials: line.materials,
-      totalUnits,
+      qty,
       unitPriceBidManwon: line.unitPriceBidManwon ?? effectiveMaterialUnitPriceManwon(region, economy),
     });
   }
@@ -220,16 +205,16 @@ export function buildAwardedMaterialPayload(
     branches: payload.branches,
     lines: (payload.lines ?? []).map((line) => {
       const award = awardByRegion.get(line.regionCode as RegionCode);
-      if (!award || award.awardedUnits <= 0) {
+      if (!award || award.awardedQty <= 0) {
         return {
           regionCode: line.regionCode,
-          materials: { A: 0, B: 0, C: 0, D: 0 },
+          qty: 0,
           unitPriceBidManwon: line.unitPriceBidManwon,
         };
       }
       return {
         regionCode: line.regionCode,
-        materials: award.awardedMaterials,
+        qty: award.awardedQty,
         unitPriceBidManwon: award.clearingPriceManwon,
       };
     }),
@@ -260,3 +245,6 @@ export type BidWorkflowStep = (typeof BID_WORKFLOW_STEPS)[number];
 export function isBidWorkflowStep(step: string): step is BidWorkflowStep {
   return (BID_WORKFLOW_STEPS as readonly string[]).includes(step);
 }
+
+/** @deprecated Use awardedQty on MaterialAward */
+export type { MaterialAward as MaterialAwardLegacy };
