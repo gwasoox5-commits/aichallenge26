@@ -5,6 +5,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { authFetch, clearAccessToken, getAccessToken } from "@/lib/bsp/auth-client";
 import { useAdminSession } from "@/lib/bsp/admin-session-context";
+import {
+  AdminRealtimeProvider,
+  useAdminRealtimeController,
+} from "@/lib/bsp/admin-realtime-context";
 import { applyGmSessionToken, canConnectRealtime } from "@/lib/bsp/token-client";
 import type { GmDeskDto } from "@/src/bsp/domain/types";
 import { AdminRealtimeIndicator } from "@/components/admin/AdminRealtimeIndicator";
@@ -49,9 +53,18 @@ function AdminNavLinks({ pathname }: { pathname: string }) {
 }
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
+  return (
+    <AdminRealtimeProvider>
+      <AdminShellInner>{children}</AdminShellInner>
+    </AdminRealtimeProvider>
+  );
+}
+
+function AdminShellInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { sessionId, setSessionId } = useAdminSession();
+  const { broadcast, setConnectionState, setFlash } = useAdminRealtimeController();
   const [authRole, setAuthRole] = useState<string | null>(null);
   const [desk, setDesk] = useState<GmDeskDto | null>(null);
   const [sessions, setSessions] = useState<{ id: string; name: string }[]>([]);
@@ -166,8 +179,23 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const { connectionState, flash } = useRealtime({
     sessionId,
     enabled: gmTokenReady && !!sessionId,
-    onSync: () => sessionId && refreshDesk(sessionId),
+    onSync: () => {
+      if (sessionId) void refreshDesk(sessionId);
+      broadcast();
+    },
+    onEvent: () => {
+      if (sessionId) void refreshDesk(sessionId);
+      broadcast();
+    },
   });
+
+  useEffect(() => {
+    setConnectionState(connectionState);
+  }, [connectionState, setConnectionState]);
+
+  useEffect(() => {
+    setFlash(flash);
+  }, [flash, setFlash]);
 
   if (loading) {
     return (

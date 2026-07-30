@@ -3,38 +3,65 @@
 import { useCallback, useEffect, useState } from "react";
 import { authFetch } from "@/lib/bsp/auth-client";
 import { useAdminSession } from "@/lib/bsp/admin-session-context";
-import { useRealtime } from "@/lib/bsp/use-realtime";
+import { useAdminRealtimeRefresh } from "@/lib/bsp/admin-realtime-context";
 import type { SessionDebriefAnalysis } from "@/src/bsp/application/debrief-analysis-service";
 import type { GmDeskDto } from "@/src/bsp/domain/types";
 import { formatPeriodLabel, formatStepPhaseLabel } from "@/src/bsp/domain/period/display-labels";
+
+async function readApiError(res: Response, fallback: string): Promise<string> {
+  try {
+    const data = (await res.json()) as { error?: string; message?: string };
+    return data.error ?? data.message ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 export function AdminDebriefPanel() {
   const { sessionId } = useAdminSession();
   const [desk, setDesk] = useState<GmDeskDto | null>(null);
   const [analysis, setAnalysis] = useState<SessionDebriefAnalysis | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   const refresh = useCallback(async (id: string) => {
+    setLoading(true);
+    setLoadError(null);
+    setAnalysisError(null);
+
     const [deskRes, analysisRes] = await Promise.all([
       authFetch(`/api/v1/gm/sessions/${id}/desk`),
       authFetch(`/api/v1/gm/sessions/${id}/debrief-analysis`),
     ]);
-    if (deskRes.ok) setDesk(await deskRes.json());
-    if (analysisRes.ok) setAnalysis(await analysisRes.json());
+
+    if (!deskRes.ok) {
+      setDesk(null);
+      setAnalysis(null);
+      setLoadError(await readApiError(deskRes, `디브리프 데이터 조회 실패 (${deskRes.status})`));
+      setLoading(false);
+      return;
+    }
+
+    setDesk(await deskRes.json());
+
+    if (!analysisRes.ok) {
+      setAnalysis(null);
+      setAnalysisError(await readApiError(analysisRes, `강사용 분석 조회 실패 (${analysisRes.status})`));
+    } else {
+      setAnalysis(await analysisRes.json());
+    }
+
+    setLoading(false);
   }, []);
 
   useEffect(() => {
     if (sessionId) void refresh(sessionId);
   }, [sessionId, refresh]);
 
-  useRealtime({
-    sessionId: sessionId ?? null,
-    onSync: () => {
-      if (sessionId) void refresh(sessionId);
-    },
-    onEvent: () => {
-      if (sessionId) void refresh(sessionId);
-    },
+  useAdminRealtimeRefresh(() => {
+    if (sessionId) void refresh(sessionId);
   });
 
   const handleRefresh = async () => {
@@ -48,7 +75,29 @@ export function AdminDebriefPanel() {
   };
 
   if (!sessionId) return <p className="text-sm text-slate-500">세션을 선택하세요.</p>;
-  if (!desk) return <p className="text-sm text-slate-500">디브리프 데이터 로딩…</p>;
+
+  if (loading && !desk) {
+    return <p className="text-sm text-slate-500">디브리프 데이터 로딩…</p>;
+  }
+
+  if (loadError) {
+    return (
+      <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-800">
+        <p className="font-medium">디브리프 데이터를 불러오지 못했습니다</p>
+        <p className="mt-2">{loadError}</p>
+        <button
+          type="button"
+          onClick={() => void handleRefresh()}
+          disabled={refreshing}
+          className="mt-4 rounded-lg border border-red-300 bg-white px-3 py-1.5 hover:bg-red-100 disabled:opacity-50"
+        >
+          {refreshing ? "재시도 중…" : "다시 시도"}
+        </button>
+      </div>
+    );
+  }
+
+  if (!desk) return null;
 
   const exportCsv = () => {
     const rows = [
@@ -94,9 +143,6 @@ export function AdminDebriefPanel() {
           >
             {refreshing ? "새로고침 중…" : "새로고침"}
           </button>
-          <button type="button" onClick={() => window.print()} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50">
-            인쇄
-          </button>
           <button type="button" onClick={exportCsv} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50">
             CSV
           </button>
@@ -140,6 +186,13 @@ export function AdminDebriefPanel() {
           AI 코멘트 및 내부 분석은 학습자에게 공개되지 않습니다. 팀별 제출 Step:{" "}
           {desk.teams.map((t) => `${t.teamName}(${t.submittedSteps.length}/6)`).join(" · ")}
         </p>
+
+        {analysisError && (
+          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <p className="font-medium">강사용 분석을 불러오지 못했습니다</p>
+            <p className="mt-1">{analysisError}</p>
+          </div>
+        )}
 
         {analysis && (
           <div className="mt-4 space-y-4">
@@ -208,6 +261,10 @@ export function AdminDebriefPanel() {
               ))}
             </div>
           </div>
+        )}
+
+        {!analysis && !analysisError && (
+          <p className="mt-4 text-sm text-violet-800">팀 제출 데이터가 쌓이면 강사용 분석이 표시됩니다.</p>
         )}
       </section>
     </div>

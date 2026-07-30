@@ -80,7 +80,7 @@ export function WorldDashboard() {
     if (sessionId) loadWorld(sessionId);
   }, [sessionId, loadWorld]);
 
-  const initWorld = async () => {
+  const initWorld = async (force = false) => {
     if (!sessionId) return;
     setLoading(true);
     setError(null);
@@ -88,7 +88,7 @@ export function WorldDashboard() {
       const res = await authFetch(`/api/v3/world/sessions/${encodeURIComponent(sessionId)}/state`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profileId }),
+        body: JSON.stringify({ profileId, force }),
       });
       if (!res.ok) throw new Error("World init failed");
       const data = (await res.json()) as { world: WorldSessionRecord };
@@ -188,11 +188,21 @@ export function WorldDashboard() {
         <button
           type="button"
           disabled={loading || !sessionId}
-          onClick={initWorld}
+          onClick={() => void initWorld()}
           className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
         >
           {WORLD_UI.initButton}
         </button>
+        {world && (
+          <button
+            type="button"
+            disabled={loading || !sessionId}
+            onClick={() => void initWorld(true)}
+            className="rounded-lg border border-amber-300 px-4 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 disabled:opacity-50"
+          >
+            {WORLD_UI.forceInitButton}
+          </button>
+        )}
         {world && (
           <button
             type="button"

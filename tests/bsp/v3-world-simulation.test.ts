@@ -274,6 +274,22 @@ describe("V3.0 World Simulation Service — E2E", () => {
     expect(energy.currentState.dimensions.inflation).toBe(75);
   });
 
+  it("force re-inits world with same profile", async () => {
+    const engine = makeEngine();
+    const svc = makeWorldService(engine);
+    const session = await engine.createSession("V3-ForceInit");
+    const first = await svc.initWorld(session.id, "STABLE_GROWTH", GM);
+    await svc.onHalfEnd(session.id, "Y1H1", 1);
+    expect(first.proposals.length).toBeGreaterThan(0);
+
+    const noop = await svc.initWorld(session.id, "STABLE_GROWTH", GM);
+    expect(noop.proposals.length).toBe(first.proposals.length);
+
+    const reset = await svc.initWorld(session.id, "STABLE_GROWTH", GM, undefined, { force: true });
+    expect(reset.proposals.length).toBe(0);
+    expect(reset.randomSeed).not.toBe(first.randomSeed);
+  });
+
   it("half-end evolution creates proposals", async () => {
     const engine = makeEngine();
     const svc = makeWorldService(engine);

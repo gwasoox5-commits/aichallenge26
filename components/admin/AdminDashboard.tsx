@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { authFetch } from "@/lib/bsp/auth-client";
-import { useRealtime } from "@/lib/bsp/use-realtime";
+import { useAdminRealtimeRefresh } from "@/lib/bsp/admin-realtime-context";
 import { GmConfirmDialog } from "@/components/gm/GmConfirmDialog";
 import { GmTeamTable } from "@/components/gm/GmTeamTable";
 import { MarketClearingResultsPanel } from "@/components/bsp/MarketClearingResultsPanel";
@@ -39,14 +39,8 @@ export function AdminDashboard({ sessionId, desk, onRefresh, onMessage, message 
   const [pending, setPending] = useState<PendingAction | null>(null);
   const [reason, setReason] = useState("");
 
-  useRealtime({
-    sessionId,
-    onSync: () => {
-      void onRefresh();
-    },
-    onEvent: () => {
-      void onRefresh();
-    },
+  useAdminRealtimeRefresh(() => {
+    void onRefresh();
   });
 
   const handleRefresh = async () => {

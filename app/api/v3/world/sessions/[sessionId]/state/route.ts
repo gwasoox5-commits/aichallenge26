@@ -15,7 +15,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ sessionId: str
   return v3GmJson(req, sessionId, async (actor, body) => {
     const profileId = (body.profileId as WorldProfileId) ?? "STABLE_GROWTH";
     const customDimensions = body.customDimensions as Partial<import("@/lib/v3/world/types").WorldDimensionValues> | undefined;
-    const world = await getV3WorldSimulation().initWorld(sessionId, profileId, actor, customDimensions);
+    const force = body.force === true;
+    const world = await getV3WorldSimulation().initWorld(sessionId, profileId, actor, customDimensions, {
+      force,
+    });
     return { world };
   });
 }

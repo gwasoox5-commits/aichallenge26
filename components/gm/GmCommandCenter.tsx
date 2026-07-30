@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { authFetch } from "@/lib/bsp/auth-client";
-import { useRealtime } from "@/lib/bsp/use-realtime";
+import { useAdminRealtimeRefresh, useAdminRealtimeStatus } from "@/lib/bsp/admin-realtime-context";
 import { RealtimeIndicator } from "@/components/bsp/RealtimeIndicator";
 import type { GmDeskDto } from "@/src/bsp/domain/types";
 import type { GmAuditLogEntry } from "@/src/bsp/domain/gm/audit-types";
@@ -43,16 +43,11 @@ export function GmCommandCenter({ sessionId, desk, onRefresh, onMessage }: Props
     if (res.ok) setAuditLog(await res.json());
   }, [sessionId]);
 
-  const { connectionState, flash } = useRealtime({
-    sessionId,
-    onSync: () => {
-      onRefresh();
-      loadAudit();
-    },
-    onEvent: () => {
-      onRefresh();
-      loadAudit();
-    },
+  const { connectionState, flash } = useAdminRealtimeStatus();
+
+  useAdminRealtimeRefresh(() => {
+    void onRefresh();
+    void loadAudit();
   });
 
   useEffect(() => {
