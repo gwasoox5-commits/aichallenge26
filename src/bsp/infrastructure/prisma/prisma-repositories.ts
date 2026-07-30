@@ -391,7 +391,8 @@ class PrismaCompanyRepository implements CompanyRepository {
         companyId: d.companyId,
         periodId: d.periodId,
         step: d.step as BspGameStep,
-        status: "POSTED",
+        status: d.status === "SUBMITTED" ? "SUBMITTED" : "POSTED",
+        source: (d.source as DecisionRecord["source"]) ?? "CEO",
         payload: d.payload,
         validation: d.validation as unknown as DecisionRecord["validation"],
         computed: d.computed as unknown as DecisionRecord["computed"],
@@ -504,31 +505,35 @@ class PrismaCompanyRepository implements CompanyRepository {
   }
 
   async saveDecision(decision: DecisionRecord): Promise<void> {
-    await bspPrisma.bspDecision.upsert({
-      where: { id: decision.id },
-      create: {
-        id: decision.id,
+    const data = {
+      status: decision.status,
+      source: decision.source ?? "CEO",
+      payload: decision.payload as object,
+      validation: decision.validation as object,
+      computed: decision.computed as object,
+      companyStatusVersion: decision.companyStatusVersion,
+      journalEntryIds: decision.journalEntryIds,
+      submittedAt: decision.submittedAt,
+    };
+    const updated = await bspPrisma.bspDecision.updateMany({
+      where: {
         companyId: decision.companyId,
         periodId: decision.periodId,
         step: decision.step,
-        status: decision.status,
-        source: decision.source ?? "CEO",
-        payload: decision.payload as object,
-        validation: decision.validation as object,
-        computed: decision.computed as object,
-        companyStatusVersion: decision.companyStatusVersion,
-        journalEntryIds: decision.journalEntryIds,
-        submittedAt: decision.submittedAt,
       },
-      update: {
-        status: decision.status,
-        source: decision.source ?? "CEO",
-        payload: decision.payload as object,
-        validation: decision.validation as object,
-        computed: decision.computed as object,
-        journalEntryIds: decision.journalEntryIds,
-      },
+      data,
     });
+    if (updated.count === 0) {
+      await bspPrisma.bspDecision.create({
+        data: {
+          id: decision.id,
+          companyId: decision.companyId,
+          periodId: decision.periodId,
+          step: decision.step,
+          ...data,
+        },
+      });
+    }
   }
 
   async saveJournal(journal: JournalRecord): Promise<void> {

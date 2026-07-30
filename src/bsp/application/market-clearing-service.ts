@@ -38,9 +38,7 @@ export class MarketClearingService {
   async ensureZeroBids(session: SessionAggregate, step: "MATERIAL" | "SALES") {
     const companies = await this.repos.company.listBySession(session.id);
     for (const company of companies) {
-      const hasBid = company.decisions.some(
-        (d) => d.periodId === session.periodId && d.step === step && d.status === "SUBMITTED"
-      );
+      const hasBid = company.decisions.some((d) => isActiveDecision(d, session.periodId, step));
       if (hasBid) continue;
       const payload = getZeroPayload(step, company.operational);
       await this.saveBidDecision(company, session, step, payload, company.statusVersion, "GM_ZERO");
@@ -107,8 +105,12 @@ export class MarketClearingService {
       throw new Error(outcome.validation.rules.find((r) => !r.passed)?.message ?? "Bid validation failed");
     }
 
+    const existing = company.decisions.find(
+      (d) => d.periodId === company.periodId && d.step === step
+    );
+
     const decision: DecisionRecord = {
-      id: crypto.randomUUID(),
+      id: existing?.id ?? crypto.randomUUID(),
       companyId: company.id,
       periodId: company.periodId,
       step,
@@ -122,7 +124,14 @@ export class MarketClearingService {
       submittedAt: new Date(),
     };
 
-    company.decisions.push(decision);
+    const existingIdx = company.decisions.findIndex(
+      (d) => d.periodId === company.periodId && d.step === step
+    );
+    if (existingIdx >= 0) {
+      company.decisions[existingIdx] = decision;
+    } else {
+      company.decisions.push(decision);
+    }
     await this.repos.company.saveDecision(decision);
     const newVersion = await this.repos.company.incrementStatusVersion(company.id, companyStatusVersion);
     company.statusVersion = newVersion;
