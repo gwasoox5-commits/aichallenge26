@@ -33,6 +33,32 @@ describe("Market results dashboard", () => {
     expect(dash.marketResults?.material).toBeNull();
   });
 
+  it("shows GM desk bid preview when all teams submitted at Step 4", async () => {
+    const session = await engine.ensureDemoSession();
+    const { company: a } = await engine.createCompany("Team-A", session.id);
+    const { company: b } = await engine.createCompany("Team-B", session.id);
+    const teams = [a, b];
+
+    await advanceSessionToMaterial(engine, session.id, teams);
+
+    let v = await latestVersion(engine, a.id);
+    await engine.submitDecision(a.id, "MATERIAL", asiaMaterialBidPayload(10, 16), v);
+    v = await latestVersion(engine, b.id);
+    await engine.submitDecision(b.id, "MATERIAL", asiaMaterialBidPayload(10, 14), v);
+
+    const desk = await engine.getGmDesk(session.id);
+    const material = desk.marketResults?.material;
+    expect(material?.visible).toBe(true);
+    expect(material?.phase).toBe("BIDDING");
+    expect(material?.cleared).toBe(false);
+    const asia = material?.regions.find((r) => r.regionCode === "ASIA");
+    expect(asia?.teams).toHaveLength(2);
+    expect(asia?.teams.some((t) => t.awardedQty > 0)).toBe(true);
+
+    const dashA = await engine.getDashboard(a.id);
+    expect(dashA.marketResults?.material).toBeNull();
+  });
+
   it("shows all teams' bids and awards after Step 4 clearing", async () => {
     const session = await engine.ensureDemoSession();
     const { company: a } = await engine.createCompany("Team-A", session.id);
@@ -52,6 +78,7 @@ describe("Market results dashboard", () => {
     const material = dashA.marketResults?.material;
     expect(material?.visible).toBe(true);
     expect(material?.cleared).toBe(true);
+    expect(material?.phase).toBe("CLEARED");
     const asia = material?.regions.find((r) => r.regionCode === "ASIA");
     expect(asia?.teams).toHaveLength(2);
     expect(asia?.teams.find((t) => t.isSelf)?.awardedQty).toBeGreaterThan(0);

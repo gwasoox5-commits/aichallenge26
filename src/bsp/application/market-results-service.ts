@@ -11,6 +11,7 @@ import type {
 } from "../domain/types";
 import { OPERATIONAL_STEP_PHASES } from "../domain/types";
 import type { MaterialAward, SalesAward } from "../domain/market/market-clearing";
+import { clearMaterialBids, collectMaterialBids } from "../domain/market/market-clearing";
 import { effectiveMaterialLimit, effectiveMaterialUnitPriceManwon } from "../domain/economy/material-pricing";
 import { effectiveSaleLimit } from "../domain/economy/sales-pricing";
 import { getRegion, REGION_CATALOG, type RegionCode } from "../domain/regions/region-catalog";
@@ -35,12 +36,31 @@ function findPostedDecision(company: CompanyAggregate, periodId: string, step: B
   return company.decisions.find((d) => d.periodId === periodId && d.step === step && d.status === "POSTED");
 }
 
+function findActiveDecision(company: CompanyAggregate, periodId: string, step: BspGameStep) {
+  return company.decisions.find(
+    (d) =>
+      d.periodId === periodId &&
+      d.step === step &&
+      (d.status === "SUBMITTED" || d.status === "POSTED")
+  );
+}
+
+function allTeamsSubmittedForStep(session: SessionAggregate, companies: CompanyAggregate[], step: BspGameStep) {
+  if (companies.length === 0) return false;
+  return companies.every((company) => !!findActiveDecision(company, session.periodId, step));
+}
+
 export class MarketResultsService {
-  build(session: SessionAggregate, companies: CompanyAggregate[], viewerCompanyId: string): MarketResultsDto {
+  build(
+    session: SessionAggregate,
+    companies: CompanyAggregate[],
+    viewerCompanyId: string,
+    options?: { gmDesk?: boolean }
+  ): MarketResultsDto {
     return {
       periodLabel: session.periodLabel,
-      material: this.buildStepResult(session, companies, viewerCompanyId, "MATERIAL"),
-      sales: this.buildStepResult(session, companies, viewerCompanyId, "SALES"),
+      material: this.buildStepResult(session, companies, viewerCompanyId, "MATERIAL", options),
+      sales: this.buildStepResult(session, companies, viewerCompanyId, "SALES", options),
     };
   }
 
@@ -48,8 +68,18 @@ export class MarketResultsService {
     session: SessionAggregate,
     companies: CompanyAggregate[],
     viewerCompanyId: string,
-    step: "MATERIAL" | "SALES"
+    step: "MATERIAL" | "SALES",
+    options?: { gmDesk?: boolean }
   ): MarketStepResultDto | null {
+    if (
+      options?.gmDesk &&
+      step === "MATERIAL" &&
+      session.stepPhase === "STEP4_PURCHASE" &&
+      allTeamsSubmittedForStep(session, companies, "MATERIAL")
+    ) {
+      return this.buildMaterialBiddingPreview(session, companies, viewerCompanyId);
+    }
+
     const revealAfterPhase: BspStepPhase = step === "MATERIAL" ? "STEP5_PRODUCTION" : "STEP7_SETTLEMENT";
     const visible = phaseIndex(session.stepPhase) >= phaseIndex(revealAfterPhase);
     if (!visible) return null;
@@ -66,7 +96,48 @@ export class MarketResultsService {
       stepLabel: step === "MATERIAL" ? "Step 4 · 원재료 구매" : "Step 6 · 판매",
       visible,
       cleared: posted.length > 0,
+      phase: "CLEARED",
       sortRule: step === "MATERIAL" ? "HIGHER_PRICE_WINS" : "LOWER_PRICE_WINS",
+      regions,
+    };
+  }
+
+  private buildMaterialBiddingPreview(
+    session: SessionAggregate,
+    companies: CompanyAggregate[],
+    viewerCompanyId: string
+  ): MarketStepResultDto {
+    const active = companies
+      .map((company) => ({ company, decision: findActiveDecision(company, session.periodId, "MATERIAL") }))
+      .filter((row): row is { company: CompanyAggregate; decision: NonNullable<typeof row.decision> } => !!row.decision);
+
+    const allBids = active.flatMap(({ company, decision }) =>
+      collectMaterialBids(company.id, decision.payload as MaterialPayload, session.economy)
+    );
+    const awardsByCompany = clearMaterialBids(allBids, session.economy);
+
+    const withPreview = active.map(({ company, decision }) => ({
+      company,
+      decision: {
+        ...decision,
+        computed: {
+          ...(typeof decision.computed === "object" && decision.computed !== null
+            ? (decision.computed as Record<string, unknown>)
+            : {}),
+          marketAwards: awardsByCompany.get(company.id) ?? [],
+        },
+      },
+    }));
+
+    const regions = this.buildRegions(session.economy, companies, viewerCompanyId, "MATERIAL", withPreview);
+
+    return {
+      step: "MATERIAL",
+      stepLabel: "Step 4 · 원재료 구매",
+      visible: true,
+      cleared: false,
+      phase: "BIDDING",
+      sortRule: "HIGHER_PRICE_WINS",
       regions,
     };
   }

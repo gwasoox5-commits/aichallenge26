@@ -498,11 +498,15 @@ export interface MarketRegionResultDto {
   teams: MarketTeamRowDto[];
 }
 
+export type MarketStepPhase = "BIDDING" | "CLEARED";
+
 export interface MarketStepResultDto {
   step: "MATERIAL" | "SALES";
   stepLabel: string;
   visible: boolean;
   cleared: boolean;
+  /** BIDDING = all teams submitted, awards are preview until GM advances. */
+  phase?: MarketStepPhase;
   sortRule: "HIGHER_PRICE_WINS" | "LOWER_PRICE_WINS";
   regions: MarketRegionResultDto[];
 }

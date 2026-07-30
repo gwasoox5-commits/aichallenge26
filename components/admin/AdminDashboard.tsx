@@ -5,6 +5,7 @@ import { useState } from "react";
 import { authFetch } from "@/lib/bsp/auth-client";
 import { GmConfirmDialog } from "@/components/gm/GmConfirmDialog";
 import { GmTeamTable } from "@/components/gm/GmTeamTable";
+import { MarketClearingResultsPanel } from "@/components/bsp/MarketClearingResultsPanel";
 import type { GmDeskDto } from "@/src/bsp/domain/types";
 import { formatPeriodLabel, formatStepPhaseLabel } from "@/src/bsp/domain/period/display-labels";
 import { formatStepTime } from "@/lib/bsp/step-timer";
@@ -186,6 +187,10 @@ export function AdminDashboard({ sessionId, desk, onRefresh, onMessage, message 
               </Link>
             </div>
           </section>
+
+          {desk.marketResults?.material?.visible && (
+            <MarketClearingResultsPanel marketResults={desk.marketResults} variant="admin" />
+          )}
 
           <GmTeamTable
             desk={desk}

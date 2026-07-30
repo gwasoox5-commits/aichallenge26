@@ -406,7 +406,7 @@ export class GameEngine {
       teams,
       ranking,
       recentEvents,
-      marketResults: marketResultsService.build(session, companies, ""),
+      marketResults: marketResultsService.build(session, companies, "", { gmDesk: true }),
     };
   }
 
